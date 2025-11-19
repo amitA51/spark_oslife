@@ -130,10 +130,36 @@ class SyncService {
             this.updateState({ status: 'idle', lastSyncTime: new Date().toISOString() });
 
         } catch (error) {
+            let errorMessage = 'שגיאה לא ידועה';
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (typeof error === 'object' && error !== null) {
+                // Try to extract message from Google API error object
+                const anyError = error as any;
+                if (anyError.result && anyError.result.error && anyError.result.error.message) {
+                    errorMessage = anyError.result.error.message;
+                } else if (anyError.message) {
+                    errorMessage = anyError.message;
+                } else {
+                    errorMessage = JSON.stringify(error);
+                }
+            } else {
+                errorMessage = String(error);
+            }
+
+            // Clean up common ugly error messages
+            if (errorMessage === '{}') errorMessage = 'שגיאת רשת או הרשאה';
+
             console.error('Sync error:', error);
-            this.updateState({ status: 'error', lastError: String(error) });
+            this.updateState({ status: 'error', lastError: errorMessage });
         } finally {
             this.isSyncing = false;
+        }
+    }
+
+    clearError() {
+        if (this.syncState.status === 'error') {
+            this.updateState({ status: 'idle', lastError: undefined });
         }
     }
 

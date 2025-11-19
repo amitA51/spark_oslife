@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { syncService, type SyncState } from '../services/syncService';
+import { syncService } from '../services/syncService';
+import { SyncState } from '../types';
 
 const SyncIndicator: React.FC = () => {
     const [syncState, setSyncState] = useState<SyncState>(syncService.getState());
@@ -108,13 +109,23 @@ const SyncIndicator: React.FC = () => {
                             )}
 
                             {/* Error Message */}
-                            {syncState.status === 'error' && syncState.lastError && (
+                            {syncState.status === 'error' && (
                                 <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                                    <div className="text-xs text-red-500 font-medium mb-1">
-                                        שגיאה
+                                    <div className="flex justify-between items-start mb-1">
+                                        <div className="text-xs text-red-500 font-medium">
+                                            שגיאה
+                                        </div>
+                                        <button
+                                            onClick={() => syncService.clearError()}
+                                            className="text-[10px] text-red-500/60 hover:text-red-500 underline"
+                                        >
+                                            התעלם
+                                        </button>
                                     </div>
-                                    <div className="text-xs text-red-500/80">
-                                        {syncState.lastError}
+                                    <div className="text-xs text-red-500/80 break-words">
+                                        {typeof syncState.lastError === 'string'
+                                            ? syncState.lastError
+                                            : 'אירעה שגיאה לא צפויה בסנכרון'}
                                     </div>
                                 </div>
                             )}

@@ -20,7 +20,6 @@ import { useThemeEffect } from './hooks/useThemeEffect';
 import { usePwaUpdate } from './hooks/usePwaUpdate';
 import SmartCaptureFAB from './components/SmartCaptureFAB';
 import { performanceService } from './services/performanceService';
-import DebugAuth from './components/DebugAuth';
 import SyncIndicator from './components/SyncIndicator';
 
 // ... (existing imports)
@@ -208,7 +207,6 @@ const ThemedApp: React.FC = () => {
     return (
         <div className="max-w-2xl mx-auto app-container pb-24 overflow-x-hidden min-h-screen flex flex-col">
             {themeSettings.backgroundEffect && <DynamicBackground />}
-            <DebugAuth />
             <SyncIndicator />
             <main className="flex-grow">
                 <Suspense fallback={<AppLoading />}>
