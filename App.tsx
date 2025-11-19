@@ -20,6 +20,9 @@ import { useThemeEffect } from './hooks/useThemeEffect';
 import { usePwaUpdate } from './hooks/usePwaUpdate';
 import SmartCaptureFAB from './components/SmartCaptureFAB';
 import { performanceService } from './services/performanceService';
+import DebugAuth from './components/DebugAuth';
+
+// ... (existing imports)
 
 // --- Code Splitting with React.lazy ---
 const FeedScreen = lazy(() => import('./screens/FeedScreen'));
@@ -204,6 +207,7 @@ const ThemedApp: React.FC = () => {
     return (
         <div className="max-w-2xl mx-auto app-container pb-24 overflow-x-hidden min-h-screen flex flex-col">
             {themeSettings.backgroundEffect && <DynamicBackground />}
+            <DebugAuth />
             <main className="flex-grow">
                 <Suspense fallback={<AppLoading />}>
                     {Object.entries(screenMap).map(([screenKey, screenComponent]) => (

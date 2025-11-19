@@ -5,6 +5,7 @@ import { saveSettings } from '../services/settingsService';
 import * as dataService from '../services/dataService';
 import * as googleCalendarService from '../services/googleCalendarService';
 import * as googleDriveService from '../services/googleDriveService';
+import * as googleAuthService from '../services/googleAuthService';
 import * as notifications from '../services/notificationsService';
 import {
     DatabaseIcon, DownloadIcon, UploadIcon, WarningIcon,
@@ -193,10 +194,25 @@ const SettingsScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = 
         if (enabled && notificationPermission === 'default') setNotificationPermission(await notifications.requestPermission());
     };
 
-    const handleConnectGoogle = () => googleCalendarService.signIn();
+
+
+    const handleConnectGoogle = async () => {
+        try {
+            googleAuthService.signIn();
+        } catch (error) {
+            console.error("Google Sign-In Error:", error);
+            setStatusMessage({ type: 'error', text: 'שגיאה בהתחברות ל-Google.', id: Date.now() });
+        }
+    };
+
     const handleDisconnectGoogle = async () => {
-        await googleCalendarService.signOut();
-        dispatch({ type: 'SET_GOOGLE_AUTH_STATE', payload: 'signedOut' });
+        try {
+            await googleAuthService.signOut();
+            setStatusMessage({ type: 'success', text: 'התנתקת מ-Google בהצלחה.', id: Date.now() });
+        } catch (error) {
+            console.error("Google Sign-Out Error:", error);
+            setStatusMessage({ type: 'error', text: 'שגיאה בהתנתקות.', id: Date.now() });
+        }
     };
 
     const handleSync = async (direction: 'upload' | 'download') => {
