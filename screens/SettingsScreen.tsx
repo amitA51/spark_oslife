@@ -692,12 +692,12 @@ const SettingsScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = 
                         {activeSection === 'integrations' && (
                             <SettingsSection title="שילובים והתראות" id="integrations">
                                 <SettingsCard title="שילובים">
-                                    <SettingsRow title="Google Calendar" description={state.googleAuthState === 'signedIn' ? 'מחובר' : 'לא מחובר'}>
+                                    <SettingsRow title="חשבון Google" description={state.googleAuthState === 'signedIn' ? 'מחובר (Calendar & Drive)' : 'התחבר כדי לאפשר סנכרון ויומן'}>
                                         {state.googleAuthState === 'signedIn' ? (
                                             <button onClick={handleDisconnectGoogle} className="bg-red-500/10 border border-red-500/50 hover:bg-red-500/20 text-red-400 font-semibold px-4 py-2 rounded-lg text-sm transition-colors">התנתק</button>
                                         ) : (
                                             <button onClick={handleConnectGoogle} disabled={state.googleAuthState === 'loading'} className="bg-[var(--dynamic-accent-start)] text-white font-semibold px-4 py-2 rounded-lg text-sm disabled:opacity-50 hover:brightness-110 shadow-lg shadow-[var(--dynamic-accent-glow)] transition-all">
-                                                {state.googleAuthState === 'loading' ? 'טוען...' : 'התחבר'}
+                                                {state.googleAuthState === 'loading' ? 'טוען...' : 'התחבר ל-Google'}
                                             </button>
                                         )}
                                     </SettingsRow>
@@ -762,7 +762,7 @@ const SettingsScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = 
                                 <SettingsCard title="ארגון">
                                     <SettingsRow title="ארגון מרחבים ופידים" description="נהל את מרחבי התוכן האישיים ומרחבי הפידים שלך."><button onClick={() => setIsManageSpacesOpen(true)} className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] hover:border-[var(--dynamic-accent-start)] text-[var(--text-primary)] hover:text-[var(--dynamic-accent-highlight)] font-bold py-2 px-4 rounded-xl transition-colors text-sm">ניהול מרחבים</button></SettingsRow>
                                 </SettingsCard>
-                                <SettingsCard title="אבטחה ופרטיות" icon={<ShieldCheckIcon className="w-5 h-5 text-emerald-400" />}>
+                                <SettingsCard title="אבטחה ופרטיות">
                                     <div className="space-y-4">
                                         <button
                                             onClick={() => setActiveScreen('passwords')}
@@ -782,7 +782,7 @@ const SettingsScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = 
                                     </div>
                                 </SettingsCard>
 
-                                <SettingsCard title="גיבוי וסנכרון" icon={<CloudIcon className="w-5 h-5 text-blue-400" />}>
+                                <SettingsCard title="גיבוי וסנכרון">
                                     <SettingsRow title="ייצוא נתונים" description="שמור קובץ גיבוי של כל הנתונים.">
                                         <button onClick={handleExport} className="flex items-center gap-2 text-[var(--dynamic-accent-highlight)] hover:underline"><DownloadIcon className="w-4 h-4" /> ייצא לקובץ</button>
                                     </SettingsRow>

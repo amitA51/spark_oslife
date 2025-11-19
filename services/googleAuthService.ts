@@ -6,6 +6,10 @@ declare const google: any;
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const API_KEY = process.env.API_KEY;
 
+if (!CLIENT_ID) {
+    console.error("Configuration Error: GOOGLE_CLIENT_ID is missing. Please add it to your .env.local file.");
+}
+
 // Scopes for both Calendar and Drive (App Data Folder)
 const SCOPES = 'https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/drive.file';
 
