@@ -3,11 +3,12 @@ import * as dataService from './dataService';
 declare const gapi: any;
 declare const google: any;
 
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const API_KEY = process.env.API_KEY;
+// Use Vite's import.meta.env for environment variables
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || (window as any).GOOGLE_CLIENT_ID;
+const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || (window as any).GOOGLE_API_KEY;
 
 if (!CLIENT_ID) {
-    console.error("Configuration Error: GOOGLE_CLIENT_ID is missing. Please add it to your .env.local file.");
+    console.error("Configuration Error: VITE_GOOGLE_CLIENT_ID is missing. Please add it to your .env.local file.");
 }
 
 // Scopes for both Calendar and Drive (App Data Folder)

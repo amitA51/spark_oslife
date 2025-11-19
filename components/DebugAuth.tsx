@@ -14,9 +14,9 @@ const DebugAuth: React.FC = () => {
                 gapiLoaded: !!gapi,
                 googleLoaded: !!google,
                 gapiClient: !!gapi?.client,
-                authServiceInitialized: googleAuthService.isInitialized(), // We need to add this method
-                clientId: process.env.GOOGLE_CLIENT_ID ? 'Present (Ends with ' + process.env.GOOGLE_CLIENT_ID.slice(-4) + ')' : 'MISSING',
-                apiKey: process.env.API_KEY ? 'Present' : 'MISSING',
+                authServiceInitialized: googleAuthService.isInitialized(),
+                clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID ? 'Present (Ends with ' + import.meta.env.VITE_GOOGLE_CLIENT_ID.slice(-4) + ')' : 'MISSING',
+                apiKey: import.meta.env.VITE_GOOGLE_API_KEY ? 'Present' : 'MISSING',
                 timestamp: new Date().toLocaleTimeString()
             });
         };
