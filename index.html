@@ -1,0 +1,258 @@
+
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icon.svg">
+    <meta name="application-name" content="Spark">
+    <meta name="apple-mobile-web-app-title" content="Spark">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    
+    <title>Spark</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alef:wght@400;700&family=Heebo:wght@300;400;500;700;900&family=Inter:wght@300;400;500;600;700;800;900&family=Lato:wght@300;400;700&family=Poppins:wght@300;400;500;600;700;800;900&family=Rubik:wght@300;400;500;700;900&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script async defer src="https://apis.google.com/js/api.js"></script>
+    <script async defer src="https://accounts.google.com/gsi/client"></script>
+    <style>
+      :root {
+        /* Default Theme: Nebula (Refined for premium feel) */
+        --bg-primary: #0f172a; /* Slate 950 */
+        --bg-secondary: #1e293b; /* Slate 800 */
+        --bg-card: rgba(30, 41, 59, 0.7); /* Slate 700 with opacity */
+        --text-primary: #f8fafc; 
+        --text-secondary: #94a3b8; 
+        --border-primary: rgba(255, 255, 255, 0.08);
+
+        /* Default Accents (will be overridden by JS) */
+        --accent-start: #C4B5FD; 
+        --accent-end: #A78BFA;   
+        --accent-highlight: #DDD6FE;
+        
+        /* Dynamic Theme Vars */
+        --font-primary: 'Inter', sans-serif;
+        --dynamic-accent-start: var(--accent-start);
+        --dynamic-accent-end: var(--accent-end);
+        --dynamic-accent-highlight: var(--accent-highlight);
+        --dynamic-accent-glow: rgba(196, 181, 253, 0.25);
+        
+        /* Living Gradient */
+        --accent-gradient: linear-gradient(135deg, var(--dynamic-accent-start), var(--dynamic-accent-end));
+        
+        --font-scale: 1.0;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+        --success: #10b981;
+
+        /* Refined Motion */
+        --fi-cubic-bezier: cubic-bezier(0.34, 1.56, 0.64, 1);
+        
+        /* Spotlight Mouse Tracker (Updated via JS) */
+        --mouse-x: 0px;
+        --mouse-y: 0px;
+      }
+      
+      .font-lato { --font-primary: 'Lato', sans-serif; }
+      .font-source-code-pro { --font-primary: 'Source Code Pro', monospace; }
+      .font-inter { --font-primary: 'Inter', sans-serif; }
+      .font-heebo { --font-primary: 'Heebo', sans-serif; }
+      .font-rubik { --font-primary: 'Rubik', sans-serif; }
+      .font-alef { --font-primary: 'Alef', sans-serif; }
+      .font-poppins { --font-primary: 'Poppins', sans-serif; }
+      
+      body {
+        font-family: var(--font-primary);
+        background-color: var(--bg-primary);
+        /* Deep space gradient */
+        background-image: linear-gradient(to bottom, #0f172a, #020617);
+        background-attachment: fixed;
+        color: var(--text-primary);
+        overflow-x: hidden;
+        line-height: 1.6;
+        font-size: calc(1rem * var(--font-scale));
+        transition: background-color 0.5s ease-out;
+        -webkit-font-smoothing: antialiased;
+        min-height: 100vh;
+      }
+
+      /* --- PREMIUM NOISE TEXTURE --- */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 50; 
+        opacity: 0.04;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        mix-blend-mode: overlay;
+      }
+      
+      /* --- ANIMATED GRADIENT TEXT --- */
+      @keyframes gradient-flow {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+      }
+
+      /* --- TYPEWRITER CURSOR BLINK --- */
+      @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+      }
+      
+      .animate-blink {
+        animation: blink 1s step-end infinite;
+      }
+
+      /* --- FUTURISTIC GLASS CARD --- */
+      .themed-card {
+        position: relative;
+        border-radius: 1.25rem;
+        /* Glass base */
+        background-color: var(--bg-card); 
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 
+            0 4px 6px -1px rgba(0, 0, 0, 0.2), 
+            0 2px 4px -1px rgba(0, 0, 0, 0.1),
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+        overflow: hidden; /* For spotlight containment */
+        transition: transform 0.3s var(--fi-cubic-bezier), box-shadow 0.3s ease-out, border-color 0.3s;
+      }
+
+      /* --- SPOTLIGHT EFFECT --- */
+      /* Creates a glowing orb at the mouse position on top of the card border */
+      .themed-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 1.25rem;
+        padding: 1.5px; /* Border width */
+        background: radial-gradient(
+          600px circle at var(--mouse-x) var(--mouse-y),
+          rgba(255, 255, 255, 0.4),
+          transparent 40%
+        );
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 10;
+      }
+      
+      .themed-card:hover::after {
+          opacity: 1;
+      }
+
+      .themed-card:hover {
+         transform: translateY(-4px) scale(1.005);
+         box-shadow: 
+            0 20px 25px -5px rgba(0, 0, 0, 0.4), 
+            0 10px 10px -5px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+         border-color: rgba(255, 255, 255, 0.15);
+      }
+      
+      .themed-card:active {
+        transform: scale(0.98);
+      }
+
+      /* --- UI ELEMENTS --- */
+
+      .glass-input {
+        background-color: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+        backdrop-filter: blur(4px);
+      }
+      .glass-input:focus {
+        border-color: var(--dynamic-accent-start);
+        background-color: rgba(30, 41, 59, 0.9);
+        box-shadow: 0 0 0 2px var(--dynamic-accent-glow);
+      }
+      
+      .hero-title {
+        font-size: 2.5rem;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        background: linear-gradient(to right, #fff, var(--dynamic-accent-highlight));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 20px var(--dynamic-accent-glow));
+        padding-bottom: 0.2em; 
+        line-height: 1.1;
+      }
+
+      .themed-title {
+        font-weight: 800;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      
+      /* --- VITALITY ANIMATIONS --- */
+      
+      /* Float animation for cards/buttons */
+      @keyframes float {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-6px); }
+          100% { transform: translateY(0px); }
+      }
+      
+      .animate-float {
+          animation: float 5s ease-in-out infinite;
+      }
+      
+      /* Pulse for active states */
+      .animate-pulse-slow {
+          animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      .nav-icon-active {
+          color: var(--dynamic-accent-start);
+          filter: drop-shadow(0 0 12px var(--dynamic-accent-start));
+          transform: scale(1.15);
+      }
+      
+      *:focus-visible {
+        outline: 2px solid var(--dynamic-accent-start);
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
+      
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 10px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
+
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0",
+    "showdown": "https://aistudiocdn.com/showdown@^2.1.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

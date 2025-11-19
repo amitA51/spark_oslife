@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Spark Personal os 1 test more clean",
+  "description": "test clean",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
