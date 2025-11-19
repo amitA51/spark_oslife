@@ -30,7 +30,7 @@ type Status = {
     onUndo?: () => void;
 } | null;
 
-type SettingsSectionId = 'appearance' | 'ai' | 'integrations' | 'general' | 'data';
+type SettingsSectionId = 'appearance' | 'ai' | 'integrations' | 'general' | 'data' | 'workout';
 
 // --- Reusable Setting Components ---
 
