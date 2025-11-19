@@ -16,7 +16,6 @@ const RestTimer: React.FC<RestTimerProps> = ({ targetSeconds, onComplete, onSkip
         const interval = setInterval(() => {
             setSecondsLeft(prev => {
                 if (prev <= 1) {
-                    // Vibrate and play sound
                     if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
                     onComplete();
                     return 0;

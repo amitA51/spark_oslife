@@ -89,6 +89,20 @@ export interface WorkoutTemplate {
   muscleGroups?: string[]; // e.g., ["Chest", "Triceps"]
 }
 
+// Personal Exercise Library - התרגילים האישיים של המשתמש
+export interface PersonalExercise {
+  id: string;
+  name: string;
+  muscleGroup?: string;
+  defaultRestTime?: number; // זמן מנוחה ברירת מחדל (שניות)
+  defaultSets?: number; // מספר סטים ברירת מחדל
+  notes?: string;
+  createdAt: string;
+  lastUsed?: string; // ISO timestamp
+  useCount?: number; // כמה פעמים השתמשו בתרגיל
+}
+
+
 export interface FocusSession {
   date: string; // ISO date string
   duration: number; // in minutes

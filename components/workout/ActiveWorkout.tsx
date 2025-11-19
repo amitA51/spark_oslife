@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { PersonalItem, WorkoutSet } from '../../types';
+import { PersonalItem, WorkoutSet, Exercise } from '../../types';
 import RestTimer from './RestTimer';
+import ExerciseSelector from './ExerciseSelector';
+import QuickExerciseForm from './QuickExerciseForm';
 import { AddIcon, CheckCircleIcon } from '../icons';
 
 interface ActiveWorkoutProps {
@@ -15,6 +17,8 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
     const [elapsedTime, setElapsedTime] = useState(0);
     const [restTimerSeconds, setRestTimerSeconds] = useState(90);
     const [editingSet, setEditingSet] = useState<{ exIndex: number; setIndex: number } | null>(null);
+    const [showExerciseSelector, setShowExerciseSelector] = useState(false);
+    const [showQuickForm, setShowQuickForm] = useState(false);
 
     const exercises = item.exercises || [];
     const currentExercise = exercises[currentExerciseIndex];
@@ -88,6 +92,14 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
         updateSet(setIndex, 'reps', previousSet.reps);
     };
 
+    const addExercise = (exercise: Exercise) => {
+        const newExercises = [...exercises, exercise];
+        onUpdate(item.id, { exercises: newExercises });
+        setCurrentExerciseIndex(newExercises.length - 1);
+        setShowExerciseSelector(false);
+        setShowQuickForm(false);
+    };
+
     if (!currentExercise) return null;
 
     const completedSets = currentExercise.sets.filter(s => s.completedAt).length;
@@ -96,7 +108,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
     return (
         <div className="fixed inset-0 bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-secondary)] z-40 overflow-y-auto">
             {/* Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-purple-600/10 to-blue-600/10 backdrop-blur-xl border-b border-white/10 p-4 z-10 shadow-2xl">
+            <div className="sticky top-0 bg-gradient-to-r from-[var(--accent-primary)]/10 to-[var(--accent-primary)]/5 backdrop-blur-xl border-b border-white/10 p-4 z-10 shadow-2xl">
                 <div className="flex justify-between items-center mb-3">
                     <div>
                         <h2 className="text-xl font-bold mb-1">{item.title}</h2>
@@ -113,7 +125,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
                 </div>
 
                 <div className="text-center">
-                    <div className="text-5xl font-mono font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent animate-pulse">
+                    <div className="text-5xl font-mono font-bold bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-primary)] bg-clip-text text-transparent animate-pulse">
                         {formatTime(elapsedTime)}
                     </div>
                 </div>
@@ -131,10 +143,10 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
                             key={ex.id}
                             onClick={() => setCurrentExerciseIndex(idx)}
                             className={`relative px-4 py-3 rounded-xl whitespace-nowrap font-semibold transition-all min-w-[120px] ${idx === currentExerciseIndex
-                                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white scale-105 shadow-lg shadow-purple-500/50'
-                                    : isComplete
-                                        ? 'bg-green-500/20 border border-green-500/50 text-green-400'
-                                        : 'bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/50'
+                                ? 'bg-[var(--accent-gradient)] text-black scale-105 shadow-lg shadow-[var(--accent-primary)]/50'
+                                : isComplete
+                                    ? 'bg-green-500/20 border border-green-500/50 text-green-400'
+                                    : 'bg-[var(--bg-card)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--accent-primary)]/50'
                                 }`}
                         >
                             <div className="text-sm truncate">{ex.name}</div>
@@ -147,6 +159,14 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
                         </button>
                     );
                 })}
+
+                {/* Add Exercise Button */}
+                <button
+                    onClick={() => setShowExerciseSelector(true)}
+                    className="px-4 py-3 rounded-xl border-2 border-dashed border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 hover:bg-[var(--accent-primary)]/20 text-[var(--accent-primary)] font-semibold transition-all min-w-[120px]"
+                >
+                    <div className="text-sm">+ תרגיל חדש</div>
+                </button>
             </div>
 
             {/* Exercise Card */}
@@ -157,7 +177,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
                             <h3 className="text-3xl font-bold mb-2">{currentExercise.name}</h3>
                             <div className="flex gap-2">
                                 {currentExercise.muscleGroup && (
-                                    <span className="text-xs px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full font-medium">
+                                    <span className="text-xs px-3 py-1 bg-[var(--accent-primary)]/20 text-[var(--accent-primary)] rounded-full font-medium">
                                         {currentExercise.muscleGroup}
                                     </span>
                                 )}
@@ -194,10 +214,10 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
                                 <div
                                     key={idx}
                                     className={`p-4 rounded-xl transition-all ${isCompleted
-                                            ? 'bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-2 border-green-500/50'
-                                            : isEditing
-                                                ? 'bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-2 border-purple-500/50 ring-2 ring-purple-500/20'
-                                                : 'bg-[var(--surface-secondary)] border-2 border-[var(--border-color)] hover:border-[var(--accent-primary)]/50'
+                                        ? 'bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-2 border-green-500/50'
+                                        : isEditing
+                                            ? 'bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-2 border-purple-500/50 ring-2 ring-purple-500/20'
+                                            : 'bg-[var(--surface-secondary)] border-2 border-[var(--border-color)] hover:border-[var(--accent-primary)]/50'
                                         }`}
                                 >
                                     <div className="flex items-center justify-between mb-3">
@@ -277,8 +297,8 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
                                                             key={i}
                                                             onClick={() => updateSet(idx, 'rpe', i + 1)}
                                                             className={`flex-shrink-0 w-12 h-12 rounded-xl text-sm font-bold transition-all ${set.rpe === i + 1
-                                                                    ? 'bg-gradient-to-br from-yellow-500 to-orange-500 text-black scale-110 shadow-lg shadow-yellow-500/50'
-                                                                    : 'bg-[var(--surface-secondary)] text-[var(--text-tertiary)] hover:bg-[var(--surface-hover)]'
+                                                                ? 'bg-gradient-to-br from-yellow-500 to-orange-500 text-black scale-110 shadow-lg shadow-yellow-500/50'
+                                                                : 'bg-[var(--surface-secondary)] text-[var(--text-tertiary)] hover:bg-[var(--surface-hover)]'
                                                                 }`}
                                                         >
                                                             {i + 1}
@@ -316,6 +336,24 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
                     targetSeconds={restTimerSeconds}
                     onComplete={() => setShowRestTimer(false)}
                     onSkip={() => setShowRestTimer(false)}
+                />
+            )}
+
+            {showExerciseSelector && (
+                <ExerciseSelector
+                    onSelect={addExercise}
+                    onClose={() => setShowExerciseSelector(false)}
+                    onCreateNew={() => {
+                        setShowExerciseSelector(false);
+                        setShowQuickForm(true);
+                    }}
+                />
+            )}
+
+            {showQuickForm && (
+                <QuickExerciseForm
+                    onAdd={addExercise}
+                    onClose={() => setShowQuickForm(false)}
                 />
             )}
         </div>

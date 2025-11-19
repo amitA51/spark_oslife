@@ -2,7 +2,7 @@
 
 import { LOCAL_STORAGE_KEYS as LS } from '../constants';
 import { defaultFeedItems, defaultPersonalItems, defaultRssFeeds, defaultTags, defaultTemplates, defaultSpaces, defaultMentors } from './mockData';
-import type { FeedItem, PersonalItem, RssFeed, Tag, AppData, ExportData, Template, WatchlistItem, Space, Mentor, AiFeedSettings, ComfortZoneChallenge, Quote } from '../types';
+import type { FeedItem, PersonalItem, RssFeed, Tag, AppData, ExportData, Template, WatchlistItem, Space, Mentor, AiFeedSettings, ComfortZoneChallenge, Quote, PersonalExercise } from '../types';
 import { loadSettings, saveSettings } from './settingsService';
 import { fetchAndParseFeed } from './rssService';
 import { fetchNewsForTicker, findTicker } from './financialsService';
@@ -844,4 +844,126 @@ export const loadWorkoutFromTemplate = async (templateId: string): Promise<Perso
 
     await addPersonalItem(newWorkout);
     return newWorkout;
+};
+
+// ========================================
+// Personal Exercise Library Management
+// ========================================
+
+/**
+ * רשימת התרגילים האישיים - מאפשר למשתמש לנהל תרגילים משלו
+ */
+
+/**
+ * Get all personal exercises, sorted by last used
+ */
+export const getPersonalExercises = async (): Promise<PersonalExercise[]> => {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(LS.PERSONAL_EXERCISES, 'readonly');
+        const store = tx.objectStore(LS.PERSONAL_EXERCISES);
+        const request = store.getAll();
+
+        request.onsuccess = () => {
+            const exercises = request.result || [];
+            // Sort by last used, then by use count, then by name
+            exercises.sort((a, b) => {
+                if (a.lastUsed && b.lastUsed) {
+                    return new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime();
+                }
+                if (a.lastUsed) return -1;
+                if (b.lastUsed) return 1;
+                if (a.useCount && b.useCount) return b.useCount - a.useCount;
+                return a.name.localeCompare(b.name);
+            });
+            resolve(exercises);
+        };
+        request.onerror = () => reject(request.error);
+    });
+};
+
+/**
+ * Get a single personal exercise by ID
+ */
+export const getPersonalExercise = async (id: string): Promise<PersonalExercise | undefined> => {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(LS.PERSONAL_EXERCISES, 'readonly');
+        const store = tx.objectStore(LS.PERSONAL_EXERCISES);
+        const request = store.get(id);
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+/**
+ * Create a new personal exercise
+ */
+export const createPersonalExercise = async (exercise: Omit<PersonalExercise, 'id' | 'createdAt' | 'useCount'>): Promise<PersonalExercise> => {
+    const newExercise: PersonalExercise = {
+        ...exercise,
+        id: `exercise-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        useCount: 0
+    };
+
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(LS.PERSONAL_EXERCISES, 'readwrite');
+        const store = tx.objectStore(LS.PERSONAL_EXERCISES);
+        const request = store.add(newExercise);
+
+        request.onsuccess = () => resolve(newExercise);
+        request.onerror = () => reject(request.error);
+    });
+};
+
+/**
+ * Update an existing personal exercise
+ */
+export const updatePersonalExercise = async (id: string, updates: Partial<PersonalExercise>): Promise<void> => {
+    const existing = await getPersonalExercise(id);
+    if (!existing) throw new NotFoundError('PersonalExercise', id);
+
+    const updated = { ...existing, ...updates, id }; // Ensure ID doesn't change
+
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(LS.PERSONAL_EXERCISES, 'readwrite');
+        const store = tx.objectStore(LS.PERSONAL_EXERCISES);
+        const request = store.put(updated);
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+};
+
+/**
+ * Delete a personal exercise
+ */
+export const deletePersonalExercise = async (id: string): Promise<void> => {
+    const db = await initDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(LS.PERSONAL_EXERCISES, 'readwrite');
+        const store = tx.objectStore(LS.PERSONAL_EXERCISES);
+        const request = store.delete(id);
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+};
+
+/**
+ * Increment use count and update last used timestamp
+ * Called automatically when an exercise is used in a workout
+ */
+export const incrementExerciseUse = async (id: string): Promise<void> => {
+    const exercise = await getPersonalExercise(id);
+    if (!exercise) return;
+
+    await updatePersonalExercise(id, {
+        useCount: (exercise.useCount || 0) + 1,
+        lastUsed: new Date().toISOString()
+    });
 };

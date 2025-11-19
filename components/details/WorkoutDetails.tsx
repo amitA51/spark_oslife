@@ -68,12 +68,12 @@ export const WorkoutView: React.FC<ViewProps> = ({ item, onUpdate }) => {
                         <div className="w-px bg-white/10"></div>
                         <div>
                             <div className="text-xs font-medium text-[var(--text-secondary)] mb-1">תרגילים</div>
-                            <div className="text-2xl font-bold text-blue-400">{item.exercises?.length || 0}</div>
+                            <div className="text-2xl font-bold text-[var(--accent-primary)]">{item.exercises?.length || 0}</div>
                         </div>
                         <div className="w-px bg-white/10"></div>
                         <div>
                             <div className="text-xs font-medium text-[var(--text-secondary)] mb-1">סטים</div>
-                            <div className="text-2xl font-bold text-purple-400">{totalSets}</div>
+                            <div className="text-2xl font-bold text-[var(--accent-primary)]">{totalSets}</div>
                         </div>
                     </div>
                 </div>
@@ -84,7 +84,7 @@ export const WorkoutView: React.FC<ViewProps> = ({ item, onUpdate }) => {
                 {hasExercises ? (
                     <button
                         onClick={handleStartWorkout}
-                        className="flex-1 relative group overflow-hidden bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-2xl py-4 font-bold text-lg shadow-lg shadow-green-500/30 hover:shadow-green-500/50 transition-all active:scale-95"
+                        className="flex-1 relative group overflow-hidden bg-[var(--accent-gradient)] text-black hover:brightness-110 rounded-2xl py-4 font-bold text-lg shadow-lg shadow-[var(--accent-primary)]/30 hover:shadow-[var(--accent-primary)]/50 transition-all active:scale-95"
                     >
                         <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
                         <div className="relative flex items-center justify-center gap-2">
@@ -95,7 +95,7 @@ export const WorkoutView: React.FC<ViewProps> = ({ item, onUpdate }) => {
                 ) : (
                     <button
                         onClick={() => setShowTemplates(true)}
-                        className="flex-1 relative group overflow-hidden bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-2xl py-4 font-bold text-lg shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all active:scale-95"
+                        className="flex-1 relative group overflow-hidden bg-[var(--accent-gradient)] text-black hover:brightness-110 rounded-2xl py-4 font-bold text-lg shadow-lg shadow-[var(--accent-primary)]/30 hover:shadow-[var(--accent-primary)]/50 transition-all active:scale-95"
                     >
                         <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform"></div>
                         <div className="relative flex items-center justify-center gap-2">
@@ -146,8 +146,8 @@ export const WorkoutView: React.FC<ViewProps> = ({ item, onUpdate }) => {
                                     <div
                                         key={setIndex}
                                         className={`p-3 rounded-xl transition-all ${set.completedAt
-                                                ? 'bg-green-500/10 border-2 border-green-500/50'
-                                                : 'bg-[var(--surface-secondary)] border-2 border-transparent'
+                                            ? 'bg-green-500/10 border-2 border-green-500/50'
+                                            : 'bg-[var(--surface-secondary)] border-2 border-transparent'
                                             }`}
                                     >
                                         <div className="flex items-center justify-between">
