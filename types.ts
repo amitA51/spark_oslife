@@ -62,12 +62,31 @@ export interface WorkoutSet {
   reps: number;
   weight: number;
   notes?: string;
+  rpe?: number; // Rate of Perceived Exertion (1-10)
+  restTime?: number; // Actual rest time taken in seconds
+  completedAt?: string; // ISO timestamp when set was completed
 }
 
 export interface Exercise {
   id: string;
   name: string;
   sets: WorkoutSet[];
+  targetRestTime?: number; // Target rest time in seconds (default: 90)
+  muscleGroup?: string; // e.g., "Chest", "Back", "Legs"
+  notes?: string; // Exercise-level notes
+  lastPerformed?: {
+    date: string;
+    sets: WorkoutSet[];
+  };
+}
+
+export interface WorkoutTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  exercises: Exercise[];
+  createdAt: string;
+  muscleGroups?: string[]; // e.g., ["Chest", "Triceps"]
 }
 
 export interface FocusSession {
@@ -136,6 +155,11 @@ export interface PersonalItem {
 
   // Workout specific
   exercises?: Exercise[];
+  workoutStartTime?: string; // ISO timestamp
+  workoutEndTime?: string; // ISO timestamp
+  workoutDuration?: number; // Total workout duration in seconds
+  workoutTemplateId?: string; // Template ID if loaded from template
+  isActiveWorkout?: boolean; // True when workout is in progress
 
   // Task specific
   isCompleted?: boolean;

@@ -18,6 +18,7 @@ export const LOCAL_STORAGE_KEYS = {
   AUTH_TOKENS: 'spark_auth_tokens', // For Google Auth
   PASSWORD_VAULT: 'spark_password_vault', // For Password Manager
   COMFORT_CHALLENGE: 'spark_comfort_challenge', // For Comfort Zone Crusher
+  WORKOUT_TEMPLATES: 'spark_workout_templates', // For Workout Templates
 };
 
 /**

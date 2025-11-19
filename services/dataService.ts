@@ -740,3 +740,108 @@ export const removeCustomQuote = (id: string): Promise<void> => {
  * @returns {Promise<void>} A promise that resolves when the quote is added.
  */
 export const reAddCustomQuote = (quote: Quote): Promise<void> => dbPut(LS.CUSTOM_QUOTES, quote);
+
+// ==================== WORKOUT TEMPLATES ====================
+
+import type { WorkoutTemplate } from '../types';
+
+/**
+ * Gets all workout templates.
+ * @returns {Promise<WorkoutTemplate[]>} A promise that resolves to an array of workout templates.
+ */
+export const getWorkoutTemplates = async (): Promise<WorkoutTemplate[]> => {
+    const templates = await dbGetAll<WorkoutTemplate>(LS.WORKOUT_TEMPLATES);
+    return templates || [];
+};
+
+/**
+ * Gets a single workout template by ID.
+ * @param {string} id The ID of the template to retrieve.
+ * @returns {Promise<WorkoutTemplate | null>} A promise that resolves to the template or null if not found.
+ */
+export const getWorkoutTemplate = (id: string): Promise<WorkoutTemplate | null> => {
+    if (!id) throw new ValidationError("Template ID is required.");
+    return dbGet<WorkoutTemplate>(LS.WORKOUT_TEMPLATES, id);
+};
+
+/**
+ * Creates a new workout template.
+ * @param {Omit<WorkoutTemplate, 'id' | 'createdAt'>} templateData The template data.
+ * @returns {Promise<WorkoutTemplate>} A promise that resolves to the created template.
+ */
+export const createWorkoutTemplate = async (
+    templateData: Omit<WorkoutTemplate, 'id' | 'createdAt'>
+): Promise<WorkoutTemplate> => {
+    if (!templateData.name?.trim()) {
+        throw new ValidationError("Template name is required.");
+    }
+
+    const newTemplate: WorkoutTemplate = {
+        id: `template-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        ...templateData
+    };
+
+    await dbPut(LS.WORKOUT_TEMPLATES, newTemplate);
+    return newTemplate;
+};
+
+/**
+ * Updates an existing workout template.
+ * @param {string} id The ID of the template to update.
+ * @param {Partial<WorkoutTemplate>} updates The fields to update.
+ * @returns {Promise<WorkoutTemplate>} A promise that resolves to the updated template.
+ */
+export const updateWorkoutTemplate = async (
+    id: string,
+    updates: Partial<WorkoutTemplate>
+): Promise<WorkoutTemplate> => {
+    const template = await dbGet<WorkoutTemplate>(LS.WORKOUT_TEMPLATES, id);
+    if (!template) throw new NotFoundError("WorkoutTemplate", id);
+
+    const updatedTemplate = { ...template, ...updates };
+    await dbPut(LS.WORKOUT_TEMPLATES, updatedTemplate);
+    return updatedTemplate;
+};
+
+/**
+ * Deletes a workout template.
+ * @param {string} id The ID of the template to delete.
+ * @returns {Promise<void>} A promise that resolves when the template is deleted.
+ */
+export const deleteWorkoutTemplate = (id: string): Promise<void> => {
+    if (!id) throw new ValidationError("Template ID is required for deletion.");
+    return dbDelete(LS.WORKOUT_TEMPLATES, id);
+};
+
+/**
+ * Loads a workout template into a new workout item.
+ * @param {string} templateId The ID of the template to load.
+ * @returns {Promise<PersonalItem>} A promise that resolves to a new workout item with the template data.
+ */
+export const loadWorkoutFromTemplate = async (templateId: string): Promise<PersonalItem> => {
+    const template = await getWorkoutTemplate(templateId);
+    if (!template) throw new NotFoundError("WorkoutTemplate", templateId);
+
+    const newWorkout: PersonalItem = {
+        id: `workout-${Date.now()}`,
+        type: 'workout',
+        title: template.name,
+        content: template.description || '',
+        createdAt: new Date().toISOString(),
+        exercises: template.exercises.map(ex => ({
+            ...ex,
+            sets: ex.sets.map(set => ({
+                reps: set.reps,
+                weight: set.weight,
+                // Don't copy notes, rpe, completedAt from template
+            }))
+        })),
+        workoutTemplateId: templateId,
+        workoutStartTime: new Date().toISOString(),
+        isActiveWorkout: true
+    };
+
+    await addPersonalItem(newWorkout);
+    return newWorkout;
+};
