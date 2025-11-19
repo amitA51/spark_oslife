@@ -10,8 +10,12 @@ export const WorkoutView: React.FC<ViewProps> = ({ item, onUpdate }) => {
     const [showActiveWorkout, setShowActiveWorkout] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
 
+    const handleUpdate = (updates: Partial<typeof item>) => {
+        onUpdate(item.id, updates);
+    };
+
     const handleStartWorkout = () => {
-        onUpdate({
+        handleUpdate({
             workoutStartTime: new Date().toISOString(),
             isActiveWorkout: true
         });
@@ -20,7 +24,7 @@ export const WorkoutView: React.FC<ViewProps> = ({ item, onUpdate }) => {
 
     const handleLoadTemplate = async (templateId: string) => {
         const workout = await dataService.loadWorkoutFromTemplate(templateId);
-        onUpdate(workout);
+        handleUpdate(workout);
         setShowActiveWorkout(true);
     };
 
@@ -103,8 +107,8 @@ export const WorkoutView: React.FC<ViewProps> = ({ item, onUpdate }) => {
                             <div
                                 key={index}
                                 className={`p-3 rounded-lg border-l-2 ${set.completedAt
-                                        ? 'border-green-500 bg-green-500/10'
-                                        : 'border-[var(--border-primary)] bg-[var(--surface-secondary)]'
+                                    ? 'border-green-500 bg-green-500/10'
+                                    : 'border-[var(--border-primary)] bg-[var(--surface-secondary)]'
                                     }`}
                             >
                                 <div className="flex justify-around text-center">
