@@ -539,3 +539,19 @@ export interface Delta {
   deleted: string[];
   changes: Record<string, any>;
 }
+
+// --- Authentication Types ---
+
+export interface User {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  emailVerified: boolean;
+  createdAt: string;
+}
+
+export interface AuthError {
+  code: string;
+  message: string;
+}

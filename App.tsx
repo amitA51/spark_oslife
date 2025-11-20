@@ -22,6 +22,7 @@ import SmartCaptureFAB from './components/SmartCaptureFAB';
 import { performanceService } from './services/performanceService';
 import SyncIndicator from './components/SyncIndicator';
 import ActiveWorkoutOverlay from './components/workout/ActiveWorkoutOverlay';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // ... (existing imports)
 
@@ -264,7 +265,9 @@ const App: React.FC = () => {
     return (
         <AppProvider>
             <ModalProvider>
-                <ThemedApp />
+                <ProtectedRoute>
+                    <ThemedApp />
+                </ProtectedRoute>
                 <ModalRoot />
             </ModalProvider>
         </AppProvider>
