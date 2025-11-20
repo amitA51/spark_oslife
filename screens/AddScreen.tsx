@@ -44,21 +44,52 @@ const AddItemButton: React.FC<{
 }> = ({ icon, label, onClick, color, style, isEditing }) => (
     <button
         onClick={onClick}
-        className={`themed-card p-4 flex flex-col items-center justify-center text-center gap-3 aspect-square transition-all duration-300 ${isEditing ? 'cursor-grab active:cursor-grabbing opacity-75' : 'hover:scale-105 hover:shadow-xl active:scale-95'} animate-item-enter-fi`}
+        className={`
+            relative overflow-hidden
+            bg-[var(--bg-card)] border border-white/10
+            rounded-2xl p-4
+            flex flex-col items-center justify-center gap-3
+            aspect-square
+            transition-all duration-300 ease-out
+            ${isEditing
+                ? 'cursor-grab active:cursor-grabbing opacity-60 scale-95'
+                : 'hover:scale-[1.03] hover:border-white/20 hover:shadow-2xl hover:shadow-black/20 active:scale-[0.97]'
+            }
+            animate-item-enter-fi
+        `}
         aria-label={`הוסף ${label}`}
         style={style}
         disabled={isEditing}
     >
+        {/* Icon Container - Fixed Size */}
         <div
-            className="w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110"
-            style={{ backgroundColor: color + '20', color: color }}
+            className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-300"
+            style={{
+                backgroundColor: color + '15',
+                color: color,
+            }}
         >
-            {React.isValidElement<{ className?: string }>(icon)
-                ? React.cloneElement(icon, { ...icon.props, className: 'w-7 h-7' })
-                : icon
-            }
+            {/* Force uniform icon size */}
+            <div className="w-7 h-7 flex items-center justify-center">
+                {React.isValidElement<{ className?: string }>(icon)
+                    ? React.cloneElement(icon, {
+                        ...icon.props,
+                        className: 'w-full h-full'
+                    })
+                    : icon
+                }
+            </div>
         </div>
-        <span className="font-semibold text-white text-xs leading-tight">{label}</span>
+
+        {/* Label - Fixed Typography */}
+        <span className="font-semibold text-white text-[11px] leading-tight text-center w-full px-1">
+            {label}
+        </span>
+
+        {/* Subtle gradient overlay on hover */}
+        <div
+            className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/0 hover:from-white/5 hover:to-transparent transition-opacity duration-300 pointer-events-none rounded-2xl"
+        />
     </button>
 );
 
