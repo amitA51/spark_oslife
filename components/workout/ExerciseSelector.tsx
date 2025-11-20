@@ -1,7 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { PersonalExercise, Exercise } from '../../types';
 import * as dataService from '../../services/dataService';
-import { CloseIcon, SearchIcon, AddIcon } from '../icons';
+import './ActiveWorkout.css';
+
+// Local Icons
+const CloseIcon = ({ className }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+);
+
+const SearchIcon = ({ className }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+);
+
+const AddIcon = ({ className }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+);
 
 interface ExerciseSelectorProps {
     onSelect: (exercise: Exercise) => void;
@@ -24,7 +46,6 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({ onSelect, onClose, 
     };
 
     const handleSelect = async (personalExercise: PersonalExercise) => {
-        // Convert PersonalExercise to Exercise format
         const exercise: Exercise = {
             id: `ex-${Date.now()}`,
             name: personalExercise.name,
@@ -36,9 +57,7 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({ onSelect, onClose, 
             }))
         };
 
-        // Increment use count
         await dataService.incrementExerciseUse(personalExercise.id);
-
         onSelect(exercise);
     };
 
@@ -51,47 +70,48 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({ onSelect, onClose, 
     const muscleGroups = ['all', ...Array.from(new Set(exercises.map(ex => ex.muscleGroup).filter(Boolean)))];
 
     return (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-[var(--bg-card)] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-[var(--border-color)] animate-screen-enter">
+        <div className="aw-modal-overlay open">
+            <div className="aw-modal-card" style={{ maxWidth: '600px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: 0 }}>
+
                 {/* Header */}
-                <div className="flex justify-between items-center p-6 border-b border-[var(--border-color)]">
+                <div className="flex justify-between items-center p-6 border-b border-white/10">
                     <div>
-                        <h2 className="text-2xl font-bold">בחר תרגיל</h2>
-                        <p className="text-sm text-[var(--text-secondary)] mt-1">
-                            {exercises.length} תרגילים ברשימה
+                        <h2 className="text-2xl font-bold text-white">בחר תרגיל</h2>
+                        <p className="text-sm text-white/50 mt-1">
+                            {exercises.length} תרגילים זמינים
                         </p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-[var(--surface-hover)] rounded-lg transition-colors"
+                        className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-colors"
                     >
                         <CloseIcon className="w-6 h-6" />
                     </button>
                 </div>
 
                 {/* Search & Filter */}
-                <div className="p-4 space-y-3 border-b border-[var(--border-color)] bg-[var(--surface-secondary)]/50">
-                    {/* Search */}
+                <div className="p-4 space-y-4 bg-white/5 border-b border-white/10">
                     <div className="relative">
-                        <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-secondary)]" />
+                        <SearchIcon className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="חיפוש תרגיל..."
-                            className="w-full pr-10 pl-4 py-3 bg-[var(--bg-primary)] rounded-xl border border-[var(--border-color)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
+                            className="aw-input pr-12"
+                            style={{ background: 'rgba(0,0,0,0.3)' }}
+                            autoFocus
                         />
                     </div>
 
-                    {/* Muscle Group Filter */}
-                    <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                    <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-2">
                         {muscleGroups.map(group => (
                             <button
                                 key={group}
                                 onClick={() => setSelectedMuscleGroup(group)}
-                                className={`px-4 py-2 rounded-xl whitespace-nowrap font-semibold transition-all ${selectedMuscleGroup === group
-                                        ? 'bg-[var(--accent-gradient)] text-black scale-105'
-                                        : 'bg-[var(--surface-secondary)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]'
+                                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all whitespace-nowrap ${selectedMuscleGroup === group
+                                        ? 'bg-[var(--aw-accent)] text-black shadow-[0_0_10px_var(--aw-accent-glow)]'
+                                        : 'bg-white/10 text-white/70 hover:bg-white/20'
                                     }`}
                             >
                                 {group === 'all' ? 'הכל' : group}
@@ -100,68 +120,66 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({ onSelect, onClose, 
                     </div>
                 </div>
 
-                {/* Exercise List */}
-                <div className="overflow-y-auto max-h-[50vh] p-4 space-y-2">
+                {/* List */}
+                <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
                     {filteredExercises.length === 0 ? (
-                        <div className="text-center py-12">
-                            <div className="text-6xl mb-4">🔍</div>
-                            <h3 className="text-xl font-bold mb-2">לא נמצאו תרגילים</h3>
-                            <p className="text-[var(--text-secondary)] mb-4">
-                                {searchQuery ? 'נסה חיפוש אחר' : 'הוסף תרגיל חדש לרשימה'}
+                        <div className="text-center py-12 flex flex-col items-center">
+                            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                                <SearchIcon className="w-8 h-8 text-white/20" />
+                            </div>
+                            <h3 className="text-lg font-bold text-white mb-2">לא נמצאו תרגילים</h3>
+                            <p className="text-white/40 mb-6 text-sm">
+                                {searchQuery ? 'נסה מילות חיפוש אחרות' : 'הרשימה שלך ריקה כרגע'}
                             </p>
                             <button
                                 onClick={onCreateNew}
-                                className="px-6 py-3 bg-[var(--accent-gradient)] text-black rounded-xl font-bold hover:brightness-110 transition-all active:scale-95"
+                                className="aw-btn-primary"
+                                style={{ width: 'auto', padding: '10px 24px' }}
                             >
                                 + צור תרגיל חדש
                             </button>
                         </div>
                     ) : (
-                        filteredExercises.map((exercise) => (
-                            <button
-                                key={exercise.id}
-                                onClick={() => handleSelect(exercise)}
-                                className="w-full text-right p-4 bg-[var(--surface-secondary)] hover:bg-[var(--surface-hover)] hover:border-[var(--accent-primary)]/50 border border-transparent rounded-xl transition-all group"
-                            >
-                                <div className="flex justify-between items-start">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <h3 className="text-lg font-bold group-hover:text-[var(--accent-primary)] transition-colors">
+                        <div className="space-y-2">
+                            {filteredExercises.map((exercise) => (
+                                <button
+                                    key={exercise.id}
+                                    onClick={() => handleSelect(exercise)}
+                                    className="w-full text-right p-4 bg-white/5 hover:bg-white/10 border border-transparent hover:border-[var(--aw-accent)]/30 rounded-xl transition-all group flex items-center justify-between"
+                                >
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <span className="font-bold text-white text-lg group-hover:text-[var(--aw-accent)] transition-colors">
                                                 {exercise.name}
-                                            </h3>
+                                            </span>
                                             {exercise.muscleGroup && (
-                                                <span className="text-xs px-2.5 py-1 bg-[var(--accent-primary)]/20 text-[var(--accent-primary)] rounded-full">
+                                                <span className="text-[10px] px-2 py-0.5 bg-white/10 rounded-full text-white/60 uppercase tracking-wider">
                                                     {exercise.muscleGroup}
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="flex gap-4 text-sm text-[var(--text-secondary)]">
-                                            <div>⏱️ {exercise.defaultRestTime || 90}s</div>
-                                            <div>📊 {exercise.defaultSets || 4} סטים</div>
-                                            {exercise.useCount && exercise.useCount > 0 && (
-                                                <div className="text-green-500">✓ {exercise.useCount} פעמים</div>
-                                            )}
+                                        <div className="text-xs text-white/40 flex gap-3">
+                                            <span>⏱ {exercise.defaultRestTime || 90}s</span>
+                                            <span>📊 {exercise.defaultSets || 4} sets</span>
                                         </div>
                                     </div>
-                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <div className="px-3 py-1 bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] rounded-lg text-sm font-semibold">
-                                            בחר →
-                                        </div>
+                                    <div className="w-8 h-8 rounded-full bg-[var(--aw-accent)]/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                        <AddIcon className="w-4 h-4 text-[var(--aw-accent)]" />
                                     </div>
-                                </div>
-                            </button>
-                        ))
+                                </button>
+                            ))}
+                        </div>
                     )}
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-[var(--border-color)] bg-[var(--surface-secondary)]/50">
+                <div className="p-4 border-t border-white/10 bg-black/20">
                     <button
                         onClick={onCreateNew}
-                        className="w-full px-4 py-3 border-2 border-dashed border-[var(--border-color)] hover:border-[var(--accent-primary)] bg-[var(--accent-primary)]/5 hover:bg-[var(--accent-primary)]/10 rounded-xl text-[var(--accent-primary)] font-bold transition-all flex items-center justify-center gap-2"
+                        className="w-full py-3 border border-dashed border-white/20 hover:border-[var(--aw-accent)] hover:bg-[var(--aw-accent)]/5 rounded-xl text-white/60 hover:text-[var(--aw-accent)] transition-all flex items-center justify-center gap-2 font-medium"
                     >
                         <AddIcon className="w-5 h-5" />
-                        צור תרגיל חדש
+                        לא מצאת? צור תרגיל חדש
                     </button>
                 </div>
             </div>

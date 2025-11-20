@@ -614,24 +614,34 @@ export const ItemCreationForm: React.FC<{
                 );
             case 'workout':
                 return (
-                    <>
-                        <SimpleFormFields
-                            title={formState.title} setTitle={v => dispatch({ type: 'SET_FIELD', payload: { field: 'title', value: v } })}
-                            content={formState.content} setContent={v => dispatch({ type: 'SET_FIELD', payload: { field: 'content', value: v } })}
-                            titlePlaceholder="שם האימון"
-                            contentPlaceholder="הערות כלליות..."
-                            contentRequired={false}
-                        />
-                        <WorkoutFields
-                            exercises={formState.exercises}
-                            onAddExercise={() => dispatch({ type: 'ADD_EXERCISE' })}
-                            onUpdateExercise={(idx, name) => dispatch({ type: 'UPDATE_EXERCISE', payload: { index: idx, name } })}
-                            onRemoveExercise={(idx) => dispatch({ type: 'REMOVE_EXERCISE', payload: { index: idx } })}
-                            onAddSet={(exIdx) => dispatch({ type: 'ADD_SET', payload: { exerciseIndex: exIdx } })}
-                            onUpdateSet={(exIdx, sIdx, field, val) => dispatch({ type: 'UPDATE_SET', payload: { exerciseIndex: exIdx, setIndex: sIdx, field, value: val } })}
-                            onRemoveSet={(exIdx, sIdx) => dispatch({ type: 'REMOVE_SET', payload: { exerciseIndex: exIdx, setIndex: sIdx } })}
-                        />
-                    </>
+                    <div className="flex flex-col items-center justify-center py-8 text-center space-y-6 animate-fade-in">
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                            <DumbbellIcon className="w-10 h-10 text-white" />
+                        </div>
+                        <div>
+                            <h3 className="text-2xl font-bold text-white mb-2">אימון חדש</h3>
+                            <p className="text-gray-400 max-w-xs mx-auto text-sm">
+                                התחל אימון לייב מיד. תוכל להוסיף תרגילים תוך כדי תנועה.
+                            </p>
+                        </div>
+
+                        <div className="w-full max-w-sm text-right">
+                            <SimpleFormFields
+                                title={formState.title} setTitle={v => dispatch({ type: 'SET_FIELD', payload: { field: 'title', value: v } })}
+                                content={formState.content} setContent={v => dispatch({ type: 'SET_FIELD', payload: { field: 'content', value: v } })}
+                                titlePlaceholder="שם האימון (אופציונלי)"
+                                contentPlaceholder="הערות..."
+                                contentRequired={false}
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="w-full max-w-sm py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl font-bold text-white shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 mt-4"
+                        >
+                            <span className="text-lg">התחל אימון עכשיו ⚡</span>
+                        </button>
+                    </div>
                 );
             case 'roadmap':
                 // Simplified visual for roadmap creation - just title and optional generation
@@ -723,7 +733,7 @@ export const ItemCreationForm: React.FC<{
                 <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-24 custom-scrollbar">
                     {renderFormFields()}
 
-                    {itemType !== 'ticker' && (
+                    {itemType !== 'ticker' && itemType !== 'workout' && (
                         <>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-6 border-t border-white/10">
                                 <div>
@@ -763,17 +773,19 @@ export const ItemCreationForm: React.FC<{
                 </div>
 
                 {/* Sticky Footer */}
-                <div className="p-4 border-t border-white/10 bg-[#1a1d24]/80 backdrop-blur-lg absolute bottom-0 w-full z-20 md:relative md:rounded-b-3xl">
-                    <button
-                        type="submit"
-                        disabled={formState.submissionStatus === 'submitting'}
-                        className="w-full h-14 bg-[var(--accent-gradient)] hover:brightness-110 text-white font-bold text-lg rounded-2xl transition-all transform active:scale-[0.98] shadow-[0_8px_30px_var(--dynamic-accent-glow)] disabled:opacity-50 disabled:transform-none disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                    >
-                        {formState.submissionStatus === 'submitting' ? <LoadingSpinner /> : 'שמור פריט'}
-                    </button>
-                </div>
+                {itemType !== 'workout' && (
+                    <div className="p-4 border-t border-white/10 bg-[#1a1d24]/80 backdrop-blur-lg absolute bottom-0 w-full z-20 md:relative md:rounded-b-3xl">
+                        <button
+                            type="submit"
+                            disabled={formState.submissionStatus === 'submitting'}
+                            className="w-full h-14 bg-[var(--accent-gradient)] hover:brightness-110 text-white font-bold text-lg rounded-2xl transition-all transform active:scale-[0.98] shadow-[0_8px_30px_var(--dynamic-accent-glow)] disabled:opacity-50 disabled:transform-none disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                        >
+                            {formState.submissionStatus === 'submitting' ? <LoadingSpinner /> : 'שמור פריט'}
+                        </button>
+                    </div>
+                )}
             </form>
-        </DraggableModalWrapper>
+        </DraggableModalWrapper >
     );
 };
 

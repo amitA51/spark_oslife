@@ -53,7 +53,9 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
     const [showSettings, setShowSettings] = useState(false);
     const [appSettings, setAppSettings] = useState({
         hapticsEnabled: true,
+        soundEnabled: false, // Default off
         oledMode: false,
+        keepAwake: true,
         defaultRestTime: 60
     });
 
@@ -73,6 +75,24 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
     const currentSet = currentExercise?.sets[activeSetIndex] || { reps: 0, weight: 0, completedAt: undefined };
 
     // --- Effects ---
+
+    // Wake Lock
+    useEffect(() => {
+        let wakeLock: any = null;
+        const requestWakeLock = async () => {
+            if (appSettings.keepAwake && 'wakeLock' in navigator) {
+                try {
+                    wakeLock = await (navigator as any).wakeLock.request('screen');
+                } catch (err) {
+                    console.log('Wake Lock not supported or denied');
+                }
+            }
+        };
+        requestWakeLock();
+        return () => {
+            if (wakeLock) wakeLock.release();
+        };
+    }, [appSettings.keepAwake]);
 
     // Timer
     useEffect(() => {
@@ -96,6 +116,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
             setRestTimer(prev => {
                 if (prev.timeLeft <= 1) {
                     if (appSettings.hapticsEnabled && navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                    // Play sound if enabled (placeholder)
                     return { ...prev, active: false, timeLeft: 0 };
                 }
                 return { ...prev, timeLeft: prev.timeLeft - 1 };
@@ -205,6 +226,10 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
                         <Toggle checked={appSettings.hapticsEnabled} onChange={v => setAppSettings({ ...appSettings, hapticsEnabled: v })} />
                     </div>
                     <div className="aw-switch-row">
+                        <span className="text-white font-medium">מנע כיבוי מסך (Keep Awake)</span>
+                        <Toggle checked={appSettings.keepAwake} onChange={v => setAppSettings({ ...appSettings, keepAwake: v })} />
+                    </div>
+                    <div className="aw-switch-row">
                         <span className="text-white font-medium">מצב OLED (חיסכון בסוללה)</span>
                         <Toggle checked={appSettings.oledMode} onChange={v => setAppSettings({ ...appSettings, oledMode: v })} />
                     </div>
@@ -265,7 +290,48 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
         </div>
     );
 
-    if (!currentExercise) return <div className="aw-container flex items-center justify-center">Loading...</div>;
+    if (!currentExercise) {
+        // Empty State - Start Workout
+        return (
+            <div className="aw-container flex flex-col items-center justify-center p-6 text-center" style={appSettings.oledMode ? { background: '#000' } : {}}>
+                {!appSettings.oledMode && (
+                    <div className="aw-aurora-bg">
+                        <div className="aw-blob aw-blob-1"></div>
+                        <div className="aw-blob aw-blob-2"></div>
+                    </div>
+                )}
+                <div className="relative z-10 animate-scale-in">
+                    <div className="w-24 h-24 rounded-full bg-[var(--aw-accent)]/10 flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_var(--aw-accent-glow)]">
+                        <DumbbellIcon className="w-12 h-12 text-[var(--aw-accent)]" />
+                    </div>
+                    <h1 className="text-4xl font-bold text-white mb-2">מוכן להתחיל?</h1>
+                    <p className="text-white/60 mb-8 text-lg">הוסף תרגיל ראשון כדי להתחיל את האימון</p>
+                    <button
+                        onClick={() => setShowExerciseSelector(true)}
+                        className="aw-complete-btn"
+                        style={{ width: 'auto', padding: '0 40px', minWidth: '250px' }}
+                    >
+                        + הוסף תרגיל ראשון
+                    </button>
+                    <button onClick={finishWorkout} className="mt-6 text-white/40 hover:text-white text-sm block mx-auto">ביטול אימון</button>
+                </div>
+
+                {showExerciseSelector && (
+                    <ExerciseSelector
+                        onSelect={addExercise}
+                        onClose={() => setShowExerciseSelector(false)}
+                        onCreateNew={() => { setShowExerciseSelector(false); setShowQuickForm(true); }}
+                    />
+                )}
+                {showQuickForm && (
+                    <QuickExerciseForm
+                        onAdd={(ex) => { addExercise(ex); setShowQuickForm(false); }}
+                        onClose={() => setShowQuickForm(false)}
+                    />
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="aw-container" style={appSettings.oledMode ? { background: '#000' } : {}}>
