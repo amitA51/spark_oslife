@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import { Exercise } from '../../types';
-import { CloseIcon } from '../icons';
 import * as dataService from '../../services/dataService';
+import './ActiveWorkout.css'; // Import the styles
+
+// Local Icon
+const CloseIcon = ({ className }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+);
 
 interface QuickExerciseFormProps {
     onAdd: (exercise: Exercise) => void;
@@ -48,23 +56,23 @@ const QuickExerciseForm: React.FC<QuickExerciseFormProps> = ({ onAdd, onClose })
     const muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Cardio', 'Other'];
 
     return (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-[var(--bg-card)] rounded-2xl max-w-md w-full shadow-2xl border border-[var(--border-color)] animate-screen-enter">
+        <div className="aw-modal-overlay open">
+            <div className="aw-modal-card">
                 {/* Header */}
-                <div className="flex justify-between items-center p-6 border-b border-[var(--border-color)]">
-                    <h2 className="text-2xl font-bold">תרגיל חדש</h2>
+                <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+                    <h2 className="text-xl font-bold text-white">תרגיל חדש</h2>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-[var(--surface-hover)] rounded-lg transition-colors"
+                        className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-colors"
                     >
                         <CloseIcon className="w-6 h-6" />
                     </button>
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                        <label className="aw-label">
                             שם התרגיל *
                         </label>
                         <input
@@ -74,40 +82,40 @@ const QuickExerciseForm: React.FC<QuickExerciseFormProps> = ({ onAdd, onClose })
                             placeholder="לדוגמה: Bench Press"
                             required
                             autoFocus
-                            className="w-full px-4 py-3 bg-[var(--surface-secondary)] rounded-xl border border-[var(--border-color)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
+                            className="aw-input"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                            קבוצת שרירים (אופציונלי)
+                        <label className="aw-label">
+                            קבוצת שרירים
                         </label>
                         <select
                             value={formData.muscleGroup}
                             onChange={(e) => setFormData({ ...formData, muscleGroup: e.target.value })}
-                            className="w-full px-4 py-3 bg-[var(--surface-secondary)] rounded-xl border border-[var(--border-color)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all"
+                            className="aw-input appearance-none"
                         >
                             <option value="">בחר (אופציונלי)</option>
                             {muscleGroups.map(group => (
-                                <option key={group} value={group}>{group}</option>
+                                <option key={group} value={group} className="text-black">{group}</option>
                             ))}
                         </select>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                            <label className="aw-label">
                                 מנוחה (שניות)
                             </label>
                             <input
                                 type="number"
                                 value={formData.targetRestTime}
                                 onChange={(e) => setFormData({ ...formData, targetRestTime: parseInt(e.target.value) || 90 })}
-                                className="w-full px-4 py-3 bg-[var(--surface-secondary)] rounded-xl border border-[var(--border-color)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all text-center"
+                                className="aw-input text-center"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                            <label className="aw-label">
                                 מספר סטים
                             </label>
                             <input
@@ -116,39 +124,34 @@ const QuickExerciseForm: React.FC<QuickExerciseFormProps> = ({ onAdd, onClose })
                                 onChange={(e) => setFormData({ ...formData, defaultSets: parseInt(e.target.value) || 4 })}
                                 min="1"
                                 max="10"
-                                className="w-full px-4 py-3 bg-[var(--surface-secondary)] rounded-xl border border-[var(--border-color)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all text-center"
+                                className="aw-input text-center"
                             />
                         </div>
                     </div>
 
                     {/* Save to Library Checkbox */}
-                    <label className="flex items-start gap-3 p-3 bg-[var(--accent-primary)]/5 rounded-xl cursor-pointer hover:bg-[var(--accent-primary)]/10 transition-colors">
+                    <label className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-colors border border-white/5">
                         <input
                             type="checkbox"
                             checked={formData.saveToLibrary}
                             onChange={(e) => setFormData({ ...formData, saveToLibrary: e.target.checked })}
-                            className="mt-1 w-5 h-5 rounded border-2 border-[var(--accent-primary)] text-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20"
+                            className="w-5 h-5 rounded border-2 border-[var(--aw-accent)] text-[var(--aw-accent)] bg-transparent"
                         />
-                        <div className="flex-1">
-                            <div className="font-semibold text-[var(--accent-primary)]">שמור לרשימה שלי</div>
-                            <div className="text-xs text-[var(--text-secondary)] mt-1">
-                                התרגיל יישמר ברשימת התרגילים האישית לשימוש עתידי
-                            </div>
-                        </div>
+                        <span className="text-sm text-white/90 font-medium">שמור לרשימה שלי</span>
                     </label>
 
                     {/* Buttons */}
-                    <div className="flex gap-3 pt-2">
+                    <div className="flex gap-3 pt-4">
                         <button
                             type="submit"
-                            className="flex-1 px-4 py-3 bg-[var(--accent-gradient)] text-black rounded-xl font-bold shadow-lg hover:brightness-110 transition-all active:scale-95"
+                            className="aw-btn-primary"
                         >
                             הוסף תרגיל
                         </button>
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-3 bg-[var(--surface-secondary)] rounded-xl font-semibold hover:bg-[var(--surface-hover)] transition-all active:scale-95"
+                            className="aw-btn-secondary"
                         >
                             ביטול
                         </button>

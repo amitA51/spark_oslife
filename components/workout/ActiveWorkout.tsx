@@ -9,7 +9,8 @@ import * as dataService from '../../services/dataService';
 import ExerciseSelector from './ExerciseSelector';
 import QuickExerciseForm from './QuickExerciseForm';
 
-// Local Icons
+// --- Local Icons & Components ---
+
 const CloseIcon = ({ className, onClick }: { className?: string, onClick?: () => void }) => (
     <svg onClick={onClick} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
         <line x1="18" y1="6" x2="6" y2="18" />
@@ -24,6 +25,17 @@ const TrashIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
+const Toggle = ({ checked, onChange }: { checked: boolean, onChange: (v: boolean) => void }) => (
+    <button
+        onClick={() => onChange(!checked)}
+        className={`w-12 h-7 rounded-full p-1 transition-colors ${checked ? 'bg-[var(--aw-accent)]' : 'bg-white/20'}`}
+    >
+        <div className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
+    </button>
+);
+
+// --- Main Component ---
+
 interface ActiveWorkoutProps {
     item: PersonalItem;
     onUpdate: (id: string, updates: Partial<PersonalItem>) => void;
@@ -37,6 +49,14 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
     const [workoutTimer, setWorkoutTimer] = useState(item.workoutDuration || 0);
     const [isPaused, setIsPaused] = useState(false);
 
+    // Settings State
+    const [showSettings, setShowSettings] = useState(false);
+    const [appSettings, setAppSettings] = useState({
+        hapticsEnabled: true,
+        oledMode: false,
+        defaultRestTime: 60
+    });
+
     // UI State
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [numpadConfig, setNumpadConfig] = useState<{ isOpen: boolean, target: 'weight' | 'reps' | null, value: string }>({ isOpen: false, target: null, value: '' });
@@ -48,9 +68,8 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
 
     const currentExercise = exercises[currentExerciseIndex];
     const currentSetIndex = currentExercise?.sets.findIndex(s => !s.completedAt) ?? -1;
-    const activeSetIndex = currentSetIndex === -1 ? (currentExercise?.sets.length || 0) : currentSetIndex; // If all done, show new set or last set? Let's show next potential set.
+    const activeSetIndex = currentSetIndex === -1 ? (currentExercise?.sets.length || 0) : currentSetIndex;
 
-    // Ensure there's always at least one set to edit
     const currentSet = currentExercise?.sets[activeSetIndex] || { reps: 0, weight: 0, completedAt: undefined };
 
     // --- Effects ---
@@ -61,7 +80,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
         const interval = setInterval(() => {
             setWorkoutTimer(prev => {
                 const newVal = prev + 1;
-                if (newVal % 5 === 0) { // Sync every 5 seconds
+                if (newVal % 5 === 0) {
                     onUpdate(item.id, { workoutDuration: newVal });
                 }
                 return newVal;
@@ -70,21 +89,20 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
         return () => clearInterval(interval);
     }, [isPaused, item.id, onUpdate]);
 
-    // Rest Timer Countdown
+    // Rest Timer
     useEffect(() => {
         if (!restTimer.active) return;
         const interval = setInterval(() => {
             setRestTimer(prev => {
                 if (prev.timeLeft <= 1) {
-                    // Timer finished
-                    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                    if (appSettings.hapticsEnabled && navigator.vibrate) navigator.vibrate([200, 100, 200]);
                     return { ...prev, active: false, timeLeft: 0 };
                 }
                 return { ...prev, timeLeft: prev.timeLeft - 1 };
             });
         }, 1000);
         return () => clearInterval(interval);
-    }, [restTimer.active]);
+    }, [restTimer.active, appSettings.hapticsEnabled]);
 
     // --- Logic ---
 
@@ -100,10 +118,6 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
         const newExercises = [...exercises];
         const exercise = newExercises[currentExerciseIndex];
 
-        // If we are at the end (all sets done), we are technically editing a "new" set that hasn't been added yet, 
-        // or editing the last completed set? 
-        // Let's assume we are editing the 'activeSetIndex'. If it doesn't exist, create it.
-
         if (!exercise.sets[activeSetIndex]) {
             exercise.sets[activeSetIndex] = { reps: 0, weight: 0 };
         }
@@ -114,7 +128,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
     };
 
     const completeSet = () => {
-        if (navigator.vibrate) navigator.vibrate(50); // Haptic feedback
+        if (appSettings.hapticsEnabled && navigator.vibrate) navigator.vibrate(50);
 
         const newExercises = [...exercises];
         const exercise = newExercises[currentExerciseIndex];
@@ -123,15 +137,13 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
             exercise.sets[activeSetIndex] = { reps: 0, weight: 0 };
         }
 
-        // Mark as completed
         exercise.sets[activeSetIndex].completedAt = new Date().toISOString();
-        exercise.sets[activeSetIndex].restTime = 0; // Could measure actual rest
 
         // Start Rest Timer
-        const restTime = exercise.targetRestTime || 60;
+        const restTime = exercise.targetRestTime || appSettings.defaultRestTime;
         setRestTimer({ active: true, timeLeft: restTime, totalTime: restTime });
 
-        // Add next set automatically if needed (copy previous values)
+        // Add next set
         if (activeSetIndex === exercise.sets.length - 1) {
             exercise.sets.push({
                 reps: exercise.sets[activeSetIndex].reps,
@@ -158,7 +170,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
         const updatedExercises = [...exercises, newExercise];
         setExercises(updatedExercises);
         onUpdate(item.id, { exercises: updatedExercises });
-        setCurrentExerciseIndex(updatedExercises.length - 1); // Jump to new exercise
+        setCurrentExerciseIndex(updatedExercises.length - 1);
         setShowExerciseSelector(false);
         setShowQuickForm(false);
     };
@@ -179,6 +191,37 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
 
     // --- Render Helpers ---
 
+    const renderSettingsModal = () => (
+        <div className={`aw-modal-overlay ${showSettings ? 'open' : ''}`} onClick={() => setShowSettings(false)}>
+            <div className="aw-modal-card" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-6 border-b border-white/10 pb-4">
+                    <h2 className="text-xl font-bold text-white">הגדרות אימון</h2>
+                    <button onClick={() => setShowSettings(false)} className="text-white/60 hover:text-white"><CloseIcon className="w-6 h-6" /></button>
+                </div>
+
+                <div className="space-y-2">
+                    <div className="aw-switch-row">
+                        <span className="text-white font-medium">רטט (Haptics)</span>
+                        <Toggle checked={appSettings.hapticsEnabled} onChange={v => setAppSettings({ ...appSettings, hapticsEnabled: v })} />
+                    </div>
+                    <div className="aw-switch-row">
+                        <span className="text-white font-medium">מצב OLED (חיסכון בסוללה)</span>
+                        <Toggle checked={appSettings.oledMode} onChange={v => setAppSettings({ ...appSettings, oledMode: v })} />
+                    </div>
+                    <div className="pt-4 border-t border-white/10 mt-2">
+                        <label className="aw-label">זמן מנוחה ברירת מחדל (שניות)</label>
+                        <input
+                            type="number"
+                            value={appSettings.defaultRestTime}
+                            onChange={e => setAppSettings({ ...appSettings, defaultRestTime: parseInt(e.target.value) || 60 })}
+                            className="aw-input text-center"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
     const renderNumpad = () => (
         <div className={`aw-drawer-overlay ${numpadConfig.isOpen ? 'open' : ''}`} onClick={() => setNumpadConfig({ ...numpadConfig, isOpen: false })}>
             <div className="aw-drawer" onClick={e => e.stopPropagation()} style={{ height: 'auto', paddingBottom: '40px' }}>
@@ -195,11 +238,14 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
     );
 
     const renderRestTimer = () => (
-        <div className="aw-container" style={{ zIndex: 10000, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="aw-container" style={{ zIndex: 10000, background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div className="relative flex items-center justify-center">
-                {/* Breathing Circle Animation */}
-                <div className="absolute w-64 h-64 rounded-full border-4 border-[var(--aw-accent)] opacity-20 animate-ping" style={{ animationDuration: '3s' }}></div>
-                <div className="absolute w-48 h-48 rounded-full border-2 border-[var(--aw-accent)] opacity-50 animate-pulse"></div>
+                {!appSettings.oledMode && (
+                    <>
+                        <div className="absolute w-64 h-64 rounded-full border-4 border-[var(--aw-accent)] opacity-20 animate-ping" style={{ animationDuration: '3s' }}></div>
+                        <div className="absolute w-48 h-48 rounded-full border-2 border-[var(--aw-accent)] opacity-50 animate-pulse"></div>
+                    </>
+                )}
 
                 <div className="text-center z-10">
                     <div className="text-6xl font-bold text-white font-mono mb-2">{formatTime(restTimer.timeLeft)}</div>
@@ -222,20 +268,22 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
     if (!currentExercise) return <div className="aw-container flex items-center justify-center">Loading...</div>;
 
     return (
-        <div className="aw-container">
+        <div className="aw-container" style={appSettings.oledMode ? { background: '#000' } : {}}>
             {/* Background */}
-            <div className="aw-aurora-bg">
-                <div className="aw-blob aw-blob-1"></div>
-                <div className="aw-blob aw-blob-2"></div>
-            </div>
+            {!appSettings.oledMode && (
+                <div className="aw-aurora-bg">
+                    <div className="aw-blob aw-blob-1"></div>
+                    <div className="aw-blob aw-blob-2"></div>
+                </div>
+            )}
 
             {/* Main Content */}
             <div className="aw-content">
                 {/* Header */}
                 <header className="aw-header">
-                    <button onClick={finishWorkout} className="aw-finish-btn">סיים אימון</button>
+                    <button onClick={finishWorkout} className="aw-finish-btn">סיים</button>
                     <div className="aw-timer-badge">{formatTime(workoutTimer)}</div>
-                    <button onClick={() => setIsDrawerOpen(true)} className="aw-finish-btn border-0"><SettingsIcon className="w-6 h-6" /></button>
+                    <button onClick={() => setShowSettings(true)} className="aw-finish-btn border-0"><SettingsIcon className="w-6 h-6" /></button>
                 </header>
 
                 {/* Focus Card */}
@@ -272,7 +320,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
                     </div>
 
                     {/* Previous Performance Ghost */}
-                    <div className="text-center opacity-40 text-sm mt-4">
+                    <div className="text-center opacity-40 text-sm mt-4 text-white">
                         ביצוע אחרון: 60kg x 8
                     </div>
                 </div>
@@ -317,6 +365,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
             {/* Overlays */}
             {restTimer.active && renderRestTimer()}
             {numpadConfig.isOpen && renderNumpad()}
+            {showSettings && renderSettingsModal()}
 
             {/* Exercise Drawer */}
             <div className={`aw-drawer-overlay ${isDrawerOpen ? 'open' : ''}`} onClick={() => setIsDrawerOpen(false)}>
@@ -357,7 +406,7 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
             )}
             {showQuickForm && (
                 <QuickExerciseForm
-                    onSave={(ex) => { addExercise(ex); setShowQuickForm(false); }}
+                    onAdd={(ex) => { addExercise(ex); setShowQuickForm(false); }}
                     onClose={() => setShowQuickForm(false)}
                 />
             )}
