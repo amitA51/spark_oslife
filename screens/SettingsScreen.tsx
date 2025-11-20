@@ -12,8 +12,9 @@ import {
     PaletteIcon, SparklesIcon, BrainCircuitIcon,
     SettingsIcon, CheckCircleIcon, LayoutDashboardIcon, TargetIcon,
     FeedIcon, AddIcon, EditIcon, UserIcon, DragHandleIcon, CloudIcon, RefreshIcon,
-    ShieldCheckIcon, KeyIcon, ChevronLeftIcon
+    ShieldCheckIcon, KeyIcon, ChevronLeftIcon, DumbbellIcon
 } from '../components/icons';
+import ExerciseLibraryManager from '../components/ExerciseLibraryManager';
 import ToggleSwitch from '../components/ToggleSwitch';
 import ManageSpacesModal from '../components/ManageSpacesModal';
 import FileUploader from '../components/FileUploader';
@@ -160,6 +161,15 @@ const SWIPE_ACTIONS: { label: string, value: SwipeAction }[] = [
 const SettingsScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = ({ setActiveScreen }) => {
     const { state, dispatch } = useContext(AppContext);
     const { settings } = state;
+
+    const sections: { id: SettingsSectionId; label: string; icon: React.ReactNode }[] = [
+        { id: 'appearance', label: 'מראה', icon: <PaletteIcon className="w-5 h-5" /> },
+        { id: 'general', label: 'כללי', icon: <SettingsIcon className="w-5 h-5" /> },
+        { id: 'ai', label: 'AI ומוח', icon: <BrainCircuitIcon className="w-5 h-5" /> },
+        { id: 'integrations', label: 'שילובים', icon: <CloudIcon className="w-5 h-5" /> },
+        { id: 'data', label: 'נתונים וגיבוי', icon: <DatabaseIcon className="w-5 h-5" /> },
+        { id: 'workout', label: 'אימון', icon: <DumbbellIcon className="w-5 h-5" /> },
+    ];
 
     const [activeSection, setActiveSection] = useState<SettingsSectionId>('appearance');
     const [isManageSpacesOpen, setIsManageSpacesOpen] = useState(false);
@@ -382,7 +392,7 @@ const SettingsScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = 
                     {/* Sidebar Navigation (Desktop) */}
                     <aside className="hidden md:block md:w-1/4">
                         <nav className="flex flex-col gap-2 sticky top-24">
-                            {settingsSections.map(section => (
+                            {sections.map(section => (
                                 <button key={section.id} onClick={() => setActiveSection(section.id)}
                                     className={`flex items-center gap-3 p-3 rounded-xl w-full text-right transition-all shrink-0 font-medium ${activeSection === section.id ? 'bg-[var(--dynamic-accent-start)] text-white shadow-lg shadow-[var(--dynamic-accent-glow)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'}`}
                                 >
@@ -395,7 +405,7 @@ const SettingsScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = 
                     {/* Horizontal Scroll Navigation (Mobile) */}
                     <div className="md:hidden sticky top-16 z-20 bg-[var(--bg-primary)]/95 backdrop-blur-xl py-2 -mx-4 px-4 border-b border-[var(--border-primary)]">
                         <div className="flex overflow-x-auto gap-2 pb-1 no-scrollbar">
-                            {settingsSections.map(section => (
+                            {sections.map(section => (
                                 <button key={section.id} onClick={() => setActiveSection(section.id)}
                                     className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all font-medium text-sm ${activeSection === section.id ? 'bg-[var(--dynamic-accent-start)] text-white shadow-md' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border-primary)]'}`}
                                 >
@@ -819,6 +829,14 @@ const SettingsScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = 
                                     <SettingsRow title="איפוס נתונים" description="מחק את כל הנתונים וההגדרות מהמכשיר הזה.">
                                         <button onClick={handleWipeData} className="flex items-center gap-2 text-red-400 hover:text-red-300 hover:bg-red-900/20 px-3 py-1.5 rounded-lg transition-colors"><WarningIcon className="w-4 h-4" /> מחק הכל</button>
                                     </SettingsRow>
+                                </SettingsCard>
+                            </SettingsSection>
+                        )}
+
+                        {activeSection === 'workout' && (
+                            <SettingsSection title="הגדרות אימון" id="workout">
+                                <SettingsCard title="ספריית תרגילים אישית">
+                                    <ExerciseLibraryManager />
                                 </SettingsCard>
                             </SettingsSection>
                         )}

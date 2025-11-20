@@ -47,6 +47,10 @@ interface State {
     habitType: 'good' | 'bad';
     reminderEnabled: boolean;
     reminderTime: string;
+    // Compatibility fields for HabitEdit
+    subTasks: any[]; // Using any[] to avoid complex type issues for now, or SubTask[] if imported
+    quotes: string[];
+    autoDeleteAfter: number;
 }
 
 type Action =
@@ -89,6 +93,9 @@ const initialState: State = {
     habitType: 'good',
     reminderEnabled: false,
     reminderTime: '09:00',
+    subTasks: [],
+    quotes: [],
+    autoDeleteAfter: 0,
 };
 
 const formReducer = (state: State, action: Action): State => {
@@ -475,6 +482,8 @@ export const ItemCreationForm: React.FC<{
                 newItemData.totalPages = parseInt(formState.totalPages) || 0;
             } else if (itemType === 'workout') {
                 newItemData.exercises = formState.exercises;
+                newItemData.isActiveWorkout = true;
+                newItemData.workoutStartTime = new Date().toISOString();
             } else if (itemType === 'roadmap') {
                 newItemData.phases = formState.phases;
             } else if (itemType === 'habit') {
@@ -491,7 +500,9 @@ export const ItemCreationForm: React.FC<{
             appDispatch({ type: 'ADD_PERSONAL_ITEM', payload: newItem });
 
             // Navigate based on type
-            if (itemType === 'task' || itemType === 'habit') {
+            if (itemType === 'workout') {
+                // Stay on current screen, overlay will appear
+            } else if (itemType === 'task' || itemType === 'habit') {
                 setActiveScreen('today');
             } else {
                 setActiveScreen('library');
@@ -665,7 +676,7 @@ export const ItemCreationForm: React.FC<{
                             contentPlaceholder="תיאור ההרגל..."
                             contentRequired={false}
                         />
-                        <HabitEditComponent editState={formState} dispatch={dispatch} />
+                        <HabitEditComponent editState={formState as any} dispatch={dispatch as any} />
                     </>
                 );
             default:

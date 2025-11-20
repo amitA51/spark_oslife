@@ -21,6 +21,7 @@ import { usePwaUpdate } from './hooks/usePwaUpdate';
 import SmartCaptureFAB from './components/SmartCaptureFAB';
 import { performanceService } from './services/performanceService';
 import SyncIndicator from './components/SyncIndicator';
+import ActiveWorkoutOverlay from './components/workout/ActiveWorkoutOverlay';
 
 // ... (existing imports)
 
@@ -244,6 +245,7 @@ const ThemedApp: React.FC = () => {
             )}
 
             <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} setActiveScreen={setActiveScreen} />
+            <ActiveWorkoutOverlay />
         </div>
     );
 }
