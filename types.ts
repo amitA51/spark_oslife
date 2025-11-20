@@ -263,13 +263,14 @@ export type FeedViewMode = 'list' | 'visual';
 export type AnimationIntensity = 'off' | 'subtle' | 'default' | 'full';
 export type AiPersonality = 'concise' | 'encouraging' | 'formal';
 export type SwipeAction = 'complete' | 'delete' | 'postpone' | 'none';
+export type BackgroundEffectType = 'particles' | 'dark' | 'off';
 
 export interface ThemeSettings {
   name: string; // e.g., "Gold", "Crimson", "Custom"
   accentColor: string; // hex color
   font: AppFont;
   cardStyle: CardStyle;
-  backgroundEffect: boolean;
+  backgroundEffect: BackgroundEffectType;
   borderRadius: BorderRadius;
   // New Customizations
   backgroundImage?: string; // Data URL

@@ -208,7 +208,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveScreen }) => {
         }
     }, [tasks, handleStartFocus, showStatus]);
 
-    const handleGetBriefing = async () => {
+    const handleGetBriefing = useCallback(async () => {
         if (isBriefingLoading) return;
         setIsBriefingLoading(true);
         setBriefingContent('');
@@ -223,9 +223,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveScreen }) => {
         } finally {
             setIsBriefingLoading(false);
         }
-    };
+    }, [isBriefingLoading, personalItems, tasks, settings.aiPersonality]);
 
-    const handleRollOverTasks = async () => {
+    const handleRollOverTasks = useCallback(async () => {
         const updates = await rollOverIncompleteTasks();
         if (updates.length > 0) {
             updates.forEach(update => {
@@ -235,7 +235,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveScreen }) => {
         } else {
             showStatus('success', 'אין משימות לגלגל.');
         }
-    };
+    }, [dispatch, showStatus]);
 
     const { completionPercentage, overdueTasksCount } = useMemo(() => {
         const totalHabits = personalItems.filter(i => i.type === 'habit').length;

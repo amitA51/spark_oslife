@@ -114,12 +114,12 @@ const ThemePreviewCard: React.FC<{
 };
 
 const THEMES: Record<string, ThemeSettings> = {
-    nebula: { name: 'Nebula', accentColor: '#8B5CF6', font: 'inter', cardStyle: 'glass', backgroundEffect: true, borderRadius: 'lg' },
-    emerald: { name: 'Emerald', accentColor: '#10B981', font: 'inter', cardStyle: 'glass', backgroundEffect: true, borderRadius: 'lg' },
-    gold: { name: 'Gold', accentColor: '#F59E0B', font: 'lato', cardStyle: 'flat', backgroundEffect: false, borderRadius: 'md' },
-    oceanic: { name: 'Oceanic', accentColor: '#0EA5E9', font: 'inter', cardStyle: 'flat', backgroundEffect: false, borderRadius: 'lg' },
-    crimson: { name: 'Crimson', accentColor: '#F43F5E', font: 'rubik', cardStyle: 'bordered', backgroundEffect: false, borderRadius: 'md' },
-    midnight: { name: 'Midnight', accentColor: '#6366f1', font: 'inter', cardStyle: 'glass', backgroundEffect: true, borderRadius: 'xl' }
+    nebula: { name: 'Nebula', accentColor: '#8B5CF6', font: 'inter', cardStyle: 'glass', backgroundEffect: 'particles', borderRadius: 'lg' },
+    emerald: { name: 'Emerald', accentColor: '#10B981', font: 'inter', cardStyle: 'glass', backgroundEffect: 'particles', borderRadius: 'lg' },
+    gold: { name: 'Gold', accentColor: '#F59E0B', font: 'lato', cardStyle: 'flat', backgroundEffect: 'dark', borderRadius: 'md' },
+    oceanic: { name: 'Oceanic', accentColor: '#0EA5E9', font: 'inter', cardStyle: 'flat', backgroundEffect: 'off', borderRadius: 'lg' },
+    crimson: { name: 'Crimson', accentColor: '#F43F5E', font: 'rubik', cardStyle: 'bordered', backgroundEffect: 'off', borderRadius: 'md' },
+    midnight: { name: 'Midnight', accentColor: '#6366f1', font: 'inter', cardStyle: 'glass', backgroundEffect: 'dark', borderRadius: 'xl' }
 };
 
 const settingsSections: { id: SettingsSectionId, label: string, icon: React.ReactNode }[] = [
@@ -534,11 +534,16 @@ const SettingsScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = 
                                             <span className="text-lg">A</span>
                                         </div>
                                     </SettingsRow>
-                                    <SettingsRow title="אפקט רקע דינמי" description="הצג אנימציית חלקיקים עדינה ברקע.">
-                                        <ToggleSwitch
-                                            checked={settings.themeSettings.backgroundEffect}
-                                            onChange={v => handleSettingChange('themeSettings', { ...settings.themeSettings, backgroundEffect: v })}
-                                        />
+                                    <SettingsRow title="סגנון רקע" description="בחר את סגנון הרקע המועדף עליך.">
+                                        <select
+                                            value={settings.themeSettings.backgroundEffect}
+                                            onChange={e => handleSettingChange('themeSettings', { ...settings.themeSettings, backgroundEffect: e.target.value as 'particles' | 'dark' | 'off' })}
+                                            className="px-4 py-2 bg-[var(--bg-secondary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--dynamic-accent-start)]"
+                                        >
+                                            <option value="particles">חלקיקים אינטראקטיביים</option>
+                                            <option value="dark">מצב כהה (Dark Mode)</option>
+                                            <option value="off">ללא אפקט</option>
+                                        </select>
                                     </SettingsRow>
                                 </SettingsCard>
                             </SettingsSection>

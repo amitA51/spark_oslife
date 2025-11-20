@@ -207,7 +207,16 @@ const ThemedApp: React.FC = () => {
 
     return (
         <div className="max-w-2xl mx-auto app-container pb-24 overflow-x-hidden min-h-screen flex flex-col">
-            {themeSettings.backgroundEffect && <DynamicBackground />}
+            {/* Background Effects */}
+            {themeSettings.backgroundEffect === 'particles' && <DynamicBackground />}
+            {themeSettings.backgroundEffect === 'dark' && (
+                <div
+                    className="fixed inset-0 -z-10"
+                    style={{
+                        background: 'radial-gradient(ellipse at top, rgba(15, 23, 42, 0.9) 0%, rgba(0, 0, 0, 1) 100%)'
+                    }}
+                />
+            )}
             <SyncIndicator />
             <main className="flex-grow">
                 <Suspense fallback={<AppLoading />}>

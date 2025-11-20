@@ -8,6 +8,7 @@ import TimelineView from '../components/TimelineView';
 import { SettingsIcon, LayoutDashboardIcon, CalendarIcon, ListIcon, TargetIcon, SparklesIcon, InboxIcon, ChevronLeftIcon, SearchIcon, DragHandleIcon, ShieldCheckIcon, StopwatchIcon, BrainCircuitIcon, SplitScreenIcon, ChartBarIcon, FileIcon } from '../components/icons';
 import { getIconForName } from '../components/IconMap';
 import SkeletonLoader from '../components/SkeletonLoader';
+import EmptyState from '../components/EmptyState';
 import { AppContext } from '../state/AppContext';
 import { removePersonalItem, updatePersonalItem, duplicatePersonalItem, reAddPersonalItem, updateSpace } from '../services/dataService';
 import { useContextMenu } from '../hooks/useContextMenu';
@@ -25,11 +26,11 @@ import QuickNoteModal from '../components/QuickNoteModal';
 
 
 type HubView = 'dashboard' | 'timeline' | 'board' | 'calendar' | 'vault' | 'investments' | 'files';
-type ActiveView = 
-  | { type: HubView }
-  | { type: 'project', item: PersonalItem }
-  | { type: 'space', item: Space }
-  | { type: 'inbox' };
+type ActiveView =
+    | { type: HubView }
+    | { type: 'project', item: PersonalItem }
+    | { type: 'space', item: Space }
+    | { type: 'inbox' };
 
 
 const ViewSwitcher: React.FC<{
@@ -47,14 +48,13 @@ const ViewSwitcher: React.FC<{
     ] as const;
 
     return (
-        <div className="flex items-center gap-1 p-1 bg-[var(--bg-secondary)] rounded-full shadow-inner shadow-black/20 overflow-x-auto" style={{'scrollbarWidth': 'none'}}>
+        <div className="flex items-center gap-1 p-1 bg-[var(--bg-secondary)] rounded-full shadow-inner shadow-black/20 overflow-x-auto" style={{ 'scrollbarWidth': 'none' }}>
             {views.map(view => (
                 <button
                     key={view.id}
                     onClick={() => onViewChange(view.id)}
-                    className={`flex-1 px-3 py-1.5 text-sm rounded-full flex items-center justify-center gap-1.5 font-medium transition-all shrink-0 whitespace-nowrap ${
-                        currentView === view.id ? 'bg-[var(--accent-gradient)] text-white shadow-[0_0_10px_var(--dynamic-accent-glow)]' : 'text-[var(--text-secondary)] hover:text-white'
-                    }`}
+                    className={`flex-1 px-3 py-1.5 text-sm rounded-full flex items-center justify-center gap-1.5 font-medium transition-all shrink-0 whitespace-nowrap ${currentView === view.id ? 'bg-[var(--accent-gradient)] text-white shadow-[0_0_10px_var(--dynamic-accent-glow)]' : 'text-[var(--text-secondary)] hover:text-white'
+                        }`}
                 >
                     <view.icon className="w-5 h-5" />
                     <span className="hidden sm:inline">{view.label}</span>
@@ -80,10 +80,11 @@ const FileGallery: React.FC<{ items: PersonalItem[], onSelect: (item: PersonalIt
 
     if (allFiles.length === 0) {
         return (
-            <div className="text-center text-[var(--text-secondary)] mt-16 flex flex-col items-center">
-                <FileIcon className="w-16 h-16 text-gray-700 mb-4" />
-                <p>אין קבצים מצורפים.</p>
-            </div>
+            <EmptyState
+                illustration="generic"
+                title="אין קבצים מצורפים"
+                description="התחל לצרף תמונות, מסמכים וקבצים אחרים לפריטים שלך"
+            />
         );
     }
 
@@ -103,14 +104,14 @@ const FileGallery: React.FC<{ items: PersonalItem[], onSelect: (item: PersonalIt
                         {isImage ? (
                             <img src={attachment.url} alt={attachment.name} className="w-full h-full object-cover" />
                         ) : isVideo ? (
-                             <div className="w-full h-full bg-black flex items-center justify-center relative">
-                                 <video src={attachment.url} className="w-full h-full object-cover opacity-60" />
-                                 <div className="absolute inset-0 flex items-center justify-center">
-                                     <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                                         <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div>
-                                     </div>
-                                 </div>
-                             </div>
+                            <div className="w-full h-full bg-black flex items-center justify-center relative">
+                                <video src={attachment.url} className="w-full h-full object-cover opacity-60" />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                                        <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1"></div>
+                                    </div>
+                                </div>
+                            </div>
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center p-4 text-center bg-[var(--bg-secondary)]">
                                 <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-2 text-[var(--text-secondary)] group-hover:text-[var(--dynamic-accent-highlight)] transition-colors">
@@ -121,7 +122,7 @@ const FileGallery: React.FC<{ items: PersonalItem[], onSelect: (item: PersonalIt
                             </div>
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
-                             <p className="text-xs text-white font-medium truncate">{parentItem.title}</p>
+                            <p className="text-xs text-white font-medium truncate">{parentItem.title}</p>
                         </div>
                     </button>
                 );
@@ -136,10 +137,10 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
     const { personalItems, spaces, isLoading, settings } = state;
     const { contextMenu, handleContextMenu, closeContextMenu } = useContextMenu<PersonalItem>();
     const { openModal } = useModal();
-    
+
     const [activeView, setActiveView] = useState<ActiveView>({ type: 'dashboard' });
     const [selectedItem, setSelectedItem] = useState<PersonalItem | null>(null);
-    const [statusMessage, setStatusMessage] = useState<{type: StatusMessageType, text: string, id: number, onUndo?: () => void} | null>(null);
+    const [statusMessage, setStatusMessage] = useState<{ type: StatusMessageType, text: string, id: number, onUndo?: () => void } | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const debouncedQuery = useDebounce(searchQuery, 200);
 
@@ -147,7 +148,7 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
     const dragSpace = useRef<Space | null>(null);
     const dragOverSpace = useRef<Space | null>(null);
     const [draggingSpace, setDraggingSpace] = useState<Space | null>(null);
-    
+
     // --- State for Quick Note Modal ---
     const [quickNoteDate, setQuickNoteDate] = useState<string | null>(null);
 
@@ -160,7 +161,7 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
         sessionStorage.setItem('preselect_add_defaults', JSON.stringify(defaults));
         setActiveScreen('add');
     };
-    
+
     const handleCalendarQuickAdd = (date: string) => {
         setQuickNoteDate(date);
     };
@@ -181,14 +182,14 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
             showStatus('error', 'שגיאה בעדכון הפריט.');
         }
     }, [dispatch, personalItems, showStatus]);
-    
+
     const handleDeleteItem = useCallback(async (id: string) => {
         const itemToDelete = personalItems.find(item => item.id === id);
         if (!itemToDelete) return;
-    
+
         await removePersonalItem(id);
         dispatch({ type: 'REMOVE_PERSONAL_ITEM', payload: id });
-    
+
         showStatus('success', 'הפריט נמחק.', async () => {
             await reAddPersonalItem(itemToDelete);
             dispatch({ type: 'ADD_PERSONAL_ITEM', payload: itemToDelete });
@@ -198,7 +199,7 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
     const handleSelectItem = useCallback((item: PersonalItem, event?: React.MouseEvent | React.KeyboardEvent) => {
         event?.stopPropagation();
         if (item.type === 'roadmap') {
-            openModal('roadmapScreen', { 
+            openModal('roadmapScreen', {
                 item,
                 onUpdate: handleUpdateItem,
                 onDelete: handleDeleteItem,
@@ -207,7 +208,7 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
         }
         setSelectedItem(item);
     }, [openModal, handleUpdateItem, handleDeleteItem]);
-    
+
     const handleCloseModal = useCallback((nextItem?: PersonalItem) => {
         setSelectedItem(nextItem || null);
     }, []);
@@ -233,16 +234,16 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
     const { inboxItems, projectItems, personalSpaces } = useMemo(() => {
         const inbox = personalItems
             .filter(i => !i.spaceId && !i.projectId && i.type !== 'goal' && !i.dueDate)
-            .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         const projects = personalItems
             .filter(i => i.type === 'goal')
-            .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         const pSpaces = spaces
             .filter(s => s.type === 'personal')
-            .sort((a,b) => a.order - b.order);
+            .sort((a, b) => a.order - b.order);
         return { inboxItems: inbox, projectItems: projects, personalSpaces: pSpaces };
     }, [personalItems, spaces]);
-    
+
     // --- Reordering hooks ---
     const inboxReordering = useItemReordering(inboxItems, handleUpdateItem);
     const projectReordering = useItemReordering(projectItems, handleUpdateItem);
@@ -255,7 +256,7 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
             setDraggingSpace(null);
             return;
         }
-        
+
         const currentSpaces = [...personalSpaces];
         const dragItemIndex = currentSpaces.findIndex(s => s.id === draggedSpace.id);
         const dragOverItemIndex = currentSpaces.findIndex(s => s.id === targetSpace.id);
@@ -282,19 +283,19 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
                 newOrder = prevItem.order + 1000;
             }
         }
-        
+
         const updates = { order: newOrder };
-        
+
         // Optimistic dispatch
         dispatch({ type: 'UPDATE_SPACE', payload: { id: draggedSpace.id, updates } });
-        
+
         // Persist change with error handling
         updateSpace(draggedSpace.id, updates).catch(err => {
             console.error("Failed to update space order:", err);
             // Rollback
             dispatch({ type: 'UPDATE_SPACE', payload: { id: draggedSpace.id, updates: { order: draggedSpace.order } } });
         });
-        
+
         setDraggingSpace(null);
         dragSpace.current = null;
         dragOverSpace.current = null;
@@ -304,7 +305,7 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
     const searchResults = useMemo(() => {
         if (!debouncedQuery) return [];
         const lowerCaseQuery = debouncedQuery.toLowerCase();
-        return personalItems.filter(item => 
+        return personalItems.filter(item =>
             item.title.toLowerCase().includes(lowerCaseQuery) ||
             (item.content && item.content.toLowerCase().includes(lowerCaseQuery))
         );
@@ -312,184 +313,184 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
 
     const renderMainHub = () => (
         <>
-        <header className="flex flex-col gap-4 -mx-4 px-4 sticky top-0 bg-[var(--bg-primary)]/90 backdrop-blur-xl py-3 z-20 shadow-sm border-b border-[var(--border-primary)]">
-            <div className="flex justify-between items-center">
-                <h1 className="hero-title">
-                    {settings.screenLabels?.library || 'המתכנן'}
-                </h1>
-                <div className="flex items-center gap-2">
-                    <button onClick={() => openModal('splitViewConfig')} className="p-2 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-white transition-colors" aria-label="פתח מסך מפוצל">
-                        <SplitScreenIcon className="w-6 h-6"/>
-                    </button>
-                    <button onClick={() => setActiveScreen('assistant')} className="p-2 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-white transition-colors" aria-label="פתח יועץ AI">
-                        <BrainCircuitIcon className="w-6 h-6"/>
-                    </button>
-                    <button onClick={() => setActiveScreen('settings')} className="p-2 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-white transition-colors" aria-label="הגדרות">
-                        <SettingsIcon className="w-6 h-6"/>
-                    </button>
+            <header className="flex flex-col gap-4 -mx-4 px-4 sticky top-0 bg-[var(--bg-primary)]/90 backdrop-blur-xl py-3 z-20 shadow-sm border-b border-[var(--border-primary)]">
+                <div className="flex justify-between items-center">
+                    <h1 className="hero-title">
+                        {settings.screenLabels?.library || 'המתכנן'}
+                    </h1>
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => openModal('splitViewConfig')} className="p-2 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-white transition-colors" aria-label="פתח מסך מפוצל">
+                            <SplitScreenIcon className="w-6 h-6" />
+                        </button>
+                        <button onClick={() => setActiveScreen('assistant')} className="p-2 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-white transition-colors" aria-label="פתח יועץ AI">
+                            <BrainCircuitIcon className="w-6 h-6" />
+                        </button>
+                        <button onClick={() => setActiveScreen('settings')} className="p-2 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-white transition-colors" aria-label="הגדרות">
+                            <SettingsIcon className="w-6 h-6" />
+                        </button>
+                    </div>
                 </div>
-            </div>
-             <div className="relative">
-                <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                    <SearchIcon className="h-5 h-5 text-[var(--text-secondary)]" />
-                </div>
-                <input
-                    type="search"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="חפש בכל הפריטים האישיים..."
-                    className={`w-full border text-[var(--text-primary)] rounded-2xl py-3 pr-11 pl-4 focus:outline-none focus:ring-2 focus:ring-[var(--dynamic-accent-start)]/50 focus:border-[var(--dynamic-accent-start)] transition-all ${settings.themeSettings.cardStyle === 'glass' ? 'bg-white/10 border-white/10 backdrop-blur-sm' : 'bg-[var(--bg-secondary)] border-[var(--border-primary)]'}`}
-                />
-            </div>
-        </header>
-
-        {debouncedQuery ? (
-             <div className="px-4 space-y-4">
-                <p className="text-sm text-[var(--text-secondary)]">{searchResults.length} תוצאות נמצאו</p>
-                {searchResults.map((item, index) => (
-                    <PersonalItemCard
-                        key={item.id}
-                        item={item}
-                        index={index}
-                        searchQuery={debouncedQuery}
-                        onSelect={handleSelectItem}
-                        onUpdate={handleUpdateItem}
-                        onDelete={handleDeleteItem}
-                        onContextMenu={handleContextMenu}
-                        onLongPress={(_item: PersonalItem) => {}}
-                        isInSelectionMode={false}
-                        isSelected={false}
+                <div className="relative">
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
+                        <SearchIcon className="h-5 h-5 text-[var(--text-secondary)]" />
+                    </div>
+                    <input
+                        type="search"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="חפש בכל הפריטים האישיים..."
+                        className={`w-full border text-[var(--text-primary)] rounded-2xl py-3 pr-11 pl-4 focus:outline-none focus:ring-2 focus:ring-[var(--dynamic-accent-start)]/50 focus:border-[var(--dynamic-accent-start)] transition-all ${settings.themeSettings.cardStyle === 'glass' ? 'bg-white/10 border-white/10 backdrop-blur-sm' : 'bg-[var(--bg-secondary)] border-[var(--border-primary)]'}`}
                     />
-                ))}
-             </div>
-        ) : (
-            <div className={`transition-all duration-500 var(--fi-cubic-bezier) ${selectedItem ? 'receding-background' : ''}`}>
-                <div className="px-4">
-                    <ViewSwitcher currentView={activeView.type as HubView} onViewChange={(view) => setActiveView({type: view})} />
                 </div>
+            </header>
 
-                <div className="pt-6">
-                    {isLoading && <SkeletonLoader count={3} />}
-                    
-                    {!isLoading && activeView.type === 'dashboard' && (
-                        <div className="space-y-8 animate-screen-enter px-4">
-                            {inboxItems.length > 0 && (
-                                <section>
-                                    <button onClick={() => setActiveView({ type: 'inbox' })} className="w-full themed-card p-4 flex justify-between items-center hover:bg-white/5 transition-colors border border-[var(--border-primary)] hover:border-[var(--dynamic-accent-start)]">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
-                                                 <InboxIcon className="w-6 h-6"/>
+            {debouncedQuery ? (
+                <div className="px-4 space-y-4">
+                    <p className="text-sm text-[var(--text-secondary)]">{searchResults.length} תוצאות נמצאו</p>
+                    {searchResults.map((item, index) => (
+                        <PersonalItemCard
+                            key={item.id}
+                            item={item}
+                            index={index}
+                            searchQuery={debouncedQuery}
+                            onSelect={handleSelectItem}
+                            onUpdate={handleUpdateItem}
+                            onDelete={handleDeleteItem}
+                            onContextMenu={handleContextMenu}
+                            onLongPress={(_item: PersonalItem) => { }}
+                            isInSelectionMode={false}
+                            isSelected={false}
+                        />
+                    ))}
+                </div>
+            ) : (
+                <div className={`transition-all duration-500 var(--fi-cubic-bezier) ${selectedItem ? 'receding-background' : ''}`}>
+                    <div className="px-4">
+                        <ViewSwitcher currentView={activeView.type as HubView} onViewChange={(view) => setActiveView({ type: view })} />
+                    </div>
+
+                    <div className="pt-6">
+                        {isLoading && <SkeletonLoader count={3} />}
+
+                        {!isLoading && activeView.type === 'dashboard' && (
+                            <div className="space-y-8 animate-screen-enter px-4">
+                                {inboxItems.length > 0 && (
+                                    <section>
+                                        <button onClick={() => setActiveView({ type: 'inbox' })} className="w-full themed-card p-4 flex justify-between items-center hover:bg-white/5 transition-colors border border-[var(--border-primary)] hover:border-[var(--dynamic-accent-start)]">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
+                                                    <InboxIcon className="w-6 h-6" />
+                                                </div>
+                                                <h2 className="text-lg font-bold text-white">תיבת דואר נכנס</h2>
                                             </div>
-                                            <h2 className="text-lg font-bold text-white">תיבת דואר נכנס</h2>
+                                            <span className="text-sm font-mono bg-[var(--accent-start)] text-black font-bold rounded-full px-2 py-0.5">{inboxItems.length}</span>
+                                        </button>
+                                    </section>
+                                )}
+
+                                {projectItems.length > 0 && (
+                                    <section>
+                                        <h2 className="text-sm font-bold text-[var(--dynamic-accent-highlight)] uppercase tracking-wider mb-3 px-1">פרויקטים</h2>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" onDrop={projectReordering.handleDrop}>
+                                            {projectItems.map(project => {
+                                                const childItems = personalItems.filter(i => i.projectId === project.id);
+                                                const childTasks = childItems.filter(i => i.type === 'task' || i.type === 'roadmap' || (i.phases && i.phases.length > 0));
+
+                                                const completedTasks = childTasks.reduce((acc, i) => {
+                                                    if (i.type === 'task' && i.isCompleted) return acc + 1;
+                                                    if (i.type === 'roadmap' && i.phases) return acc + i.phases.flatMap(p => p.tasks).filter(t => t.isCompleted).length;
+                                                    return acc;
+                                                }, 0);
+                                                const totalTasks = childTasks.reduce((acc, i) => {
+                                                    if (i.type === 'task') return acc + 1;
+                                                    if (i.type === 'roadmap' && i.phases) return acc + i.phases.flatMap(p => p.tasks).length;
+                                                    return acc;
+                                                }, 0);
+
+                                                const totalFocusMinutes = childItems.reduce((total, item) => {
+                                                    return total + (item.focusSessions || []).reduce((itemTotal, session) => itemTotal + session.duration, 0);
+                                                }, 0);
+
+                                                const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+
+                                                return (
+                                                    <div
+                                                        key={project.id}
+                                                        draggable
+                                                        onDragStart={(e) => projectReordering.handleDragStart(e, project)}
+                                                        onDragEnter={(e) => projectReordering.handleDragEnter(e, project)}
+                                                        onDragEnd={projectReordering.handleDragEnd}
+                                                        onDragOver={(e) => e.preventDefault()}
+                                                        className={`cursor-grab ${projectReordering.draggingItem?.id === project.id ? 'dragging-item' : ''}`}
+                                                    >
+                                                        <button onClick={() => setActiveView({ type: 'project', item: project })} className="w-full themed-card p-4 text-right space-y-3 hover:-translate-y-1 transition-transform border-l-4 border-l-[var(--dynamic-accent-start)]">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--dynamic-accent-start)]/20 text-[var(--dynamic-accent-start)]">
+                                                                    <TargetIcon className="w-6 h-6" />
+                                                                </div>
+                                                                <h3 className="text-lg font-bold text-white truncate">{project.title}</h3>
+                                                            </div>
+                                                            <div>
+                                                                <div className="flex justify-between text-xs text-[var(--text-secondary)] mb-1">
+                                                                    <span>{completedTasks}/{totalTasks} הושלמו</span>
+                                                                    {totalFocusMinutes > 0 && (
+                                                                        <span className="flex items-center gap-1"><StopwatchIcon className="w-3 h-3" /> {Math.floor(totalFocusMinutes / 60)}ש {totalFocusMinutes % 60}ד בפוקוס</span>
+                                                                    )}
+                                                                    <span>{Math.round(progress)}%</span>
+                                                                </div>
+                                                                <div className="w-full bg-[var(--bg-card)] rounded-full h-1.5 border border-[var(--border-primary)]">
+                                                                    <div className="bg-[var(--accent-gradient)] h-1 rounded-full" style={{ width: `${progress}%` }}></div>
+                                                                </div>
+                                                            </div>
+                                                        </button>
+                                                    </div>
+                                                )
+                                            })}
                                         </div>
-                                        <span className="text-sm font-mono bg-[var(--accent-start)] text-black font-bold rounded-full px-2 py-0.5">{inboxItems.length}</span>
-                                    </button>
-                                </section>
-                            )}
+                                    </section>
+                                )}
 
-                            {projectItems.length > 0 && (
-                                <section>
-                                    <h2 className="text-sm font-bold text-[var(--dynamic-accent-highlight)] uppercase tracking-wider mb-3 px-1">פרויקטים</h2>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4" onDrop={projectReordering.handleDrop}>
-                                        {projectItems.map(project => {
-                                            const childItems = personalItems.filter(i => i.projectId === project.id);
-                                            const childTasks = childItems.filter(i => i.type === 'task' || i.type === 'roadmap' || (i.phases && i.phases.length > 0));
-
-                                            const completedTasks = childTasks.reduce((acc, i) => {
-                                                if (i.type === 'task' && i.isCompleted) return acc + 1;
-                                                if (i.type === 'roadmap' && i.phases) return acc + i.phases.flatMap(p => p.tasks).filter(t => t.isCompleted).length;
-                                                return acc;
-                                            }, 0);
-                                            const totalTasks = childTasks.reduce((acc, i) => {
-                                                if (i.type === 'task') return acc + 1;
-                                                if (i.type === 'roadmap' && i.phases) return acc + i.phases.flatMap(p => p.tasks).length;
-                                                return acc;
-                                            }, 0);
-                                            
-                                            const totalFocusMinutes = childItems.reduce((total, item) => {
-                                                return total + (item.focusSessions || []).reduce((itemTotal, session) => itemTotal + session.duration, 0);
-                                            }, 0);
-
-                                            const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-                                            
-                                            return (
-                                                <div 
-                                                    key={project.id} 
-                                                    draggable
-                                                    onDragStart={(e) => projectReordering.handleDragStart(e, project)}
-                                                    onDragEnter={(e) => projectReordering.handleDragEnter(e, project)}
-                                                    onDragEnd={projectReordering.handleDragEnd}
-                                                    onDragOver={(e) => e.preventDefault()}
-                                                    className={`cursor-grab ${projectReordering.draggingItem?.id === project.id ? 'dragging-item' : ''}`}
-                                                >
-                                                    <button onClick={() => setActiveView({ type: 'project', item: project })} className="w-full themed-card p-4 text-right space-y-3 hover:-translate-y-1 transition-transform border-l-4 border-l-[var(--dynamic-accent-start)]">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--dynamic-accent-start)]/20 text-[var(--dynamic-accent-start)]">
-                                                                <TargetIcon className="w-6 h-6"/>
+                                {personalSpaces.length > 0 && (
+                                    <section>
+                                        <h2 className="text-sm font-bold text-[var(--dynamic-accent-highlight)] uppercase tracking-wider mb-3 px-1">מרחבים</h2>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" onDrop={handleSpaceDrop}>
+                                            {personalSpaces.map(space => {
+                                                const Icon = getIconForName(space.icon);
+                                                const itemCount = personalItems.filter(i => i.spaceId === space.id).length;
+                                                return (
+                                                    <div
+                                                        key={space.id}
+                                                        draggable
+                                                        onDragStart={() => { dragSpace.current = space; setDraggingSpace(space); }}
+                                                        onDragEnter={() => dragOverSpace.current = space}
+                                                        onDragEnd={handleSpaceDrop}
+                                                        onDragOver={(e) => e.preventDefault()}
+                                                        className={`cursor-grab ${draggingSpace?.id === space.id ? 'dragging-item' : ''}`}
+                                                    >
+                                                        <button onClick={() => setActiveView({ type: 'space', item: space })} className="w-full themed-card p-3 flex flex-col items-center justify-center text-center aspect-square hover:-translate-y-1 transition-transform">
+                                                            <div className="w-12 h-12 rounded-full flex items-center justify-center mb-2 bg-[var(--bg-secondary)] text-[var(--dynamic-accent-start)]" style={{ color: space.color }}>
+                                                                <Icon className="w-6 h-6" />
                                                             </div>
-                                                            <h3 className="text-lg font-bold text-white truncate">{project.title}</h3>
-                                                        </div>
-                                                        <div>
-                                                            <div className="flex justify-between text-xs text-[var(--text-secondary)] mb-1">
-                                                                <span>{completedTasks}/{totalTasks} הושלמו</span>
-                                                                {totalFocusMinutes > 0 && (
-                                                                    <span className="flex items-center gap-1"><StopwatchIcon className="w-3 h-3"/> {Math.floor(totalFocusMinutes/60)}ש {totalFocusMinutes % 60}ד בפוקוס</span>
-                                                                )}
-                                                                <span>{Math.round(progress)}%</span>
-                                                            </div>
-                                                            <div className="w-full bg-[var(--bg-card)] rounded-full h-1.5 border border-[var(--border-primary)]">
-                                                                <div className="bg-[var(--accent-gradient)] h-1 rounded-full" style={{width: `${progress}%`}}></div>
-                                                            </div>
-                                                        </div>
-                                                    </button>
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                </section>
-                            )}
-
-                            {personalSpaces.length > 0 && (
-                                <section>
-                                    <h2 className="text-sm font-bold text-[var(--dynamic-accent-highlight)] uppercase tracking-wider mb-3 px-1">מרחבים</h2>
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" onDrop={handleSpaceDrop}>
-                                        {personalSpaces.map(space => {
-                                            const Icon = getIconForName(space.icon);
-                                            const itemCount = personalItems.filter(i => i.spaceId === space.id).length;
-                                            return (
-                                                <div
-                                                    key={space.id}
-                                                    draggable
-                                                    onDragStart={() => { dragSpace.current = space; setDraggingSpace(space); }}
-                                                    onDragEnter={() => dragOverSpace.current = space}
-                                                    onDragEnd={handleSpaceDrop}
-                                                    onDragOver={(e) => e.preventDefault()}
-                                                    className={`cursor-grab ${draggingSpace?.id === space.id ? 'dragging-item' : ''}`}
-                                                >
-                                                    <button onClick={() => setActiveView({ type: 'space', item: space })} className="w-full themed-card p-3 flex flex-col items-center justify-center text-center aspect-square hover:-translate-y-1 transition-transform">
-                                                        <div className="w-12 h-12 rounded-full flex items-center justify-center mb-2 bg-[var(--bg-secondary)] text-[var(--dynamic-accent-start)]" style={{color: space.color}}>
-                                                            <Icon className="w-6 h-6" />
-                                                        </div>
-                                                        <span className="font-bold text-white text-sm truncate">{space.name}</span>
-                                                        <span className="text-xs text-[var(--text-secondary)]">{itemCount} פריטים</span>
-                                                    </button>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </section>
-                            )}
-                        </div>
-                    )}
-                    {!isLoading && activeView.type === 'timeline' && <TimelineView items={personalItems} onSelectItem={handleSelectItem} />}
-                    {!isLoading && activeView.type === 'board' && <KanbanView items={personalItems} onUpdate={handleUpdateItem} onSelectItem={handleSelectItem} onQuickAdd={({type, defaultStatus}) => handleQuickAdd(type, { status: defaultStatus })} onDelete={handleDeleteItem} />}
-                    {!isLoading && activeView.type === 'calendar' && <CalendarView items={personalItems} onUpdate={handleUpdateItem} onSelectItem={(item, e) => handleSelectItem(item, e)} onQuickAdd={(_, date) => handleCalendarQuickAdd(date)} />}
-                    {!isLoading && activeView.type === 'files' && <FileGallery items={personalItems} onSelect={(item) => handleSelectItem(item)} />}
-                    {!isLoading && activeView.type === 'investments' && <InvestmentsScreen setActiveScreen={setActiveScreen} />}
-                    {!isLoading && activeView.type === 'vault' && <PasswordManager />}
+                                                            <span className="font-bold text-white text-sm truncate">{space.name}</span>
+                                                            <span className="text-xs text-[var(--text-secondary)]">{itemCount} פריטים</span>
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </section>
+                                )}
+                            </div>
+                        )}
+                        {!isLoading && activeView.type === 'timeline' && <TimelineView items={personalItems} onSelectItem={handleSelectItem} />}
+                        {!isLoading && activeView.type === 'board' && <KanbanView items={personalItems} onUpdate={handleUpdateItem} onSelectItem={handleSelectItem} onQuickAdd={({ type, defaultStatus }) => handleQuickAdd(type, { status: defaultStatus })} onDelete={handleDeleteItem} />}
+                        {!isLoading && activeView.type === 'calendar' && <CalendarView items={personalItems} onUpdate={handleUpdateItem} onSelectItem={(item, e) => handleSelectItem(item, e)} onQuickAdd={(_, date) => handleCalendarQuickAdd(date)} />}
+                        {!isLoading && activeView.type === 'files' && <FileGallery items={personalItems} onSelect={(item) => handleSelectItem(item)} />}
+                        {!isLoading && activeView.type === 'investments' && <InvestmentsScreen setActiveScreen={setActiveScreen} />}
+                        {!isLoading && activeView.type === 'vault' && <PasswordManager />}
+                    </div>
                 </div>
-            </div>
-        )}
+            )}
         </>
     );
 
@@ -505,9 +506,9 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
         const contextItems = inboxItems;
         return (
             <div className="animate-screen-enter">
-                 <header className="flex items-center gap-4 -mx-4 px-4 sticky top-0 bg-[var(--bg-primary)]/80 backdrop-blur-md py-3 z-20">
-                     <button onClick={() => setActiveView({ type: 'dashboard' })} className="p-2 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-white transition-colors" aria-label="חזור לדשבורד">
-                        <ChevronLeftIcon className="w-6 h-6"/>
+                <header className="flex items-center gap-4 -mx-4 px-4 sticky top-0 bg-[var(--bg-primary)]/80 backdrop-blur-md py-3 z-20">
+                    <button onClick={() => setActiveView({ type: 'dashboard' })} className="p-2 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-white transition-colors" aria-label="חזור לדשבורד">
+                        <ChevronLeftIcon className="w-6 h-6" />
                     </button>
                     <h1 className="hero-title themed-title">תיבת דואר נכנס</h1>
                 </header>
@@ -521,7 +522,7 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
                             onUpdate={handleUpdateItem}
                             onDelete={handleDeleteItem}
                             onContextMenu={handleContextMenu}
-                            onLongPress={(_item: PersonalItem) => {}}
+                            onLongPress={(_item: PersonalItem) => { }}
                             isInSelectionMode={false}
                             isSelected={false}
                             onDragStart={(e, item) => inboxReordering.handleDragStart(e, item)}
@@ -531,7 +532,7 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
                         />
                     ))}
                 </div>
-                 {selectedItem && <PersonalItemDetailModal item={selectedItem} contextItems={contextItems} onClose={handleCloseModal} onUpdate={handleUpdateItem} onDelete={handleDeleteWithConfirmation} />}
+                {selectedItem && <PersonalItemDetailModal item={selectedItem} contextItems={contextItems} onClose={handleCloseModal} onUpdate={handleUpdateItem} onDelete={handleDeleteWithConfirmation} />}
             </div>
         )
     }
@@ -545,7 +546,7 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
                 onUpdate={handleUpdateItem}
                 onDelete={handleDeleteWithConfirmation}
             />
-             {contextMenu.isOpen && contextMenu.item && (
+            {contextMenu.isOpen && contextMenu.item && (
                 <PersonalItemContextMenu
                     x={contextMenu.x}
                     y={contextMenu.y}
