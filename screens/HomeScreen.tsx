@@ -24,6 +24,7 @@ import { useModal } from '../state/ModalContext';
 import ComfortZoneWidget from '../components/ComfortZoneWidget';
 import Section from '../components/Section';
 import ViewSwitcher, { ViewMode } from '../components/ViewSwitcher';
+import QuoteWidget from '../components/widgets/QuoteWidget';
 
 interface HomeScreenProps {
     setActiveScreen: (screen: Screen) => void;
@@ -174,17 +175,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveScreen }) => {
     }, [debouncedTasks, debouncedHabits, debouncedEvents, collapsedSections, focusMode]);
 
     useEffect(() => {
+        let rafId: number;
         const handleScroll = () => {
-            if (headerRef.current) {
-                const scrollY = window.scrollY;
-                const translateY = Math.min(scrollY * 0.5, 150);
-                headerRef.current.style.transform = `translateY(-${translateY}px)`;
-                headerRef.current.style.opacity = `${Math.max(1 - scrollY / 200, 0)}`;
-            }
+            rafId = requestAnimationFrame(() => {
+                if (headerRef.current) {
+                    const scrollY = window.scrollY;
+                    const translateY = Math.min(scrollY * 0.5, 150);
+                    headerRef.current.style.transform = `translateY(-${translateY}px)`;
+                    headerRef.current.style.opacity = `${Math.max(1 - scrollY / 200, 0)}`;
+                }
+            });
         };
 
         window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            cancelAnimationFrame(rafId);
+        };
     }, []);
 
     const handleToggleCollapse = (id: string) => {
@@ -324,8 +331,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveScreen }) => {
                 </div>
             </header>
 
-            <div className="px-4">
+            <div className="px-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <ComfortZoneWidget />
+                <QuoteWidget />
             </div>
 
             <Section
