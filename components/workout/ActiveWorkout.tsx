@@ -6,6 +6,7 @@ import {
 } from '../icons';
 import './ActiveWorkout.css';
 import * as dataService from '../../services/dataService';
+import { logEvent } from '../../services/correlationsService';
 import ExerciseSelector from './ExerciseSelector';
 import QuickExerciseForm from './QuickExerciseForm';
 
@@ -183,6 +184,18 @@ const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({ item, onUpdate, onExit })
                 workoutEndTime: new Date().toISOString(),
                 exercises: exercises
             });
+
+            logEvent({
+                eventType: 'workout_completed',
+                itemId: item.id,
+                itemTitle: item.title || 'אימון',
+                metadata: {
+                    duration: workoutTimer,
+                    exerciseCount: exercises.length,
+                    totalSets: exercises.reduce((sum, ex) => sum + ex.sets.filter(s => s.completedAt).length, 0)
+                }
+            });
+
             onExit();
         }
     };

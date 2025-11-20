@@ -25,6 +25,7 @@ import ComfortZoneWidget from '../components/ComfortZoneWidget';
 import Section from '../components/Section';
 import ViewSwitcher, { ViewMode } from '../components/ViewSwitcher';
 import QuoteWidget from '../components/widgets/QuoteWidget';
+import InsightsWidget from '../components/InsightsWidget';
 
 interface HomeScreenProps {
     setActiveScreen: (screen: Screen) => void;
@@ -331,9 +332,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveScreen }) => {
                 </div>
             </header>
 
-            <div className="px-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <ComfortZoneWidget />
                 <QuoteWidget />
+                <InsightsWidget personalItems={personalItems} />
             </div>
 
             <Section

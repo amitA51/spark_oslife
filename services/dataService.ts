@@ -14,6 +14,7 @@ import { ValidationError, NotFoundError } from './errors';
 // import('./geminiService').then(mod => geminiService = mod);
 import { generateMentorContent, generateAiFeedItems } from './geminiService';
 import { deriveKey, encryptString, decryptToString, generateSalt, ab2b64, b642ab } from './cryptoService';
+import { logEvent } from './correlationsService';
 
 
 // --- IndexedDB Wrapper (Principle 1: Offline First) ---
@@ -190,6 +191,12 @@ export const addSpark = async (sparkData: Omit<FeedItem, 'id' | 'createdAt' | 't
         ...sparkData,
     };
     await dbPut(LS.FEED_ITEMS, newSpark);
+    logEvent({
+        eventType: 'spark_created',
+        itemId: newSpark.id,
+        itemTitle: newSpark.title,
+        metadata: { source: newSpark.source }
+    });
     return newSpark;
 };
 
@@ -216,6 +223,13 @@ export const addPersonalItem = async (itemData: Omit<PersonalItem, 'id' | 'creat
         ...itemData,
     };
     await dbPut(LS.PERSONAL_ITEMS, newItem);
+    if (newItem.type === 'journal') {
+        logEvent({
+            eventType: 'journal_entry',
+            itemId: newItem.id,
+            itemTitle: newItem.title
+        });
+    }
     return newItem;
 };
 
@@ -225,6 +239,24 @@ export const updatePersonalItem = async (id: string, updates: Partial<PersonalIt
     if (!itemToUpdate) throw new NotFoundError("PersonalItem", id);
     const updatedItem = { ...itemToUpdate, ...updates };
     await dbPut(LS.PERSONAL_ITEMS, updatedItem);
+
+    // Log completion events
+    if (updates.isCompleted && !itemToUpdate.isCompleted) {
+        if (updatedItem.type === 'task') {
+            logEvent({
+                eventType: 'task_completed',
+                itemId: updatedItem.id,
+                itemTitle: updatedItem.title
+            });
+        } else if (updatedItem.type === 'habit') {
+            logEvent({
+                eventType: 'habit_completed',
+                itemId: updatedItem.id,
+                itemTitle: updatedItem.title
+            });
+        }
+    }
+
     return updatedItem;
 };
 
@@ -255,6 +287,14 @@ export const logFocusSession = async (itemId: string, durationInMinutes: number)
     const newSession = { date: new Date().toISOString(), duration: durationInMinutes };
     const updatedItem = { ...itemToUpdate, focusSessions: [...(itemToUpdate.focusSessions || []), newSession] };
     await dbPut(LS.PERSONAL_ITEMS, updatedItem);
+
+    logEvent({
+        eventType: 'focus_session',
+        itemId: updatedItem.id,
+        itemTitle: updatedItem.title,
+        metadata: { duration: durationInMinutes }
+    });
+
     return updatedItem;
 };
 
