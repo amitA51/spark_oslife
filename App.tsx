@@ -7,6 +7,7 @@ import type { Screen } from './types';
 import { updateAppBadge } from './services/notificationsService';
 import { RefreshIcon } from './components/icons';
 import * as dataService from './services/dataService';
+import { initializeCloudSync, migrateLocalDataToCloud } from './services/dataService';
 import StatusMessage, { StatusMessageType } from './components/StatusMessage';
 import { useHabitReminders } from './hooks/useHabitReminders';
 import { useTaskReminders } from './hooks/useTaskReminders';
@@ -131,6 +132,28 @@ const ThemedApp: React.FC = () => {
         const unreadCount = state.feedItems.filter(item => !item.is_read).length;
         updateAppBadge(unreadCount);
     }, [state.feedItems]);
+
+    // Cloud Sync & Migration
+    useEffect(() => {
+        if (state.user) {
+            // Initialize real-time sync
+            initializeCloudSync(state.user.uid, (cloudItems) => {
+                // This callback is triggered when cloud data changes.
+                // We update the local state to reflect changes.
+                // Note: We might want to be more selective here to avoid overwriting unsaved local edits,
+                // but for now, we trust the cloud as the source of truth when it updates.
+                cloudItems.forEach(item => dispatch({ type: 'UPDATE_PERSONAL_ITEM', payload: { id: item.id, updates: item } }));
+            });
+
+            // Trigger migration of local data to cloud
+            // Ideally, we should only do this once or check if migration is needed.
+            // For now, we'll run it on every login/load to ensure consistency.
+            migrateLocalDataToCloud(state.user.uid).catch(err => {
+                console.error("Migration failed:", err);
+                showStatus('error', 'שגיאה בסנכרון הנתונים לענן');
+            });
+        }
+    }, [state.user, dispatch, showStatus]);
 
 
     useEffect(() => {

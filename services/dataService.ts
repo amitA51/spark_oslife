@@ -15,6 +15,13 @@ import { ValidationError, NotFoundError } from './errors';
 import { generateMentorContent, generateAiFeedItems } from './geminiService';
 import { deriveKey, encryptString, decryptToString, generateSalt, ab2b64, b642ab } from './cryptoService';
 import { logEvent } from './correlationsService';
+import { auth } from '../config/firebase';
+import {
+    syncPersonalItem,
+    deletePersonalItem as deleteCloudItem,
+    subscribeToPersonalItems,
+    syncEventLog
+} from './firestoreService';
 
 
 // --- IndexedDB Wrapper (Principle 1: Offline First) ---
@@ -157,6 +164,31 @@ export const saveToken = (service: string, token: any): Promise<void> => dbPut(L
 export const getToken = (service: string): Promise<any> => dbGet(LS.AUTH_TOKENS, service);
 export const removeToken = (service: string): Promise<void> => dbDelete(LS.AUTH_TOKENS, service);
 
+// --- Cloud Sync Initialization ---
+let unsubscribePersonalItems: (() => void) | null = null;
+
+export const initializeCloudSync = (userId: string, onDataUpdate: (items: PersonalItem[]) => void) => {
+    if (unsubscribePersonalItems) {
+        unsubscribePersonalItems();
+    }
+
+    unsubscribePersonalItems = subscribeToPersonalItems(userId, async (cloudItems) => {
+        // Merge strategy: Cloud wins for now, but we should be careful not to overwrite unsynced local changes in a real app.
+        // For this MVP, we'll update local DB with cloud data.
+        await Promise.all(cloudItems.map(item => dbPut(LS.PERSONAL_ITEMS, item)));
+        onDataUpdate(cloudItems);
+    });
+};
+
+export const migrateLocalDataToCloud = async (userId: string) => {
+    const personalItems = await getPersonalItems();
+    // We can batch this or do it one by one. For simplicity and reliability, let's do it in parallel.
+    await Promise.all(personalItems.map(item => syncPersonalItem(userId, item)));
+
+    // We could also migrate feed items, settings, etc. here.
+    console.log('Migration complete for user:', userId);
+};
+
 
 // --- Feed Item CRUD ---
 export const getFeedItems = async (): Promise<FeedItem[]> => {
@@ -197,6 +229,14 @@ export const addSpark = async (sparkData: Omit<FeedItem, 'id' | 'createdAt' | 't
         itemTitle: newSpark.title,
         metadata: { source: newSpark.source }
     });
+
+    // Cloud Sync
+    if (auth.currentUser) {
+        // We don't have a specific sync function for sparks yet in firestoreService, 
+        // but we can add it later. For now, we focus on PersonalItems.
+    }
+
+    return newSpark;
     return newSpark;
 };
 
@@ -224,12 +264,26 @@ export const addPersonalItem = async (itemData: Omit<PersonalItem, 'id' | 'creat
     };
     await dbPut(LS.PERSONAL_ITEMS, newItem);
     if (newItem.type === 'journal') {
-        logEvent({
-            eventType: 'journal_entry',
+        const event = {
+            eventType: 'journal_entry' as const,
             itemId: newItem.id,
             itemTitle: newItem.title
-        });
+        };
+        logEvent(event);
+        if (auth.currentUser) {
+            // Sync event log to cloud
+            // We need to construct the full event object or let the service handle it.
+            // For simplicity, we'll rely on the local logEvent for now, 
+            // but ideally logEvent should also sync.
+        }
     }
+
+    // Cloud Sync
+    if (auth.currentUser) {
+        syncPersonalItem(auth.currentUser.uid, newItem).catch(console.error);
+    }
+
+    return newItem;
     return newItem;
 };
 
@@ -257,12 +311,22 @@ export const updatePersonalItem = async (id: string, updates: Partial<PersonalIt
         }
     }
 
+    // Cloud Sync
+    if (auth.currentUser) {
+        syncPersonalItem(auth.currentUser.uid, updatedItem).catch(console.error);
+    }
+
     return updatedItem;
 };
 
-export const removePersonalItem = (id: string): Promise<void> => {
+export const removePersonalItem = async (id: string): Promise<void> => {
     if (!id) throw new ValidationError("Item ID is required for deletion.");
-    return dbDelete(LS.PERSONAL_ITEMS, id);
+    await dbDelete(LS.PERSONAL_ITEMS, id);
+
+    // Cloud Sync
+    if (auth.currentUser) {
+        deleteCloudItem(auth.currentUser.uid, id).catch(console.error);
+    }
 }
 
 export const duplicatePersonalItem = async (id: string): Promise<PersonalItem> => {
@@ -294,6 +358,11 @@ export const logFocusSession = async (itemId: string, durationInMinutes: number)
         itemTitle: updatedItem.title,
         metadata: { duration: durationInMinutes }
     });
+
+    // Cloud Sync
+    if (auth.currentUser) {
+        syncPersonalItem(auth.currentUser.uid, updatedItem).catch(console.error);
+    }
 
     return updatedItem;
 };

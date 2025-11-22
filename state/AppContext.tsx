@@ -2,6 +2,7 @@ import React, { createContext, useReducer, useEffect, ReactNode } from 'react';
 import { appReducer, initialState, AppState, AppAction } from './appReducer';
 import * as dataService from '../services/dataService';
 import { syncService } from '../services/syncService';
+import { subscribeToAuthChanges } from '../services/authService';
 
 interface AppContextType {
   state: AppState;
@@ -43,6 +44,27 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         // Initialize sync service after data is loaded
         syncService.init();
+
+        // Listen for auth changes
+        const unsubscribeAuth = subscribeToAuthChanges((firebaseUser) => {
+          if (firebaseUser) {
+            const user = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+              emailVerified: firebaseUser.emailVerified,
+              createdAt: firebaseUser.metadata.creationTime || new Date().toISOString(),
+            };
+            dispatch({ type: 'SET_USER', payload: user });
+          } else {
+            dispatch({ type: 'SET_USER', payload: null });
+          }
+        });
+
+        return () => {
+          unsubscribeAuth();
+        };
 
       } catch (error) {
         console.error('Failed to load initial data:', error);

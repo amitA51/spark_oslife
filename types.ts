@@ -555,3 +555,12 @@ export interface AuthError {
   code: string;
   message: string;
 }
+
+export interface EventLog {
+  id: string;
+  eventType: 'spark_created' | 'task_completed' | 'habit_completed' | 'journal_entry' | 'workout_completed' | 'focus_session';
+  itemId: string;
+  itemTitle: string;
+  timestamp: string | Date;
+  metadata?: Record<string, any>;
+}

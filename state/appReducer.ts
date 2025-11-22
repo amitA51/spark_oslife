@@ -1,4 +1,4 @@
-import type { FeedItem, PersonalItem, AppSettings, Space, AddableType, FeedViewMode, GoogleCalendarEvent, SplitViewConfig } from '../types';
+import type { FeedItem, PersonalItem, AppSettings, Space, AddableType, FeedViewMode, GoogleCalendarEvent, SplitViewConfig, User } from '../types';
 import { loadSettings, saveSettings } from '../services/settingsService';
 
 export interface AppState {
@@ -13,6 +13,7 @@ export interface AppState {
   calendarEvents: GoogleCalendarEvent[];
   splitViewConfig: SplitViewConfig;
   hasUnsavedChanges: boolean;
+  user: User | null;
 }
 
 export type AppAction =
@@ -40,7 +41,8 @@ export type AppAction =
   | { type: 'SET_CALENDAR_EVENTS'; payload: GoogleCalendarEvent[] }
   | { type: 'SET_SPLIT_VIEW_CONFIG'; payload: Partial<SplitViewConfig> }
   | { type: 'SET_UNSAVED_CHANGES' }
-  | { type: 'CLEAR_UNSAVED_CHANGES' };
+  | { type: 'CLEAR_UNSAVED_CHANGES' }
+  | { type: 'SET_USER'; payload: User | null };
 
 
 export const initialState: AppState = {
@@ -59,6 +61,7 @@ export const initialState: AppState = {
     right: 'feed',
   },
   hasUnsavedChanges: false,
+  user: null,
 };
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -75,10 +78,10 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       };
     case 'FETCH_ERROR':
       return { ...state, isLoading: false, error: action.payload };
-    
+
     case 'ADD_FEED_ITEM':
       return { ...state, feedItems: [action.payload, ...state.feedItems] };
-      
+
     case 'UPDATE_FEED_ITEM':
       return {
         ...state,
@@ -86,111 +89,114 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           item.id === action.payload.id ? { ...item, ...action.payload.updates } : item
         ),
       };
-      
+
     case 'BATCH_UPDATE_FEED_ITEMS': {
-        const updatesMap = new Map(action.payload.map(u => [u.id, u.updates]));
-        return {
-            ...state,
-            feedItems: state.feedItems.map(item => 
-                updatesMap.has(item.id) ? { ...item, ...updatesMap.get(item.id) } : item
-            ),
-        };
+      const updatesMap = new Map(action.payload.map(u => [u.id, u.updates]));
+      return {
+        ...state,
+        feedItems: state.feedItems.map(item =>
+          updatesMap.has(item.id) ? { ...item, ...updatesMap.get(item.id) } : item
+        ),
+      };
     }
-      
+
     case 'REMOVE_FEED_ITEM':
       return { ...state, feedItems: state.feedItems.filter(item => item.id !== action.payload) };
 
     case 'ADD_PERSONAL_ITEM':
-        return { ...state, personalItems: [action.payload, ...state.personalItems] };
-    
+      return { ...state, personalItems: [action.payload, ...state.personalItems] };
+
     case 'UPDATE_PERSONAL_ITEM':
-        return {
-            ...state,
-            personalItems: state.personalItems.map(item => 
-                item.id === action.payload.id ? { ...item, ...action.payload.updates } : item
-            ),
-        };
+      return {
+        ...state,
+        personalItems: state.personalItems.map(item =>
+          item.id === action.payload.id ? { ...item, ...action.payload.updates } : item
+        ),
+      };
 
     case 'REMOVE_PERSONAL_ITEM':
-        return { ...state, personalItems: state.personalItems.filter(item => item.id !== action.payload) };
+      return { ...state, personalItems: state.personalItems.filter(item => item.id !== action.payload) };
 
     case 'SET_ALL_DATA':
-        return {
-            ...state,
-            feedItems: action.payload.feedItems,
-            personalItems: action.payload.personalItems,
-            spaces: action.payload.spaces,
-        }
-    
+      return {
+        ...state,
+        feedItems: action.payload.feedItems,
+        personalItems: action.payload.personalItems,
+        spaces: action.payload.spaces,
+      }
+
     case 'SET_SETTINGS':
-        return { ...state, settings: action.payload };
+      return { ...state, settings: action.payload };
 
     case 'SET_LAST_ADDED_TYPE': {
-        const newSettings = { ...state.settings, lastAddedType: action.payload };
-        saveSettings(newSettings);
-        return { ...state, settings: newSettings };
+      const newSettings = { ...state.settings, lastAddedType: action.payload };
+      saveSettings(newSettings);
+      return { ...state, settings: newSettings };
     }
-    
+
     case 'SET_FEED_VIEW_MODE': {
-        const newSettings = { ...state.settings, feedViewMode: action.payload };
-        saveSettings(newSettings);
-        return { ...state, settings: newSettings };
+      const newSettings = { ...state.settings, feedViewMode: action.payload };
+      saveSettings(newSettings);
+      return { ...state, settings: newSettings };
     }
 
     case 'ADD_SPACE':
-        return { ...state, spaces: [...state.spaces, action.payload].sort((a,b) => a.order - b.order) };
-    
+      return { ...state, spaces: [...state.spaces, action.payload].sort((a, b) => a.order - b.order) };
+
     case 'UPDATE_SPACE':
-        return {
-            ...state,
-            spaces: state.spaces.map(s => s.id === action.payload.id ? { ...s, ...action.payload.updates } : s).sort((a,b) => a.order - b.order),
-        };
-    
+      return {
+        ...state,
+        spaces: state.spaces.map(s => s.id === action.payload.id ? { ...s, ...action.payload.updates } : s).sort((a, b) => a.order - b.order),
+      };
+
     case 'REMOVE_SPACE':
-        return { ...state, spaces: state.spaces.filter(s => s.id !== action.payload) };
+      return { ...state, spaces: state.spaces.filter(s => s.id !== action.payload) };
 
     case 'SET_SPACES':
-        return { ...state, spaces: action.payload.sort((a,b) => a.order - b.order) };
-    
-    case 'START_FOCUS_SESSION': {
-        const itemToFocus = action.payload;
-        let updatedPersonalItems = state.personalItems;
-        
-        // Automatically move item to "doing" in Kanban view if it's currently "todo"
-        if (itemToFocus.status === 'todo') {
-            const updates = { status: 'doing' as const };
-             updatedPersonalItems = state.personalItems.map(item => 
-                item.id === itemToFocus.id ? { ...item, ...updates } : item
-            );
-        }
+      return { ...state, spaces: action.payload.sort((a, b) => a.order - b.order) };
 
-        return { 
-            ...state, 
-            focusSession: { item: { ...itemToFocus, status: 'doing' }, startTime: Date.now() },
-            personalItems: updatedPersonalItems
-        };
+    case 'START_FOCUS_SESSION': {
+      const itemToFocus = action.payload;
+      let updatedPersonalItems = state.personalItems;
+
+      // Automatically move item to "doing" in Kanban view if it's currently "todo"
+      if (itemToFocus.status === 'todo') {
+        const updates = { status: 'doing' as const };
+        updatedPersonalItems = state.personalItems.map(item =>
+          item.id === itemToFocus.id ? { ...item, ...updates } : item
+        );
+      }
+
+      return {
+        ...state,
+        focusSession: { item: { ...itemToFocus, status: 'doing' }, startTime: Date.now() },
+        personalItems: updatedPersonalItems
+      };
     }
 
     case 'CLEAR_FOCUS_SESSION':
-        return { ...state, focusSession: null };
+      return { ...state, focusSession: null };
 
     case 'SET_GOOGLE_AUTH_STATE':
-        return { ...state, googleAuthState: action.payload };
+      return { ...state, googleAuthState: action.payload };
 
     case 'SET_CALENDAR_EVENTS':
-        return { ...state, calendarEvents: action.payload };
+      return { ...state, calendarEvents: action.payload };
 
     case 'SET_SPLIT_VIEW_CONFIG':
-        return {
-            ...state,
-            splitViewConfig: { ...state.splitViewConfig, ...action.payload },
-        };
-    
+      return {
+        ...state,
+        splitViewConfig: { ...state.splitViewConfig, ...action.payload },
+      };
+
     case 'SET_UNSAVED_CHANGES':
       return { ...state, hasUnsavedChanges: true };
 
     case 'CLEAR_UNSAVED_CHANGES':
       return { ...state, hasUnsavedChanges: false };
+
+    case 'SET_USER':
+      return { ...state, user: action.payload };
 
     default:
       return state;
