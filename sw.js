@@ -47,6 +47,14 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // 0. Ignore cross-origin requests - Let browser handle external resources
+  // This prevents "Failed to fetch" errors for Google Fonts, APIs, Analytics, etc.
+  if (url.origin !== self.location.origin) {
+    // For cross-origin, just pass through to network without caching
+    // Don't call respondWith - let the browser handle it naturally
+    return;
+  }
+
   // 1. Navigation: Network First, fall back to cache (index.html)
   if (request.mode === 'navigate') {
     event.respondWith(

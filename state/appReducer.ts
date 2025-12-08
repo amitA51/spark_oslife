@@ -1,4 +1,14 @@
-import type { FeedItem, PersonalItem, AppSettings, Space, AddableType, FeedViewMode, GoogleCalendarEvent, SplitViewConfig, User } from '../types';
+import type {
+  FeedItem,
+  PersonalItem,
+  AppSettings,
+  Space,
+  AddableType,
+  FeedViewMode,
+  GoogleCalendarEvent,
+  SplitViewConfig,
+  User,
+} from '../types';
 import { loadSettings, saveSettings } from '../services/settingsService';
 
 export interface AppState {
@@ -18,7 +28,10 @@ export interface AppState {
 
 export type AppAction =
   | { type: 'FETCH_START' }
-  | { type: 'FETCH_SUCCESS'; payload: { feedItems: FeedItem[]; personalItems: PersonalItem[]; spaces: Space[] } }
+  | {
+      type: 'FETCH_SUCCESS';
+      payload: { feedItems: FeedItem[]; personalItems: PersonalItem[]; spaces: Space[] };
+    }
   | { type: 'FETCH_ERROR'; payload: string }
   | { type: 'ADD_FEED_ITEM'; payload: FeedItem }
   | { type: 'UPDATE_FEED_ITEM'; payload: { id: string; updates: Partial<FeedItem> } }
@@ -27,8 +40,11 @@ export type AppAction =
   | { type: 'ADD_PERSONAL_ITEM'; payload: PersonalItem }
   | { type: 'UPDATE_PERSONAL_ITEM'; payload: { id: string; updates: Partial<PersonalItem> } }
   | { type: 'REMOVE_PERSONAL_ITEM'; payload: string }
-  | { type: 'SET_ALL_DATA', payload: { feedItems: FeedItem[], personalItems: PersonalItem[], spaces: Space[] } }
-  | { type: 'SET_SETTINGS', payload: AppSettings }
+  | {
+      type: 'SET_ALL_DATA';
+      payload: { feedItems: FeedItem[]; personalItems: PersonalItem[]; spaces: Space[] };
+    }
+  | { type: 'SET_SETTINGS'; payload: AppSettings }
   | { type: 'ADD_SPACE'; payload: Space }
   | { type: 'UPDATE_SPACE'; payload: { id: string; updates: Partial<Space> } }
   | { type: 'REMOVE_SPACE'; payload: string }
@@ -43,7 +59,6 @@ export type AppAction =
   | { type: 'SET_UNSAVED_CHANGES' }
   | { type: 'CLEAR_UNSAVED_CHANGES' }
   | { type: 'SET_USER'; payload: User | null };
-
 
 export const initialState: AppState = {
   isLoading: true,
@@ -115,7 +130,10 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       };
 
     case 'REMOVE_PERSONAL_ITEM':
-      return { ...state, personalItems: state.personalItems.filter(item => item.id !== action.payload) };
+      return {
+        ...state,
+        personalItems: state.personalItems.filter(item => item.id !== action.payload),
+      };
 
     case 'SET_ALL_DATA':
       return {
@@ -123,7 +141,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         feedItems: action.payload.feedItems,
         personalItems: action.payload.personalItems,
         spaces: action.payload.spaces,
-      }
+      };
 
     case 'SET_SETTINGS':
       return { ...state, settings: action.payload };
@@ -141,12 +159,17 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     }
 
     case 'ADD_SPACE':
-      return { ...state, spaces: [...state.spaces, action.payload].sort((a, b) => a.order - b.order) };
+      return {
+        ...state,
+        spaces: [...state.spaces, action.payload].sort((a, b) => a.order - b.order),
+      };
 
     case 'UPDATE_SPACE':
       return {
         ...state,
-        spaces: state.spaces.map(s => s.id === action.payload.id ? { ...s, ...action.payload.updates } : s).sort((a, b) => a.order - b.order),
+        spaces: state.spaces
+          .map(s => (s.id === action.payload.id ? { ...s, ...action.payload.updates } : s))
+          .sort((a, b) => a.order - b.order),
       };
 
     case 'REMOVE_SPACE':
@@ -170,7 +193,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         focusSession: { item: { ...itemToFocus, status: 'doing' }, startTime: Date.now() },
-        personalItems: updatedPersonalItems
+        personalItems: updatedPersonalItems,
       };
     }
 

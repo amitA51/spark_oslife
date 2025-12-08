@@ -1,19 +1,37 @@
-import React, { createContext, useReducer, useContext, useCallback, ReactNode, useRef } from 'react';
+import React, {
+  createContext,
+  useReducer,
+  useContext,
+  useCallback,
+  ReactNode,
+  useRef,
+} from 'react';
+
+/**
+ * Modal payload types for type-safe modal data passing.
+ * Extend this union type when adding new modal types.
+ */
+export type ModalPayload =
+  | { itemId: string; itemType?: string }
+  | { date: string }
+  | { message: string }
+  | Record<string, unknown>
+  | undefined;
 
 type ModalState = {
   [key: string]: {
     isOpen: boolean;
-    payload?: any;
+    payload?: ModalPayload;
   };
 };
 
 type ModalAction =
-  | { type: 'OPEN_MODAL'; payload: { key: string; payload?: any } }
+  | { type: 'OPEN_MODAL'; payload: { key: string; payload?: ModalPayload } }
   | { type: 'CLOSE_MODAL'; payload: { key: string } };
 
 interface ModalContextType {
   modals: ModalState;
-  openModal: (key: string, payload?: any) => void;
+  openModal: (key: string, payload?: ModalPayload) => void;
   closeModal: (key: string) => void;
 }
 
@@ -42,20 +60,14 @@ export const ModalProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [modals, dispatch] = useReducer(modalReducer, {});
   const openModalsRef = useRef(new Set<string>());
 
-  const openModal = useCallback((key: string, payload?: any) => {
-    console.log(`openModal called: ${key}`);
-    if (openModalsRef.current.has(key)) {
-      console.log(`Modal already open: ${key}`);
-      return;
-    }
+  const openModal = useCallback((key: string, payload?: ModalPayload) => {
+    if (openModalsRef.current.has(key)) return;
     openModalsRef.current.add(key);
-    console.log(`Modal opened: ${key}`);
     dispatch({ type: 'OPEN_MODAL', payload: { key, payload } });
   }, []);
 
   const closeModal = useCallback((key: string) => {
     openModalsRef.current.delete(key);
-    console.log(`Modal closed: ${key}`);
     dispatch({ type: 'CLOSE_MODAL', payload: { key } });
   }, []);
 

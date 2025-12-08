@@ -1,37 +1,30 @@
-import React, { useContext } from 'react';
-import { AppContext } from '../../state/AppContext';
+import React from 'react';
 import ActiveWorkout from './ActiveWorkout';
-import * as dataService from '../../services/dataService';
+import { useData } from '../../src/contexts/DataContext';
 
 const ActiveWorkoutOverlay: React.FC = () => {
-    const { state, dispatch } = useContext(AppContext);
-    const { personalItems } = state;
+  const { personalItems, updatePersonalItem } = useData();
 
-    // Find the active workout
-    const activeWorkout = personalItems.find(item =>
-        item.type === 'workout' && item.isActiveWorkout && !item.workoutEndTime
-    );
+  // Find the active workout
+  const activeWorkout = personalItems.find(
+    item => item.type === 'workout' && item.isActiveWorkout && !item.workoutEndTime
+  );
 
-    if (!activeWorkout) return null;
+  if (!activeWorkout) return null;
 
-    const handleUpdate = (id: string, updates: any) => {
-        dispatch({ type: 'UPDATE_PERSONAL_ITEM', payload: { id, updates } });
-        dataService.updatePersonalItem(id, updates);
+  const handleUpdate = (id: string, updates: any) => {
+    void updatePersonalItem(id, updates);
+  };
+
+  const handleExit = () => {
+    const updates = {
+      isActiveWorkout: false,
+      workoutEndTime: new Date().toISOString(),
     };
+    void updatePersonalItem(activeWorkout.id, updates);
+  };
 
-    const handleExit = () => {
-        // The ActiveWorkout component handles the logic for finishing the workout
-        // by setting isActiveWorkout to false, which will cause this component
-        // to return null on the next render.
-    };
-
-    return (
-        <ActiveWorkout
-            item={activeWorkout}
-            onUpdate={handleUpdate}
-            onExit={handleExit}
-        />
-    );
+  return <ActiveWorkout item={activeWorkout} onUpdate={handleUpdate} onExit={handleExit} />;
 };
 
 export default ActiveWorkoutOverlay;

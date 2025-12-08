@@ -1,21 +1,71 @@
-
-import type { AppSettings, Screen, HomeScreenComponent, ThemeSettings, UiDensity, AddableType, AnimationIntensity, AiPersonality } from '../types';
+import type { AppSettings, HomeScreenComponent, ThemeSettings, AddableType, VisualSettings } from '../types';
 import { LOCAL_STORAGE_KEYS as LS } from '../constants';
-import { PERSONAL_ITEM_TYPES } from '../constants';
 
 // Updated Themes with Premium, Subtle, and Delicate Colors
 const defaultThemes: Record<string, ThemeSettings> = {
-  nebula: { name: 'Nebula', accentColor: '#C4B5FD', font: 'inter', cardStyle: 'glass', backgroundEffect: 'particles', borderRadius: 'lg' },
-  emerald: { name: 'Sage', accentColor: '#6EE7B7', font: 'inter', cardStyle: 'glass', backgroundEffect: 'particles', borderRadius: 'lg' },
-  gold: { name: 'Champagne', accentColor: '#FDE047', font: 'lato', cardStyle: 'flat', backgroundEffect: 'dark', borderRadius: 'md' },
-  oceanic: { name: 'Glacier', accentColor: '#7DD3FC', font: 'inter', cardStyle: 'flat', backgroundEffect: 'off', borderRadius: 'lg' },
-  crimson: { name: 'Rose', accentColor: '#FDA4AF', font: 'rubik', cardStyle: 'bordered', backgroundEffect: 'off', borderRadius: 'md' },
-  midnight: { name: 'Midnight', accentColor: '#818CF8', font: 'inter', cardStyle: 'glass', backgroundEffect: 'dark', borderRadius: 'xl' }
+  nebula: {
+    name: 'Nebula',
+    accentColor: '#C4B5FD',
+    font: 'marcelo',
+    cardStyle: 'glass',
+    backgroundEffect: 'particles',
+    borderRadius: 'lg',
+  },
+  emerald: {
+    name: 'Sage',
+    accentColor: '#6EE7B7',
+    font: 'marcelo',
+    cardStyle: 'glass',
+    backgroundEffect: 'particles',
+    borderRadius: 'lg',
+  },
+  gold: {
+    name: 'Champagne',
+    accentColor: '#FDE047',
+    font: 'marcelo',
+    cardStyle: 'flat',
+    backgroundEffect: 'dark',
+    borderRadius: 'md',
+  },
+  oceanic: {
+    name: 'Glacier',
+    accentColor: '#7DD3FC',
+    font: 'marcelo',
+    cardStyle: 'flat',
+    backgroundEffect: 'off',
+    borderRadius: 'lg',
+  },
+  crimson: {
+    name: 'Rose',
+    accentColor: '#FDA4AF',
+    font: 'marcelo',
+    cardStyle: 'bordered',
+    backgroundEffect: 'off',
+    borderRadius: 'md',
+  },
+  midnight: {
+    name: 'Midnight',
+    accentColor: '#818CF8',
+    font: 'marcelo',
+    cardStyle: 'glass',
+    backgroundEffect: 'dark',
+    borderRadius: 'xl',
+  },
 };
 
 const defaultAddScreenLayout: AddableType[] = [
-  'spark', 'task', 'note', 'link', 'idea', 'learning',
-  'book', 'journal', 'workout', 'goal', 'roadmap', 'ticker'
+  'spark',
+  'task',
+  'note',
+  'link',
+  'idea',
+  'learning',
+  'book',
+  'journal',
+  'workout',
+  'goal',
+  'roadmap',
+  'ticker',
 ];
 
 const defaultSettings: AppSettings = {
@@ -24,10 +74,9 @@ const defaultSettings: AppSettings = {
   aiModel: 'gemini-2.5-flash',
   autoSummarize: false,
   defaultScreen: 'today',
-  themeSettings: defaultThemes.nebula,
+  themeSettings: defaultThemes.nebula!,
   lastAddedType: 'task',
   enableIntervalTimer: true,
-  enablePeriodicSync: false,
   uiDensity: 'comfortable',
   navBarLayout: ['feed', 'today', 'add', 'library', 'search'],
   enabledMentorIds: [],
@@ -47,11 +96,11 @@ const defaultSettings: AppSettings = {
     autoStartNext: true,
   },
   homeScreenLayout: [
-    { id: 'google_calendar', isVisible: true },
-    { id: 'comfort_zone', isVisible: true },
-    { id: 'gratitude', isVisible: true },
-    { id: 'habits', isVisible: true },
     { id: 'tasks', isVisible: true },
+    { id: 'quote_comfort_row', isVisible: true },
+    { id: 'focus_timer', isVisible: true },
+    { id: 'google_calendar', isVisible: true },
+    { id: 'gratitude', isVisible: true },
   ],
   sectionLabels: {
     gratitude: 'הכרת תודה',
@@ -59,6 +108,9 @@ const defaultSettings: AppSettings = {
     tasks: 'משימות פתוחות',
     google_calendar: 'סדר יום',
     comfort_zone: 'יציאה מאזור הנוחות',
+    quote: 'ציטוט יומי',
+    quote_comfort_row: 'ציטוט ואתגר',
+    focus_timer: 'טיימר למידה',
   },
   // New Personalization Settings
   hapticFeedback: true,
@@ -84,28 +136,85 @@ const defaultSettings: AppSettings = {
   taskRemindersEnabled: true,
   taskReminderTime: 15,
   enableHabitReminders: true,
-  feedUpdatesEnabled: false,
-  aiSuggestionsEnabled: false,
 
   // Swipe Settings
   swipeRightAction: 'complete',
   swipeLeftAction: 'postpone',
+
+  workoutSettings: {
+    defaultRestTime: 60,
+    defaultSets: 3,
+    soundEnabled: true,
+    hapticsEnabled: true,
+    keepAwake: true,
+    oledMode: true,
+    defaultWorkoutGoal: 'hypertrophy',
+    enableWarmup: true,
+    enableCooldown: true,
+    warmupPreference: 'ask',
+    cooldownPreference: 'ask',
+    waterReminderEnabled: false,
+    waterReminderInterval: 15,
+    workoutRemindersEnabled: false,
+    workoutReminderTime: '18:00',
+    reminderDays: [],
+    selectedTheme: 'deepCosmos',
+    trackBodyWeight: true,
+  },
+
+  // Cloud Sync
+  autoSyncEnabled: true,
+  syncFrequency: 'realtime',
+
+  // Visual Settings
+  visualSettings: {
+    showStreaks: true,
+    showLegends: true,
+    showProgressBars: true,
+    compactTooltips: false,
+    spinnerVariant: 'default',
+  },
 };
 
+export { defaultSettings };
+
 // Helper to merge layouts, keeping user's visibility but adding new components if they exist in default
-const mergeLayouts = (userLayout: HomeScreenComponent[], defaultLayout: HomeScreenComponent[]): HomeScreenComponent[] => {
+const mergeLayouts = (
+  userLayout: HomeScreenComponent[],
+  defaultLayout: HomeScreenComponent[]
+): HomeScreenComponent[] => {
   const userLayoutMap = new Map(userLayout.map(c => [c.id, c]));
   const newLayout = defaultLayout.map(defaultComp =>
-    userLayoutMap.has(defaultComp.id)
-      ? userLayoutMap.get(defaultComp.id)!
-      : defaultComp
+    userLayoutMap.has(defaultComp.id) ? userLayoutMap.get(defaultComp.id)! : defaultComp
   );
   // Also ensure components user has that are no longer in default are removed
   return newLayout.filter(comp => defaultLayout.some(d => d.id === comp.id));
-}
+};
 
+// Check if localStorage is available (handles private browsing mode)
+const isLocalStorageAvailable = (): boolean => {
+  try {
+    const testKey = '__storage_test__';
+    localStorage.setItem(testKey, testKey);
+    localStorage.removeItem(testKey);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// Validate hex color format
+const isValidHexColor = (color: string): boolean => {
+  return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color);
+};
 
 export const loadSettings = (): AppSettings => {
+  // Handle localStorage unavailability (e.g., private browsing)
+  if (!isLocalStorageAvailable()) {
+    console.warn('localStorage is not available, using default settings');
+    return defaultSettings;
+  }
+
   try {
     const storedSettings = localStorage.getItem(LS.SETTINGS);
     if (storedSettings) {
@@ -131,7 +240,8 @@ export const loadSettings = (): AppSettings => {
 
       // MIGRATION: from simple theme string to ThemeSettings object
       if (typeof parsed.theme === 'string' && !parsed.themeSettings) {
-        parsed.themeSettings = defaultThemes[parsed.theme as keyof typeof defaultThemes] || defaultThemes.nebula;
+        parsed.themeSettings =
+          defaultThemes[parsed.theme as keyof typeof defaultThemes] || defaultThemes.nebula;
         delete parsed.theme;
       }
 
@@ -148,19 +258,33 @@ export const loadSettings = (): AppSettings => {
       return {
         ...defaultSettings,
         ...parsed,
-        themeSettings: { ...defaultSettings.themeSettings, ...parsed.themeSettings },
+        themeSettings: {
+          ...defaultSettings.themeSettings,
+          ...(parsed.themeSettings || defaultThemes.nebula),
+        },
         screenLabels: { ...defaultSettings.screenLabels, ...parsed.screenLabels },
-        intervalTimerSettings: { ...defaultSettings.intervalTimerSettings, ...parsed.intervalTimerSettings },
+        intervalTimerSettings: {
+          ...defaultSettings.intervalTimerSettings,
+          ...parsed.intervalTimerSettings,
+        },
         sectionLabels: { ...defaultSettings.sectionLabels, ...parsed.sectionLabels },
-        homeScreenLayout: parsed.homeScreenLayout ? mergeLayouts(parsed.homeScreenLayout, defaultSettings.homeScreenLayout) : defaultSettings.homeScreenLayout,
-        navBarLayout: (Array.isArray(parsed.navBarLayout) && parsed.navBarLayout.length > 0 && !parsed.navBarLayout.includes('investments')) ? parsed.navBarLayout : defaultSettings.navBarLayout,
+        homeScreenLayout: parsed.homeScreenLayout
+          ? mergeLayouts(parsed.homeScreenLayout, defaultSettings.homeScreenLayout)
+          : defaultSettings.homeScreenLayout,
+        navBarLayout:
+          Array.isArray(parsed.navBarLayout) &&
+            parsed.navBarLayout.length > 0 &&
+            !parsed.navBarLayout.includes('investments')
+            ? parsed.navBarLayout
+            : defaultSettings.navBarLayout,
         enabledMentorIds: parsed.enabledMentorIds || [],
         pomodoroSettings: { ...defaultSettings.pomodoroSettings, ...parsed.pomodoroSettings },
         aiFeedSettings: { ...defaultSettings.aiFeedSettings, ...parsed.aiFeedSettings },
+        visualSettings: { ...defaultSettings.visualSettings, ...parsed.visualSettings },
       };
     }
   } catch (error) {
-    console.error("Failed to load settings from localStorage", error);
+    console.error('Failed to load settings from localStorage', error);
   }
   return defaultSettings;
 };
@@ -176,6 +300,6 @@ export const saveSettings = (settings: AppSettings): void => {
 
     localStorage.setItem(LS.SETTINGS, JSON.stringify(settingsToSave));
   } catch (error) {
-    console.error("Failed to save settings to localStorage", error);
+    console.error('Failed to save settings to localStorage', error);
   }
 };

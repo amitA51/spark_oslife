@@ -1,133 +1,208 @@
-
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { DragHandleIcon } from './icons';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 
 interface DraggableModalWrapperProps {
-    children: React.ReactNode;
-    onClose: () => void;
-    className?: string;
-    initialX?: number;
-    initialY?: number;
+  children: React.ReactNode;
+  onClose: () => void;
+  className?: string;
+  initialX?: number;
+  initialY?: number;
 }
 
-const DraggableModalWrapper: React.FC<DraggableModalWrapperProps> = ({ 
-    children, 
-    onClose, 
-    className = "", 
-    initialX, 
-    initialY 
+const DraggableModalWrapper: React.FC<DraggableModalWrapperProps> = ({
+  children,
+  onClose,
+  className = '',
+  initialX,
+  initialY,
 }) => {
-    // Center initially if no coordinates provided
-    const [position, setPosition] = useState({ 
-        x: initialX ?? (window.innerWidth / 2), 
-        y: initialY ?? (window.innerHeight / 2) 
-    });
-    
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-    const modalRef = useRef<HTMLDivElement>(null);
-    const hasCentered = useRef(false);
+  // Detect if we're on mobile
+  const isMobile = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 768 || 'ontouchstart' in window;
+  }, []);
 
-    // Improved centering logic
-    useEffect(() => {
-        if (!hasCentered.current && modalRef.current) {
-            const rect = modalRef.current.getBoundingClientRect();
-            // If specific coordinates weren't provided, center it.
-            if (initialX === undefined && initialY === undefined) {
-                 setPosition({
-                    x: (window.innerWidth - rect.width) / 2,
-                    y: (window.innerHeight - rect.height) / 2
-                });
-            }
-            hasCentered.current = true;
-        }
-    }, [initialX, initialY]);
+  // Position state - only used on desktop
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isPositioned, setIsPositioned] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
 
-    const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
-        // Allow interaction with form elements inside
-        if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA' || (e.target as HTMLElement).tagName === 'BUTTON' || (e.target as HTMLElement).closest('button')) {
-            return;
-        }
-
-        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-
-        setIsDragging(true);
-        setDragOffset({
-            x: clientX - position.x,
-            y: clientY - position.y
+  // Center the modal on desktop only
+  useEffect(() => {
+    if (!isMobile && modalRef.current && !isPositioned) {
+      const rect = modalRef.current.getBoundingClientRect();
+      if (initialX !== undefined && initialY !== undefined) {
+        setPosition({ x: initialX, y: initialY });
+      } else {
+        setPosition({
+          x: Math.max(0, (window.innerWidth - rect.width) / 2),
+          y: Math.max(0, (window.innerHeight - rect.height) / 2),
         });
+      }
+      setIsPositioned(true);
+    }
+  }, [isMobile, initialX, initialY, isPositioned]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    // Skip dragging on mobile - use native scroll instead
+    if (isMobile) return;
+
+    // Allow interaction with form elements inside
+    const target = e.target as HTMLElement;
+    if (
+      target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.tagName === 'BUTTON' ||
+      target.tagName === 'SELECT' ||
+      target.closest('button') ||
+      target.closest('input') ||
+      target.closest('textarea')
+    ) {
+      return;
+    }
+
+    const clientX = 'touches' in e ? (e.touches[0]?.clientX ?? 0) : e.clientX;
+    const clientY = 'touches' in e ? (e.touches[0]?.clientY ?? 0) : e.clientY;
+
+    setIsDragging(true);
+    setDragOffset({
+      x: clientX - position.x,
+      y: clientY - position.y,
+    });
+  }, [isMobile, position.x, position.y]);
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent | TouchEvent) => {
+      if (!isDragging || isMobile) return;
+
+      e.preventDefault();
+      const clientX = 'touches' in e ? (e.touches[0]?.clientX ?? 0) : e.clientX;
+      const clientY = 'touches' in e ? (e.touches[0]?.clientY ?? 0) : e.clientY;
+
+      // Constrain to viewport bounds
+      const newX = Math.max(0, Math.min(window.innerWidth - 100, clientX - dragOffset.x));
+      const newY = Math.max(0, Math.min(window.innerHeight - 100, clientY - dragOffset.y));
+
+      setPosition({ x: newX, y: newY });
+    },
+    [isDragging, isMobile, dragOffset]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  useEffect(() => {
+    if (isDragging && !isMobile) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('touchmove', handleMouseMove, { passive: false });
+      window.addEventListener('touchend', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchmove', handleMouseMove);
+      window.removeEventListener('touchend', handleMouseUp);
     };
+  }, [isDragging, isMobile, handleMouseMove, handleMouseUp]);
 
-    const handleMouseMove = useCallback((e: MouseEvent | TouchEvent) => {
-        if (isDragging) {
-            e.preventDefault(); // Prevent scrolling on mobile while dragging
-            const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-            const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+  // Prevent body scroll when modal is open on mobile
+  useEffect(() => {
+    if (isMobile) {
+      const originalStyle = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalStyle;
+      };
+    }
+    return undefined;
+  }, [isMobile]);
 
-            setPosition({
-                x: clientX - dragOffset.x,
-                y: clientY - dragOffset.y
-            });
-        }
-    }, [isDragging, dragOffset]);
-
-    const handleMouseUp = () => {
-        setIsDragging(false);
+  // Compute modal styles based on device
+  const modalStyle = useMemo(() => {
+    if (isMobile) {
+      // Mobile: Full screen with proper viewport handling
+      return {
+        position: 'fixed' as const,
+        inset: 0,
+        willChange: 'transform' as const,
+      };
+    }
+    // Desktop: Positioned with transform
+    return {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+      willChange: isDragging ? 'transform' as const : 'auto' as const,
     };
+  }, [isMobile, position.x, position.y, isDragging]);
 
-    useEffect(() => {
-        if (isDragging) {
-            window.addEventListener('mousemove', handleMouseMove);
-            window.addEventListener('mouseup', handleMouseUp);
-            window.addEventListener('touchmove', handleMouseMove, { passive: false });
-            window.addEventListener('touchend', handleMouseUp);
-        }
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('mouseup', handleMouseUp);
-            window.removeEventListener('touchmove', handleMouseMove);
-            window.removeEventListener('touchend', handleMouseUp);
-        };
-    }, [isDragging, handleMouseMove]);
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{
+        // Use dvh for mobile to handle dynamic viewport (keyboard, etc.)
+        height: isMobile ? '100dvh' : '100vh',
+      }}
+      aria-modal="true"
+      role="dialog"
+    >
+      {/* Backdrop - clickable to close */}
+      <div
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm pointer-events-auto animate-in fade-in-0 duration-200"
+        onClick={onClose}
+      />
 
-    return (
-        <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center" aria-modal="true" role="dialog">
-            {/* Backdrop - clickable to close */}
-            <div 
-                className="absolute inset-0 bg-black/60 backdrop-blur-[2px] pointer-events-auto transition-opacity duration-300" 
-                onClick={onClose}
-            />
+      <div
+        ref={modalRef}
+        style={modalStyle}
+        className={`
+          pointer-events-auto
+          ${className}
+          ${isDragging ? 'cursor-grabbing scale-[1.01]' : ''}
+          ${isMobile ? 'w-full h-full' : ''}
+          transition-[transform,opacity]
+          duration-150
+          ease-out
+        `}
+      >
+        {/* Drag Handle Bar - Only show on desktop */}
+        {!isMobile && (
+          <div
+            className={`
+              w-full h-7 
+              bg-gradient-to-b from-white/5 to-transparent 
+              rounded-t-2xl cursor-grab 
+              flex items-center justify-center 
+              absolute top-0 left-0 right-0 z-50 
+              ${isDragging ? 'cursor-grabbing' : ''}
+              hover:from-white/10
+              transition-colors duration-200
+            `}
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleMouseDown}
+          >
+            <div className="w-10 h-1 bg-white/25 rounded-full hover:bg-white/40 transition-colors" />
+          </div>
+        )}
 
-            <div
-                ref={modalRef}
-                style={{ 
-                    // On mobile (implicitly via class logic in parent), we might want to ignore transform or reset it, 
-                    // but for now we trust the centering logic.
-                    transform: `translate(${position.x}px, ${position.y}px)`,
-                    touchAction: 'none', // Important for touch devices
-                    position: 'absolute',
-                    top: 0,
-                    left: 0
-                }}
-                className={`pointer-events-auto shadow-2xl ${className} ${isDragging ? 'cursor-grabbing scale-[1.02] opacity-90' : ''} transition-transform duration-75`}
-            >
-                {/* Drag Handle Bar */}
-                <div 
-                    className={`w-full h-8 bg-gradient-to-b from-white/10 to-transparent rounded-t-2xl cursor-grab flex items-center justify-center absolute top-0 left-0 right-0 z-50 ${isDragging ? 'cursor-grabbing' : ''}`}
-                    onMouseDown={handleMouseDown}
-                    onTouchStart={handleMouseDown}
-                >
-                    <div className="w-12 h-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors" />
-                </div>
-                
-                {/* Content Content */}
-                <div className="h-full flex flex-col pt-4 relative z-10">
-                    {children}
-                </div>
-            </div>
+        {/* Mobile Drag Handle / Visual Indicator */}
+        {isMobile && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+            <div className="w-10 h-1 bg-white/30 rounded-full" />
+          </div>
+        )}
+
+        {/* Content */}
+        <div className={`h-full flex flex-col ${!isMobile ? 'pt-3' : 'pt-5'} relative z-10`}>
+          {children}
         </div>
-    );
+      </div>
+    </div>
+  );
 };
 
 export default DraggableModalWrapper;

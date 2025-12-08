@@ -1,194 +1,139 @@
+import React, { useEffect, useRef } from 'react';
+import { useSettings as useSettingsContext } from '../src/contexts/SettingsContext';
 
-import React, { useEffect, useRef, useContext } from 'react';
-import { AppContext } from '../state/AppContext';
+// הוצאת המחלקה החוצה - אין סיבה להגדיר אותה מחדש בכל רינדור
+class Particle {
+  x: number;
+  y: number;
+  size: number;
+  speedX: number;
+  speedY: number;
+  opacity: number;
+  canvasWidth: number;
+  canvasHeight: number;
 
-interface Particle {
-    x: number;
-    y: number;
-    size: number;
-    baseX: number;
-    baseY: number;
-    density: number;
-    color: string;
-    velocity: { x: number; y: number };
-    alpha: number;
-    targetAlpha: number;
+  constructor(width: number, height: number) {
+    this.canvasWidth = width;
+    this.canvasHeight = height;
+    this.x = Math.random() * width;
+    this.y = Math.random() * height;
+    this.size = Math.random() * 2 + 0.5; // גודל בסיסי
+    this.speedX = Math.random() * 0.5 - 0.25;
+    this.speedY = Math.random() * 0.5 - 0.25;
+    this.opacity = Math.random() * 0.5 + 0.1;
+  }
+
+  update() {
+    this.x += this.speedX;
+    this.y += this.speedY;
+
+    if (this.x > this.canvasWidth) this.x = 0;
+    else if (this.x < 0) this.x = this.canvasWidth;
+    if (this.y > this.canvasHeight) this.y = 0;
+    else if (this.y < 0) this.y = this.canvasHeight;
+  }
+
+  draw(ctx: CanvasRenderingContext2D) {
+    ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
-const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
-};
-
 const DynamicBackground: React.FC = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const { state } = useContext(AppContext);
-    const accentColor = state.settings.themeSettings.accentColor;
-    
-    // Mouse position tracking
-    const mouseRef = useRef({ x: 0, y: 0, radius: 150 });
+  const { settings } = useSettingsContext();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            mouseRef.current.x = e.clientX;
-            mouseRef.current.y = e.clientY;
-        };
-        
-        const handleTouchMove = (e: TouchEvent) => {
-            if (e.touches.length > 0) {
-                mouseRef.current.x = e.touches[0].clientX;
-                mouseRef.current.y = e.touches[0].clientY;
-            }
-        };
+  // אופטימיזציה: בדיקה מוקדמת כדי למנוע רינדור DOM מיותר אם האפקט כבוי
+  const isEffectActive = settings.themeSettings.backgroundEffect === 'particles';
 
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('touchmove', handleTouchMove);
-        return () => {
-            window.removeEventListener('mousemove', handleMouseMove);
-            window.removeEventListener('touchmove', handleTouchMove);
-        };
-    }, []);
+  useEffect(() => {
+    if (!isEffectActive) return;
 
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        
-        const rgbColor = hexToRgb(accentColor);
-        if (!rgbColor) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-        let particles: Particle[] = [];
-        let animationFrameId: number;
+    let particles: Particle[] = [];
+    let animationFrameId: number;
 
-        const init = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            particles = [];
+    // טיפול נכון ב-High DPI
+    const handleResize = () => {
+      const dpr = window.devicePixelRatio || 1;
+      // הגדרת הגודל הפיזי של הקנבס (פיקסלים אמיתיים)
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
 
-            // Adjust particle count based on screen size
-            const numberOfParticles = window.innerWidth < 768 ? 60 : 130; 
+      // נרמול מערכת הקואורדינטות של הקנבס (CSS Pixels)
+      ctx.scale(dpr, dpr);
 
-            for (let i = 0; i < numberOfParticles; i++) {
-                const size = Math.random() * 2 + 0.5;
-                const x = Math.random() * canvas.width;
-                const y = Math.random() * canvas.height;
-                
-                // Random velocity for natural drift
-                const vx = (Math.random() - 0.5) * 0.3;
-                const vy = (Math.random() - 0.5) * 0.3;
+      // אתחול מחדש של החלקיקים כדי שיתאימו לגודל החדש
+      initParticles();
+    };
 
-                particles.push({
-                    x, y, 
-                    baseX: x, baseY: y,
-                    size,
-                    density: (Math.random() * 30) + 1,
-                    // Mix of theme color and white
-                    color: Math.random() > 0.6 
-                        ? `rgba(${rgbColor.r}, ${rgbColor.g}, ${rgbColor.b},` 
-                        : `rgba(255, 255, 255,`,
-                    velocity: { x: vx, y: vy },
-                    alpha: Math.random() * 0.5, 
-                    targetAlpha: Math.random() * 0.5 + 0.1
-                });
-            }
-        };
+    const initParticles = () => {
+      particles = [];
+      // שימוש ברוחב הלוגי (window.innerWidth) ולא הפיזי
+      const width = window.innerWidth;
+      const height = window.innerHeight;
 
-        const animate = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Update and draw particles
-            for (let i = 0; i < particles.length; i++) {
-                let p = particles[i];
+      // כמות חלקיקים דינמית לפי גודל מסך
+      const particleCount = width < 768 ? 30 : 60;
 
-                // Mouse Interaction (Repulsion)
-                const dx = mouseRef.current.x - p.x;
-                const dy = mouseRef.current.y - p.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                
-                if (distance < mouseRef.current.radius) {
-                    const forceDirectionX = dx / distance;
-                    const forceDirectionY = dy / distance;
-                    const force = (mouseRef.current.radius - distance) / mouseRef.current.radius;
-                    const directionX = forceDirectionX * force * p.density;
-                    const directionY = forceDirectionY * force * p.density;
-                    
-                    p.x -= directionX;
-                    p.y -= directionY;
-                    
-                    // Glow when near interaction
-                    p.alpha = Math.min(p.alpha + 0.05, 1); 
-                } else {
-                    // Return to base drift
-                    if (p.x !== p.baseX) {
-                        const dx = p.x - p.baseX;
-                        p.x -= dx / 50; 
-                    }
-                    if (p.y !== p.baseY) {
-                        const dy = p.y - p.baseY;
-                        p.y -= dy / 50;
-                    }
-                    
-                    // Twinkle effect
-                    if (Math.random() > 0.98) {
-                         p.targetAlpha = Math.random() * 0.6 + 0.1;
-                    }
-                    p.alpha += (p.targetAlpha - p.alpha) * 0.05;
-                }
+      for (let i = 0; i < particleCount; i++) {
+        particles.push(new Particle(width, height));
+      }
+    };
 
-                // Base movement
-                p.baseX += p.velocity.x;
-                p.baseY += p.velocity.y;
+    const animate = () => {
+      // ניקוי הקנבס בלבד - הגרדיאנט מגיע מה-CSS
+      // אנחנו מנקים לפי הגודל הלוגי כי עשינו scale
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
-                // Wrap around screen
-                if (p.baseX > canvas.width) { p.baseX = 0; p.x = 0; }
-                else if (p.baseX < 0) { p.baseX = canvas.width; p.x = canvas.width; }
-                if (p.baseY > canvas.height) { p.baseY = 0; p.y = 0; }
-                else if (p.baseY < 0) { p.baseY = canvas.height; p.y = canvas.height; }
+      particles.forEach(particle => {
+        particle.update();
+        particle.draw(ctx);
+      });
 
-                // Draw Particle
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fillStyle = `${p.color} ${p.alpha})`;
-                ctx.fill();
-                
-                // Draw connections (Constellations)
-                for (let j = i; j < particles.length; j++) {
-                    const p2 = particles[j];
-                    const dist = Math.sqrt((p.x - p2.x) ** 2 + (p.y - p2.y) ** 2);
-                    // Draw line if close enough
-                    if (dist < 100) {
-                        ctx.beginPath();
-                        // Line opacity based on distance
-                        ctx.strokeStyle = `${p.color} ${0.15 - (dist/1000)})`; 
-                        ctx.lineWidth = 0.5;
-                        ctx.moveTo(p.x, p.y);
-                        ctx.lineTo(p2.x, p2.y);
-                        ctx.stroke();
-                    }
-                }
-            }
-            animationFrameId = requestAnimationFrame(animate);
-        };
+      animationFrameId = requestAnimationFrame(animate);
+    };
 
-        init();
-        window.addEventListener('resize', init);
-        animate();
+    // Debounce פרימיטיבי ל-Resize כדי למנוע קריסה בשינוי גודל מהיר
+    let resizeTimeout: NodeJS.Timeout;
+    const onResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(handleResize, 100);
+    };
 
-        return () => {
-            window.removeEventListener('resize', init);
-            cancelAnimationFrame(animationFrameId);
-        };
-    }, [accentColor]);
+    handleResize(); // אתחול ראשוני
+    animate(); // התחלת אנימציה
+    window.addEventListener('resize', onResize);
 
-    return (
-        <canvas 
-            ref={canvasRef} 
-            className="fixed inset-0 w-full h-full -z-10 pointer-events-none"
-            style={{ background: 'radial-gradient(circle at 50% 0%, rgba(20,20,30,0.3) 0%, rgba(0,0,0,0) 100%)' }} 
-        />
-    );
+    return () => {
+      window.removeEventListener('resize', onResize);
+      cancelAnimationFrame(animationFrameId);
+      clearTimeout(resizeTimeout);
+    };
+  }, [isEffectActive]); // תלות בודדת - האם האפקט פעיל
+
+  // אם האפקט כבוי או מוגדר למשהו אחר
+  if (!isEffectActive) {
+    // שימוש ב-Tailwind לגרדיאנט סטטי יעיל
+    return <div className="fixed inset-0 -z-50 bg-gradient-to-b from-[#050505] to-[#0a0a12]" />;
+  }
+
+  return (
+    <>
+      {/* שכבה 1: גרדיאנט סטטי ב-CSS (GPU Accelerated) */}
+      <div className="fixed inset-0 -z-50 bg-gradient-to-b from-[#050505] to-[#0a0a12]" />
+
+      {/* שכבה 2: קנבס שקוף לחלקיקים */}
+      <canvas ref={canvasRef} className="fixed inset-0 -z-40 pointer-events-none w-full h-full" />
+    </>
+  );
 };
 
-export default React.memo(DynamicBackground);
+export default DynamicBackground;

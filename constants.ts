@@ -1,4 +1,3 @@
-
 // constants.ts
 
 /**
@@ -20,6 +19,8 @@ export const LOCAL_STORAGE_KEYS = {
   COMFORT_CHALLENGE: 'spark_comfort_challenge', // For Comfort Zone Crusher
   WORKOUT_TEMPLATES: 'spark_workout_templates', // For Workout Templates
   PERSONAL_EXERCISES: 'spark_personal_exercises', // For Personal Exercise Library
+  BODY_WEIGHT: 'spark_body_weight', // For Body Weight Tracking
+  WORKOUT_SESSIONS: 'spark_workout_sessions', // For Workout History
 };
 
 /**
@@ -30,19 +31,43 @@ export const FEED_ITEM_TYPES = ['rss', 'spark', 'news', 'mentor'] as const;
 /**
  * Defines the types of items that are considered personal and appear on the home screen.
  */
-export const PERSONAL_ITEM_TYPES = ['task', 'habit', 'workout', 'note', 'link', 'learning', 'goal', 'journal', 'book', 'idea', 'gratitude', 'roadmap'] as const;
+export const PERSONAL_ITEM_TYPES = [
+  'task',
+  'habit',
+  'workout',
+  'note',
+  'link',
+  'learning',
+  'goal',
+  'journal',
+  'book',
+  'idea',
+  'gratitude',
+  'roadmap',
+] as const;
 
 /**
  * A combined list of all possible item types in the application.
  */
 export const ITEM_TYPES = [...FEED_ITEM_TYPES, ...PERSONAL_ITEM_TYPES] as const;
 
-
 // --- Filter Types ---
 
 export const FEED_FILTER_TYPES = ['all', 'unread', 'sparks', 'rss'] as const;
-export const PERSONAL_ITEM_FILTER_TYPES = ['all', 'task', 'habit', 'book', 'note', 'link', 'learning', 'goal', 'journal', 'workout', 'idea', 'roadmap'] as const;
-
+export const PERSONAL_ITEM_FILTER_TYPES = [
+  'all',
+  'task',
+  'habit',
+  'book',
+  'note',
+  'link',
+  'learning',
+  'goal',
+  'journal',
+  'workout',
+  'idea',
+  'roadmap',
+] as const;
 
 // --- UI Constants ---
 // Use Record<string, string> to avoid circular dependency with types.ts
@@ -62,6 +87,18 @@ export const PERSONAL_ITEM_TYPE_COLORS: Record<string, string> = {
 };
 
 export const AVAILABLE_ICONS = [
-  'sparkles', 'lightbulb', 'clipboard', 'check-circle', 'link', 'summarize',
-  'user', 'book-open', 'target', 'dumbbell', 'feed', 'chart-bar', 'brain', 'roadmap'
+  'sparkles',
+  'lightbulb',
+  'clipboard',
+  'check-circle',
+  'link',
+  'summarize',
+  'user',
+  'book-open',
+  'target',
+  'dumbbell',
+  'feed',
+  'chart-bar',
+  'brain',
+  'roadmap',
 ] as const;

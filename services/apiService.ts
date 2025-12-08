@@ -9,7 +9,7 @@ import { ApiError } from './errors';
 /**
  * A wrapper around the native `fetch` API that adds a timeout.
  * This is a critical utility for handling unresponsive external services.
- * 
+ *
  * @param {string} resource The URL to fetch.
  * @param {RequestInit & { timeout?: number }} options Fetch options, including an optional `timeout` in milliseconds.
  * @returns {Promise<Response>} A promise that resolves to the Fetch API's Response object.
@@ -21,7 +21,10 @@ import { ApiError } from './errors';
  * await expect(longRequest).rejects.toThrow(ApiError);
  * await expect(longRequest).rejects.toThrow('Request timed out after 2000ms');
  */
-async function fetchWithTimeout(resource: string, options: RequestInit & { timeout?: number } = {}): Promise<Response> {
+async function fetchWithTimeout(
+  resource: string,
+  options: RequestInit & { timeout?: number } = {}
+): Promise<Response> {
   const { timeout = 15000 } = options; // Default timeout of 15 seconds
 
   const controller = new AbortController();
@@ -54,17 +57,23 @@ async function fetchWithTimeout(resource: string, options: RequestInit & { timeo
  * @returns {Promise<T>} A promise that resolves to the parsed JSON data.
  * @throws {ApiError} Throws an ApiError for network issues or non-ok HTTP responses.
  */
-export async function fetchData<T>(url: string, options?: RequestInit & { timeout?: number }): Promise<T> {
+export async function fetchData<T>(
+  url: string,
+  options?: RequestInit & { timeout?: number }
+): Promise<T> {
   const response = await fetchWithTimeout(url, options);
 
   if (!response.ok) {
     const errorBody = await response.text().catch(() => 'Could not read error body.');
     console.error(`API Error: ${response.status} ${response.statusText}`, errorBody);
-    throw new ApiError(`Request to ${new URL(url).hostname} failed with status ${response.status}.`, response.status);
+    throw new ApiError(
+      `Request to ${new URL(url).hostname} failed with status ${response.status}.`,
+      response.status
+    );
   }
 
   try {
-    return await response.json() as T;
+    return (await response.json()) as T;
   } catch (e) {
     throw new ApiError('Failed to parse JSON response from API.');
   }
@@ -79,7 +88,10 @@ export async function fetchData<T>(url: string, options?: RequestInit & { timeou
  * @returns {Promise<string>} A promise that resolves to the response text.
  * @throws {ApiError} Throws an ApiError for network issues or non-ok HTTP responses.
  */
-export async function fetchAsText(url: string, options?: RequestInit & { timeout?: number }): Promise<string> {
+export async function fetchAsText(
+  url: string,
+  options?: RequestInit & { timeout?: number }
+): Promise<string> {
   const response = await fetchWithTimeout(url, options);
 
   if (!response.ok) {

@@ -30,9 +30,7 @@
     {
       "action": "/?action=import",
       "accept": {
-        "application/json": [
-          ".json"
-        ]
+        "application/json": [".json"]
       }
     }
   ],
@@ -65,7 +63,7 @@
       "name": "הוסף משימה חדשה",
       "short_name": "משימה",
       "url": "/?action=add_task",
-       "icons": [{ "src": "/images/resized-image.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/images/resized-image.png", "sizes": "192x192" }]
     },
     {
       "name": "הוסף ספארק חדש",

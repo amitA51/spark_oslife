@@ -1,10 +1,22 @@
-
-
 import { ITEM_TYPES, PERSONAL_ITEM_TYPES } from './constants';
 
-export type Screen = 'feed' | 'search' | 'add' | 'today' | 'library' | 'settings' | 'investments' | 'assistant' | 'dashboard' | 'calendar' | 'passwords';
-export type ItemType = typeof ITEM_TYPES[number];
-export type PersonalItemType = typeof PERSONAL_ITEM_TYPES[number];
+export type Screen =
+  | 'feed'
+  | 'search'
+  | 'add'
+  | 'today'
+  | 'library'
+  | 'settings'
+  | 'investments'
+  | 'assistant'
+  | 'dashboard'
+  | 'calendar'
+  | 'passwords'
+  | 'views'
+  | 'login'
+  | 'signup';
+export type ItemType = (typeof ITEM_TYPES)[number];
+export type PersonalItemType = (typeof PERSONAL_ITEM_TYPES)[number];
 
 export interface Tag {
   id: string;
@@ -34,6 +46,7 @@ export interface FeedItem {
   type: 'rss' | 'spark' | 'news' | 'mentor';
   title: string;
   link?: string;
+  imageUrl?: string;
   content: string;
   summary_ai?: string;
   is_read: boolean;
@@ -73,7 +86,9 @@ export interface Exercise {
   sets: WorkoutSet[];
   targetRestTime?: number; // Target rest time in seconds (default: 90)
   muscleGroup?: string; // e.g., "Chest", "Back", "Legs"
+  tempo?: string; // e.g., "3-0-1-0"
   notes?: string; // Exercise-level notes
+  tutorialText?: string;
   lastPerformed?: {
     date: string;
     sets: WorkoutSet[];
@@ -87,6 +102,10 @@ export interface WorkoutTemplate {
   exercises: Exercise[];
   createdAt: string;
   muscleGroups?: string[]; // e.g., ["Chest", "Triceps"]
+  tags?: string[];
+  isBuiltin?: boolean;
+  lastUsed?: string; // ISO timestamp when template was last used
+  useCount?: number; // How many times the template was used
 }
 
 // Personal Exercise Library - התרגילים האישיים של המשתמש
@@ -94,14 +113,47 @@ export interface PersonalExercise {
   id: string;
   name: string;
   muscleGroup?: string;
+  category?: 'strength' | 'cardio' | 'flexibility' | 'warmup' | 'cooldown';
+  tempo?: string; // e.g., "3-0-1-0"
   defaultRestTime?: number; // זמן מנוחה ברירת מחדל (שניות)
   defaultSets?: number; // מספר סטים ברירת מחדל
   notes?: string;
   createdAt: string;
   lastUsed?: string; // ISO timestamp
   useCount?: number; // כמה פעמים השתמשו בתרגיל
+  tutorialText?: string;
+  isFavorite?: boolean; // מועדף לבחירה מהירה
 }
 
+export interface WorkoutTheme {
+  id: string;
+  name: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+    background: string;
+  };
+}
+
+export interface WorkoutSession {
+  id: string;
+  workoutItemId: string;
+  startTime: string;
+  endTime?: string;
+  startWeight?: number; // in kg
+  goalType?: WorkoutGoal;
+  warmupCompleted?: boolean;
+  cooldownCompleted?: boolean;
+  exercises: Exercise[];
+}
+
+export interface BodyWeightEntry {
+  id: string;
+  date: string;
+  weight: number; // kg
+  notes?: string;
+}
 
 export interface FocusSession {
   date: string; // ISO date string
@@ -110,21 +162,25 @@ export interface FocusSession {
 
 // --- NEW ROADMAP HIERARCHY ---
 
-export interface SubTask { // Level 3: A simple sub-task for a parent task
+export interface SubTask {
+  // Level 3: A simple sub-task for a parent task
   id: string;
   title: string;
   isCompleted: boolean;
 }
 
-export interface RoadmapTask { // Level 2: An actionable task within a phase
+export interface RoadmapTask {
+  // Level 2: An actionable task within a phase
   id: string;
   title: string;
   isCompleted: boolean;
+  completedAt?: string; // ISO Date string
   order: number;
   subTasks?: SubTask[]; // Can have its own sub-tasks
 }
 
-export interface RoadmapPhase { // Level 1: A major stage or step in the roadmap
+export interface RoadmapPhase {
+  // Level 1: A major stage or step in the roadmap
   id: string;
   title: string;
   description: string;
@@ -144,7 +200,6 @@ export interface RoadmapPhase { // Level 1: A major stage or step in the roadmap
   aiQuote?: string;
 }
 
-
 export interface SubHabit {
   id: string;
   title: string;
@@ -154,9 +209,11 @@ export interface PersonalItem {
   id: string;
   type: PersonalItemType;
   createdAt: string;
-  title: string;
-  content: string; // Used for notes, link summaries, journal entries, book summaries
+  title?: string;
+  content?: string; // Used for notes, link summaries, journal entries, book summaries
   projectId?: string; // ID of the parent goal/project
+  updatedAt: string; // ISO timestamp
+  tags?: string[];
   spaceId?: string; // New: For categorization into Spaces
   attachments?: Attachment[];
   icon?: string; // Icon identifier for the item
@@ -184,6 +241,7 @@ export interface PersonalItem {
   focusSessions?: FocusSession[];
   subTasks?: SubTask[];
   autoDeleteAfter?: number; // In days. 0 or undefined means never.
+  isArchived?: boolean;
 
   // Habit specific
   habitType?: 'good' | 'bad'; // 'good' = build habit, 'bad' = quit habit
@@ -210,27 +268,80 @@ export interface PersonalItem {
   status?: 'todo' | 'doing' | 'done';
 
   // Learning specific
-  flashcards?: { id: string; question: string; answer: string; }[];
+  flashcards?: { id: string; question: string; answer: string }[];
 
-  // Metadata for various types
-  metadata?: {
-    // For workouts
-    duration?: number; // in minutes
-    feeling?: 'bad' | 'ok' | 'good' | 'great';
-    // For learning
-    status?: 'to-learn' | 'learning' | 'learned';
-    source?: string; // Can be a URL, but also a book title etc.
-    key_takeaways?: string[];
-    // For goals
-    targetDate?: string;
-    // For journal
-    mood?: 'awful' | 'bad' | 'ok' | 'good' | 'great';
-    // For links (AI suggested)
-    suggestedTags?: string[];
-    // For books
-    bookStatus?: 'to-read' | 'reading' | 'finished';
-  };
+  // Metadata - Strongly typed union instead of 'any'
+  metadata?:
+  | WorkoutMetadata
+  | LearningMetadata
+  | JournalMetadata
+  | GoalMetadata
+  | LinkMetadata
+  | BookMetadata;
 }
+
+// Specific metadata types (no 'any' allowed)
+
+/**
+ * Metadata for workout-related items
+ */
+export type WorkoutMetadata = {
+  duration?: number; // in minutes
+  feeling?: 'bad' | 'ok' | 'good' | 'great';
+  calories?: number;
+  notes?: string;
+};
+
+/**
+ * Metadata for learning/educational items
+ */
+export type LearningMetadata = {
+  status?: 'to-learn' | 'learning' | 'learned';
+  source?: string; // URL, book title, course name, etc.
+  key_takeaways?: string[];
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+};
+
+/**
+ * Metadata for journal entries
+ */
+export type JournalMetadata = {
+  mood?: 'awful' | 'bad' | 'ok' | 'good' | 'great';
+  gratitude?: string[];
+  highlights?: string[];
+  lowlights?: string[];
+};
+
+/**
+ * Metadata for goal tracking
+ */
+export type GoalMetadata = {
+  targetDate?: string;
+  milestones?: string[];
+  progress?: number; // 0-100
+  category?: string;
+};
+
+/**
+ * Metadata for link/bookmark items (AI suggested)
+ */
+export type LinkMetadata = {
+  suggestedTags?: string[];
+  domain?: string;
+  readingTime?: number; // in minutes
+  isFavorite?: boolean;
+};
+
+/**
+ * Metadata for book tracking
+ */
+export type BookMetadata = {
+  bookStatus?: 'to-read' | 'reading' | 'finished';
+  author?: string;
+  pageCount?: number;
+  currentPage?: number;
+  rating?: number; // 1-5
+};
 
 export interface Template {
   id: string;
@@ -250,15 +361,30 @@ export interface ComfortZoneChallenge {
   revealedAt?: string; // ISO Timestamp
 }
 
-
 // --- New Types for Settings and Data Management ---
 
 export type AddableType = PersonalItemType | 'spark' | 'ticker';
-export type AppFont = 'inter' | 'lato' | 'source-code-pro' | 'heebo' | 'rubik' | 'alef' | 'poppins';
+export type AppFont =
+  | 'inter'
+  | 'lato'
+  | 'source-code-pro'
+  | 'heebo'
+  | 'rubik'
+  | 'alef'
+  | 'poppins'
+  | 'marcelo';
 export type CardStyle = 'glass' | 'flat' | 'bordered';
 export type BorderRadius = 'none' | 'sm' | 'md' | 'lg' | 'xl';
-export type HomeScreenComponentId = 'gratitude' | 'habits' | 'tasks' | 'google_calendar' | 'comfort_zone';
-export type UiDensity = 'comfortable' | 'compact';
+export type HomeScreenComponentId =
+  | 'gratitude'
+  | 'habits'
+  | 'tasks'
+  | 'google_calendar'
+  | 'comfort_zone'
+  | 'quote'
+  | 'quote_comfort_row'
+  | 'focus_timer';
+export type UiDensity = 'compact' | 'comfortable' | 'spacious';
 export type FeedViewMode = 'list' | 'visual';
 export type AnimationIntensity = 'off' | 'subtle' | 'default' | 'full';
 export type AiPersonality = 'concise' | 'encouraging' | 'formal';
@@ -266,7 +392,7 @@ export type SwipeAction = 'complete' | 'delete' | 'postpone' | 'none';
 export type BackgroundEffectType = 'particles' | 'dark' | 'off';
 
 export interface ThemeSettings {
-  name: string; // e.g., "Gold", "Crimson", "Custom"
+  name: string;
   accentColor: string; // hex color
   font: AppFont;
   cardStyle: CardStyle;
@@ -298,9 +424,48 @@ export interface PomodoroSettings {
   sessionsUntilLongBreak: number;
 }
 
+export type WorkoutGoal = 'strength' | 'hypertrophy' | 'endurance' | 'flexibility' | 'general';
+
+export interface WorkoutSettings {
+  defaultRestTime: number;
+  defaultSets: number;
+  soundEnabled: boolean;
+  hapticsEnabled: boolean;
+  keepAwake: boolean;
+  oledMode: boolean;
+
+  // Workout Goals & Preferences
+  defaultWorkoutGoal: WorkoutGoal;
+  enableWarmup: boolean;
+  enableCooldown: boolean;
+  warmupPreference: 'always' | 'never' | 'ask';
+  cooldownPreference: 'always' | 'never' | 'ask';
+
+  // Reminders
+  waterReminderEnabled: boolean;
+  waterReminderInterval: number; // minutes
+  workoutRemindersEnabled: boolean;
+  workoutReminderTime: string; // "HH:mm"
+  reminderDays: number[]; // 0-6 (Sunday-Saturday)
+
+  // Theme & Tracking
+  selectedTheme: string; // theme id
+  trackBodyWeight: boolean;
+}
+
 export interface HomeScreenComponent {
   id: HomeScreenComponentId;
   isVisible: boolean;
+}
+
+export type SpinnerVariant = 'default' | 'dots' | 'pulse' | 'orbit';
+
+export interface VisualSettings {
+  showStreaks: boolean;           // Show streak counters (habits, gratitude)
+  showLegends: boolean;           // Show chart legends
+  showProgressBars: boolean;      // Show auto-dismiss progress bars (StatusMessage)
+  compactTooltips: boolean;       // Use compact tooltips
+  spinnerVariant: SpinnerVariant; // LoadingSpinner style
 }
 
 export interface AppSettings {
@@ -308,7 +473,7 @@ export interface AppSettings {
   userEmoji?: string;
   aiModel: 'gemini-2.5-flash' | 'gemini-2.5-pro';
   autoSummarize: boolean;
-  defaultScreen: 'feed' | 'today';
+  defaultScreen: Screen;
   themeSettings: ThemeSettings;
   lastAddedType?: AddableType;
   enableIntervalTimer: boolean;
@@ -318,7 +483,7 @@ export interface AppSettings {
   intervalTimerSettings: IntervalTimerSettings;
   homeScreenLayout: HomeScreenComponent[];
   sectionLabels: Record<HomeScreenComponentId, string>;
-  enablePeriodicSync: boolean; // Added for PWA background sync
+
   uiDensity: UiDensity;
   navBarLayout: Screen[];
   enabledMentorIds: string[];
@@ -333,14 +498,14 @@ export interface AppSettings {
   aiPersonality: AiPersonality;
   pomodoroSettings: PomodoroSettings;
   aiFeedSettings: AiFeedSettings;
+  workoutSettings: WorkoutSettings;
 
   // Notification Settings
   notificationsEnabled: boolean;
   taskRemindersEnabled: boolean;
   taskReminderTime: 5 | 15 | 30 | 60; // minutes before
   enableHabitReminders: boolean;
-  feedUpdatesEnabled: boolean;
-  aiSuggestionsEnabled: boolean;
+
 
   // Swipe Settings
   swipeRightAction: SwipeAction;
@@ -349,38 +514,14 @@ export interface AppSettings {
   // Cloud Sync
   lastSyncTime?: string; // ISO date string
   googleDriveBackupId?: string;
+  autoSyncEnabled?: boolean; // Default true - auto-sync settings to cloud
+  syncFrequency?: 'realtime' | 'manual'; // Default realtime
 
-  // Dashboard Widgets
-  dashboardLayouts?: DashboardLayout[];
-  activeDashboardId?: string;
+  // Visual Settings for enhanced components
+  visualSettings: VisualSettings;
 }
 
-// --- Widget System Types ---
-export type WidgetType =
-  | 'tasks-today'
-  | 'habits-tracker'
-  | 'calendar-upcoming'
-  | 'quote-daily'
-  | 'productivity-stats'
-  | 'recent-notes'
-  | 'roadmap-progress';
 
-export type WidgetSize = 'small' | 'medium' | 'large';
-
-export interface WidgetConfig {
-  id: string;
-  type: WidgetType;
-  size: WidgetSize;
-  position: { x: number; y: number; w: number; h: number };
-  settings?: Record<string, any>;
-}
-
-export interface DashboardLayout {
-  id: string;
-  name: string;
-  widgets: WidgetConfig[];
-  isDefault?: boolean;
-}
 
 export interface WatchlistItem {
   id: string; // e.g., 'bitcoin' for crypto, 'TSLA' for stock
@@ -426,7 +567,23 @@ export interface Mentor {
 }
 
 // --- Quote System Types ---
-export type QuoteCategory = 'motivation' | 'stoicism' | 'tech' | 'success' | 'action' | 'dreams' | 'perseverance' | 'beginning' | 'sacrifice' | 'productivity' | 'possibility' | 'opportunity' | 'belief' | 'change' | 'passion' | 'custom';
+export type QuoteCategory =
+  | 'motivation'
+  | 'stoicism'
+  | 'tech'
+  | 'success'
+  | 'action'
+  | 'dreams'
+  | 'perseverance'
+  | 'beginning'
+  | 'sacrifice'
+  | 'productivity'
+  | 'possibility'
+  | 'opportunity'
+  | 'belief'
+  | 'change'
+  | 'passion'
+  | 'custom';
 
 export interface Quote {
   id: string;
@@ -445,6 +602,7 @@ export interface GoogleCalendarEvent {
   start: { dateTime?: string; date?: string; timeZone?: string };
   end: { dateTime?: string; date?: string; timeZone?: string };
   htmlLink?: string;
+  location?: string;
   // Enhanced fields for Spark integration
   sparkTaskId?: string; // Link to a task in Spark
   isBlockedTime?: boolean; // Whether this is a time block for a task
@@ -492,13 +650,9 @@ export interface NlpResult {
   suggestedSpaceId?: string;
 }
 
-export type SplitScreenComponentId = 'dashboard' | 'feed' | 'assistant';
 
-export interface SplitViewConfig {
-  isActive: boolean;
-  left: SplitScreenComponentId;
-  right: SplitScreenComponentId;
-}
+
+
 
 // --- Universal Search Types ---
 export type UniversalSearchResultType = PersonalItemType | FeedItem['type'] | 'calendar';
@@ -525,19 +679,19 @@ export interface SyncState {
   conflictCount: number;
 }
 
-export interface Conflict {
+export interface Conflict<T = unknown> {
   type: 'item' | 'setting';
   path: string;
-  local: any;
-  remote: any;
+  local: T;
+  remote: T;
   timestamp: string;
 }
 
-export interface Delta {
+export interface Delta<T = unknown> {
   added: string[];
   modified: string[];
   deleted: string[];
-  changes: Record<string, any>;
+  changes: Record<string, T>;
 }
 
 // --- Authentication Types ---
@@ -558,9 +712,15 @@ export interface AuthError {
 
 export interface EventLog {
   id: string;
-  eventType: 'spark_created' | 'task_completed' | 'habit_completed' | 'journal_entry' | 'workout_completed' | 'focus_session';
+  eventType:
+  | 'spark_created'
+  | 'task_completed'
+  | 'habit_completed'
+  | 'journal_entry'
+  | 'workout_completed'
+  | 'focus_session';
   itemId: string;
   itemTitle: string;
   timestamp: string | Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean>;
 }

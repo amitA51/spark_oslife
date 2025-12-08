@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { useModal } from '../state/ModalContext';
+import SimpleQuickNote from './SimpleQuickNote';
 
 // Lazy load the Roadmap screen to keep initial bundle small
 const RoadmapScreen = lazy(() => import('./details/RoadmapDetails'));
@@ -11,17 +12,20 @@ const ModalRoot: React.FC = () => {
 
   return (
     <>
-      {Object.entries(modals).map(([key, { isOpen, payload }]) => {
-        if (!isOpen) return null;
-        
+      {/* Quick Note Modal - always rendered, manages its own visibility */}
+      <SimpleQuickNote />
+
+      {Object.entries(modals).map(([key, modal]) => {
+        if (!modal || !modal.isOpen) return null;
+
         switch (key) {
           case 'roadmapScreen':
             return (
               <Suspense fallback={<div />} key={key}>
                 <RoadmapScreen
-                  item={payload.item}
-                  onUpdate={payload.onUpdate}
-                  onDelete={payload.onDelete}
+                  item={(modal.payload as any).item}
+                  onUpdate={(modal.payload as any).onUpdate}
+                  onDelete={(modal.payload as any).onDelete}
                   onClose={() => closeModal(key)}
                 />
               </Suspense>
@@ -29,12 +33,14 @@ const ModalRoot: React.FC = () => {
           case 'splitViewConfig':
             return (
               <Suspense fallback={<div />} key={key}>
-                <SplitViewConfigurationModal />
+                <SplitViewConfigurationModal
+                  onClose={() => closeModal(key)}
+                />
               </Suspense>
             );
-          // Add other modals here if needed in the future
-          // case 'anotherModal':
-          //   return <AnotherModalComponent {...payload} onClose={() => closeModal(key)} />;
+          case 'quickNote':
+            // Handled by SimpleQuickNote component above
+            return null;
           default:
             return null;
         }

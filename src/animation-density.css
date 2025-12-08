@@ -1,0 +1,82 @@
+/* Animation Intensity System - Data Attribute Driven */
+:root {
+    --anim-duration: 300ms;
+    --anim-scale: 1.05;
+    --anim-translate: 4px;
+    --anim-blur: 8px;
+    --transition-speed: 200ms;
+}
+
+/* Animation Intensity: Off */
+body[data-animation="off"] {
+    --anim-duration: 0ms;
+    --anim-scale: 1;
+    --anim-translate: 0px;
+    --anim-blur: 0px;
+    --transition-speed: 0ms;
+}
+
+body[data-animation="off"] * {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+}
+
+/* Animation Intensity: Subtle */
+body[data-animation="subtle"] {
+    --anim-duration: 150ms;
+    --anim-scale: 1.02;
+    --anim-translate: 2px;
+    --anim-blur: 4px;
+    --transition-speed: 120ms;
+}
+
+/* Animation Intensity: Default (already set in :root) */
+body[data-animation="default"] {
+    --anim-duration: 300ms;
+    --anim-scale: 1.05;
+    --anim-translate: 4px;
+    --anim-blur: 8px;
+    --transition-speed: 200ms;
+}
+
+/* Animation Intensity: Full */
+body[data-animation="full"] {
+    --anim-duration: 500ms;
+    --anim-scale: 1.1;
+    --anim-translate: 8px;
+    --anim-blur: 12px;
+    --transition-speed: 300ms;
+}
+
+/* UI Density System - Data Attribute Driven */
+:root {
+    --spacing: 1rem;
+    --card-padding: 1.25rem;
+    --item-height: 3rem;
+    --gap: 1rem;
+}
+
+/* Density: Compact */
+body[data-density="compact"] {
+    --spacing: 0.5rem;
+    --card-padding: 0.75rem;
+    --item-height: 2.5rem;
+    --gap: 0.5rem;
+}
+
+/* Density: Comfortable (Default) */
+body[data-density="comfortable"] {
+    --spacing: 1rem;
+    --card-padding: 1.25rem;
+    --item-height: 3rem;
+    --gap: 1rem;
+}
+
+/* Density: Spacious */
+body[data-density="spacious"] {
+    --spacing: 1.5rem;
+    --card-padding: 2rem;
+    --item-height: 4rem;
+    --gap: 1.5rem;
+}

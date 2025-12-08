@@ -1,65 +1,76 @@
-import { useEffect, useContext, useState, useCallback } from 'react';
-import { AppContext } from '../state/AppContext';
+/**
+ * useGoogleCalendar Hook
+ * Uses Firebase Auth state for Google Calendar integration
+ */
+import { useEffect, useState, useCallback } from 'react';
+import { useCalendar } from '../src/contexts/CalendarContext';
+import { useUser } from '../src/contexts/UserContext';
 import * as googleCalendarService from '../services/googleCalendarService';
+import { hasGoogleApiAccess, signInWithGoogle, clearGoogleAccessToken } from '../services/authService';
 import { StatusMessageType } from '../components/StatusMessage';
 
 export const useGoogleCalendar = (showStatus?: (type: StatusMessageType, text: string) => void) => {
-    const { state, dispatch } = useContext(AppContext);
-    const [isLoading, setIsLoading] = useState(false);
+  const { setGoogleAuthState } = useCalendar();
+  const { isAuthenticated } = useUser();
+  const [isLoading, setIsLoading] = useState(false);
 
-    const isAuthenticated = state.googleAuthState === 'signedIn';
+  // Check if we have Google API access (Firebase Auth + token)
+  const hasApiAccess = hasGoogleApiAccess();
+  const isGoogleAuthenticated = isAuthenticated && hasApiAccess;
 
-    const listEvents = useCallback(async (start: Date, end: Date) => {
-        if (!isAuthenticated) return [];
-        setIsLoading(true);
-        try {
-            return await googleCalendarService.getEventsForDateRange(start, end);
-        } catch (error: any) {
-            console.error("Failed to fetch events:", error);
-            if (showStatus) {
-                showStatus('error', 'שגיאה בטעינת אירועים');
-            }
-            return [];
-        } finally {
-            setIsLoading(false);
+  // Update context state based on auth
+  useEffect(() => {
+    if (isGoogleAuthenticated) {
+      setGoogleAuthState('signedIn');
+    } else {
+      setGoogleAuthState('signedOut');
+    }
+  }, [isGoogleAuthenticated, setGoogleAuthState]);
+
+  const listEvents = useCallback(
+    async (start: Date, end: Date) => {
+      if (!isGoogleAuthenticated) return [];
+      setIsLoading(true);
+      try {
+        return await googleCalendarService.getEventsForDateRange(start, end);
+      } catch (error: unknown) {
+        console.error('Failed to fetch events:', error);
+        if (showStatus) {
+          showStatus('error', 'שגיאה בטעינת אירועים');
         }
-    }, [isAuthenticated, showStatus]);
+        return [];
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isGoogleAuthenticated, showStatus]
+  );
 
-    useEffect(() => {
-        const handleAuthChange = async (isSignedIn: boolean) => {
-            dispatch({ type: 'SET_GOOGLE_AUTH_STATE', payload: isSignedIn ? 'signedIn' : 'signedOut' });
-            if (isSignedIn) {
-                // Initial fetch for today could go here if needed
-            }
-        };
+  const signIn = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await signInWithGoogle();
+      setGoogleAuthState('signedIn');
+    } catch (error) {
+      console.error('Failed to sign in:', error);
+      if (showStatus) {
+        showStatus('error', 'שגיאה בהתחברות ל-Google');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setGoogleAuthState, showStatus]);
 
-        const checkAndInit = async () => {
-            if ((window as any).gapi && (window as any).google) {
-                try {
-                    await googleCalendarService.initGoogleClient(handleAuthChange);
-                } catch (error: any) {
-                    console.error("Error initializing Google Client:", error);
-                    if (showStatus) {
-                        showStatus('error', 'שגיאה באתחול החיבור ל-Google');
-                    }
-                    dispatch({ type: 'SET_GOOGLE_AUTH_STATE', payload: 'signedOut' });
-                }
-            } else {
-                setTimeout(checkAndInit, 100);
-            }
-        };
+  const signOut = useCallback(() => {
+    clearGoogleAccessToken();
+    setGoogleAuthState('signedOut');
+  }, [setGoogleAuthState]);
 
-        // Only init if not already initialized/initializing to avoid loops if called multiple times
-        // For now, simple check
-        checkAndInit();
-
-    }, [dispatch, showStatus]);
-
-    return {
-        isAuthenticated,
-        isLoading,
-        listEvents,
-        signIn: googleCalendarService.signIn,
-        signOut: googleCalendarService.signOut
-    };
+  return {
+    isAuthenticated: isGoogleAuthenticated,
+    isLoading,
+    listEvents,
+    signIn,
+    signOut,
+  };
 };

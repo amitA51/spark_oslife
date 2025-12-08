@@ -1,188 +1,74 @@
-import * as googleDriveService from './googleDriveService';
-import * as dataService from './dataService';
-import { loadSettings, saveSettings } from './settingsService';
-import { AppSettings, SyncState, Conflict, AppData, Delta } from '../types';
+import { exportAllData } from './dataService';
+import { uploadBackup, findBackupFile } from './googleDriveService';
+import { auth } from '../config/firebase';
 
 class SyncService {
-    private pollingInterval: NodeJS.Timeout | null = null;
-    private autoSaveTimeout: NodeJS.Timeout | null = null;
-    private isSyncing = false;
-    private lastLocalChange = 0;
+  private autoSaveTimer: NodeJS.Timeout | null = null;
+  private isAutoSavePending = false;
+  private readonly AUTO_SAVE_DELAY = 5000; // 5 seconds debounce
+  private backupFileId: string | null = null;
 
-    private syncState: SyncState = {
-        status: 'idle',
-        conflictCount: 0
-    };
-    private listeners: ((state: SyncState) => void)[] = [];
-    private conflicts: Conflict[] = [];
-
-    /**
-     * Initialize the sync service
-     */
-    async init() {
-        console.log('[Sync] Service initialized');
-        // Load settings to check if we have a file ID
-        const settings = await loadSettings();
-        if (settings.googleDriveBackupId) {
-            this.startPolling();
-        }
-    }
-
-    /**
-     * Trigger an auto-save after a short delay (Debounce)
-     * Call this whenever data changes locally
-     */
-    triggerAutoSave() {
-        this.lastLocalChange = Date.now();
-        this.updateState({ status: 'syncing' }); // Show "Saving..." immediately
-
-        if (this.autoSaveTimeout) {
-            clearTimeout(this.autoSaveTimeout);
-        }
-
-        this.autoSaveTimeout = setTimeout(async () => {
-            try {
-                await this.performSync('upload');
-            } catch (error) {
-                console.error("Auto-save failed:", error);
-                this.updateState({ status: 'error', lastError: 'שמירה אוטומטית נכשלה' });
-            }
-        }, 2000); // Wait 2 seconds of inactivity before saving
-    }
-
-    /**
-     * Start polling for changes from other devices
-     */
-    startPolling() {
-        if (this.pollingInterval) clearInterval(this.pollingInterval);
-
-        // Poll every 60 seconds for changes from other devices
-        this.pollingInterval = setInterval(async () => {
-            if (!this.isSyncing && Date.now() - this.lastLocalChange > 5000) {
-                await this.performSync('download');
-            }
-        }, 60000);
-    }
-
-    stopPolling() {
-        if (this.pollingInterval) {
-            clearInterval(this.pollingInterval);
-            this.pollingInterval = null;
-        }
-    }
-
-    async syncNow() {
-        if (this.isSyncing) return;
-        await this.performSync('smart');
-    }
-
-    private async performSync(direction: 'upload' | 'download' | 'smart' = 'smart') {
-        if (this.isSyncing) return;
-        this.isSyncing = true;
-        this.updateState({ status: 'syncing' });
-
+  init() {
+    // Setup listeners if needed, or just ensure auth state
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        console.log('SyncService: User authenticated, ready to sync.');
         try {
-            const settings = await loadSettings();
-            let fileId = settings.googleDriveBackupId;
-
-            // 1. Ensure we have a file ID
-            if (!fileId) {
-                fileId = await googleDriveService.findBackupFile();
-                if (fileId) {
-                    await saveSettings({ ...settings, googleDriveBackupId: fileId });
-                } else if (direction === 'upload') {
-                    // First time upload - create file
-                    const json = await dataService.exportAllData();
-                    fileId = await googleDriveService.uploadBackup(json);
-                    await saveSettings({ ...settings, googleDriveBackupId: fileId });
-                    this.updateState({ status: 'idle', lastSyncTime: new Date().toISOString() });
-                    this.isSyncing = false;
-                    return;
-                } else {
-                    // Nothing to download
-                    this.isSyncing = false;
-                    this.updateState({ status: 'idle' });
-                    return;
-                }
-            }
-
-            // 2. Get Remote Metadata
-            // In a real implementation, we would check file modified time first
-            // For now, we'll implement a basic "Smart Sync"
-
-            if (direction === 'upload') {
-                const json = await dataService.exportAllData();
-                await googleDriveService.uploadBackup(json, fileId);
-            } else if (direction === 'download') {
-                const remoteData = await googleDriveService.downloadBackup(fileId);
-                // TODO: Implement smart merging here instead of overwrite
-                await dataService.importAllData(JSON.stringify(remoteData));
-            } else if (direction === 'smart') {
-                // For smart sync, we currently default to download if remote is newer, else upload
-                // This is a simplification. Real sync needs vector clocks or similar.
-                const remoteData = await googleDriveService.downloadBackup(fileId);
-                // Assume remote is truth for now to avoid data loss, but ideally we merge
-                if (remoteData) {
-                    await dataService.importAllData(JSON.stringify(remoteData));
-                }
-            }
-
-            this.updateState({ status: 'idle', lastSyncTime: new Date().toISOString() });
-
+          this.backupFileId = await findBackupFile();
         } catch (error) {
-            let errorMessage = 'שגיאה לא ידועה';
-            if (error instanceof Error) {
-                errorMessage = error.message;
-            } else if (typeof error === 'object' && error !== null) {
-                // Try to extract message from Google API error object
-                const anyError = error as any;
-                if (anyError.result && anyError.result.error && anyError.result.error.message) {
-                    errorMessage = anyError.result.error.message;
-                } else if (anyError.message) {
-                    errorMessage = anyError.message;
-                } else {
-                    errorMessage = JSON.stringify(error);
-                }
-            } else {
-                errorMessage = String(error);
-            }
-
-            // Clean up common ugly error messages
-            if (errorMessage === '{}') errorMessage = 'שגיאת רשת או הרשאה';
-
-            console.error('Sync error:', error);
-            this.updateState({ status: 'error', lastError: errorMessage });
-        } finally {
-            this.isSyncing = false;
+          console.error('SyncService: Failed to find initial backup file', error);
         }
+      } else {
+        this.backupFileId = null;
+      }
+    });
+  }
+
+  triggerAutoSave() {
+    if (this.isAutoSavePending) return;
+    
+    this.isAutoSavePending = true;
+    
+    if (this.autoSaveTimer) {
+      clearTimeout(this.autoSaveTimer);
     }
 
-    clearError() {
-        if (this.syncState.status === 'error') {
-            this.updateState({ status: 'idle', lastError: undefined });
-        }
+    this.autoSaveTimer = setTimeout(async () => {
+      await this.performAutoSave();
+      this.isAutoSavePending = false;
+    }, this.AUTO_SAVE_DELAY);
+  }
+
+  private async performAutoSave() {
+    const user = auth.currentUser;
+    if (!user) {
+      console.log('SyncService: No user logged in, skipping auto-save.');
+      return;
     }
 
-    private updateState(updates: Partial<SyncState>) {
-        this.syncState = { ...this.syncState, ...updates };
-        this.listeners.forEach(listener => listener(this.syncState));
-    }
+    try {
+      console.log('SyncService: Starting auto-save...');
+      // Export data without password for cloud backup (assuming user's drive is secure)
+      // Or we could implement a user setting for backup password later.
+      const data = await exportAllData(); 
+      
+      // Refresh file ID if we don't have it (might have been created since init)
+      if (!this.backupFileId) {
+        this.backupFileId = await findBackupFile();
+      }
 
-    getState(): SyncState {
-        return this.syncState;
+      const newFileId = await uploadBackup(data, this.backupFileId || undefined);
+      
+      // Update our cache if it was a new file
+      if (newFileId) {
+        this.backupFileId = newFileId;
+      }
+      
+      console.log('SyncService: Auto-save completed successfully.');
+    } catch (error) {
+      console.error('SyncService: Auto-save failed:', error);
     }
-
-    getConflicts(): Conflict[] {
-        return this.conflicts;
-    }
-
-    subscribe(listener: (state: SyncState) => void) {
-        this.listeners.push(listener);
-        listener(this.syncState);
-        return () => {
-            this.listeners = this.listeners.filter(l => l !== listener);
-        };
-    }
+  }
 }
 
 export const syncService = new SyncService();

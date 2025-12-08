@@ -1,15 +1,6 @@
-
-
-import React, {
-  useState,
-  useMemo,
-  useCallback,
-  useEffect,
-  useRef,
-  DragEvent,
-  useContext,
-} from 'react';
-import { AppContext } from '../../state/AppContext';
+import React, { useState, useMemo, useCallback, useEffect, useRef, DragEvent } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useUI } from '../../src/contexts/UIContext';
 import { PersonalItem, RoadmapPhase, RoadmapTask } from '../../types';
 import {
   DragHandleIcon,
@@ -20,7 +11,6 @@ import {
   LayoutDashboardIcon,
   ListIcon,
   getFileIcon,
-  UploadIcon,
   CalendarIcon,
   DownloadIcon,
   ChevronLeftIcon,
@@ -29,6 +19,22 @@ import {
 import DailyProgressCircle from '../DailyProgressCircle';
 import LoadingSpinner from '../LoadingSpinner';
 import FileUploader from '../FileUploader';
+import '../../styles/roadmap-premium.css';
+import { useDebounce } from '../../hooks/useDebounce';
+import { sampleRoadmapData } from '../../services/mockData';
+
+const addDays = (date: Date, days: number) => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
+const formatDate = (date: Date) => {
+  return new Date(date).toLocaleDateString('he-IL', {
+    day: 'numeric',
+    month: 'short',
+  });
+};
 
 // --- Types ---
 type RoadmapViewMode = 'list' | 'kanban' | 'timeline';
@@ -43,60 +49,7 @@ interface RoadmapScreenProps {
 }
 
 // --- Helpers ---
-const today = new Date();
-const formatDate = (date: Date): string => date.toISOString().split('T')[0];
-const addDays = (date: Date, days: number): Date => {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-};
 
-// Debounce hook (ל־auto-save של פתקים)
-const useDebounce = <T,>(value: T, delay: number): T => {
-  const [debounced, setDebounced] = useState(value);
-
-  useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(id);
-  }, [value, delay]);
-
-  return debounced;
-};
-
-// --- Mock Data (fallback כשאין phases) ---
-const sampleRoadmapData: RoadmapPhase[] = [
-  {
-    id: 's1',
-    title: 'שלב 1: חזון ומטרות',
-    description: 'הגדרת מטרת-על ומדדי הצלחה ברורים לפרויקט.',
-    order: 0,
-    status: 'completed',
-    duration: '2 days',
-    startDate: formatDate(today),
-    endDate: formatDate(addDays(today, 2)),
-    attachments: [],
-    dependencies: [],
-    estimatedHours: 4,
-    notes:
-      '## מחשבות ראשוניות\n- להתמקד בבעיה המרכזית של המשתמש\n- להגדיר KPI מדיד',
-    tasks: [
-      {
-        id: 't1-1',
-        title: 'הגדרת מדדי הצלחה (KPIs)',
-        isCompleted: true,
-        order: 0,
-      },
-    ],
-    aiSummary:
-      'בשלב זה מגדירים תמונת ניצחון ברורה ומדדי הצלחה מדידים שינחו את המשך הדרך.',
-    aiActions: [
-      'לכתוב מסמך מטרות קצר',
-      'להגדיר 3 KPIs עיקריים',
-      'לזהות חסמים פוטנציאליים',
-    ],
-    aiQuote: 'A goal without a plan is just a wish.',
-  },
-];
 
 // --- Sub Components ---
 
@@ -107,36 +60,31 @@ const Confetti: React.FC = () => (
         key={i}
         className="confetti-piece"
         style={{
-          left: `${Math.random() * 100}%`,
+          left: `${Math.random() * 100}% `,
           transform: `rotate(${Math.random() * 360}deg)`,
-          animation: `confetti-fall ${Math.random() * 2 + 3}s ${Math.random() * 2
-            }s linear forwards`,
+          animation: `confetti - fall ${Math.random() * 2 + 3}s ${Math.random() * 2}s linear forwards`,
         }}
       />
     ))}
   </div>
 );
 
-const TaskItem: React.FC<{ task: RoadmapTask; onToggle: () => void }> = ({
-  task,
-  onToggle,
-}) => (
+const TaskItem: React.FC<{ task: RoadmapTask; onToggle: () => void }> = ({ task, onToggle }) => (
   <button
     type="button"
-    className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 active:bg-white/10 transition-colors text-right"
+    className={`roadmap-task-item ${task.isCompleted ? 'completed' : ''}`}
     onClick={onToggle}
   >
     <input
       type="checkbox"
       checked={task.isCompleted}
       onChange={onToggle}
-      className="roadmap-task-checkbox accent-[var(--dynamic-accent-start)] w-4 h-4"
+      className="roadmap-task-checkbox"
       aria-label={task.title}
       onClick={e => e.stopPropagation()}
     />
     <span
-      className={`flex-1 text-sm transition-all ${task.isCompleted ? 'text-gray-500 line-through opacity-60' : 'text-gray-100'
-        }`}
+      className={`flex-1 text-sm transition-all ${task.isCompleted ? 'text-muted line-through opacity-60' : 'text-primary'}`}
     >
       {task.title}
     </span>
@@ -150,18 +98,18 @@ const TasksTab: React.FC<{
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const pendingTasks = useMemo(
-    () => stage.tasks.filter(t => !t.isCompleted),
-    [stage.tasks]
-  );
-  const completedTasks = useMemo(
-    () => stage.tasks.filter(t => t.isCompleted),
-    [stage.tasks]
-  );
+  const pendingTasks = useMemo(() => stage.tasks.filter(t => !t.isCompleted), [stage.tasks]);
+  const completedTasks = useMemo(() => stage.tasks.filter(t => t.isCompleted), [stage.tasks]);
 
   const handleToggleTask = (taskId: string) => {
     const updated = stage.tasks.map(t =>
-      t.id === taskId ? { ...t, isCompleted: !t.isCompleted } : t
+      t.id === taskId
+        ? {
+          ...t,
+          isCompleted: !t.isCompleted,
+          completedAt: !t.isCompleted ? new Date().toISOString() : undefined,
+        }
+        : t
     );
     onUpdate({ tasks: updated });
   };
@@ -171,7 +119,7 @@ const TasksTab: React.FC<{
     if (!title) return;
 
     const newTask: RoadmapTask = {
-      id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: `task - ${Date.now()} -${Math.random().toString(36).slice(2, 8)} `,
       title,
       isCompleted: false,
       order: stage.tasks.length,
@@ -194,11 +142,7 @@ const TasksTab: React.FC<{
       {pendingTasks.length > 0 && (
         <div className="space-y-1">
           {pendingTasks.map(task => (
-            <TaskItem
-              key={task.id}
-              task={task}
-              onToggle={() => handleToggleTask(task.id)}
-            />
+            <TaskItem key={task.id} task={task} onToggle={() => handleToggleTask(task.id)} />
           ))}
         </div>
       )}
@@ -206,16 +150,12 @@ const TasksTab: React.FC<{
       {/* Completed collapsible */}
       {completedTasks.length > 0 && (
         <details className="group" open={completedTasks.length < 5}>
-          <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-400 py-2 select-none">
+          <summary className="cursor-pointer text-xs text-muted hover:text-secondary py-2 select-none">
             משימות שהושלמו ({completedTasks.length})
           </summary>
           <div className="space-y-1 mt-1">
             {completedTasks.map(task => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onToggle={() => handleToggleTask(task.id)}
-              />
+              <TaskItem key={task.id} task={task} onToggle={() => handleToggleTask(task.id)} />
             ))}
           </div>
         </details>
@@ -225,7 +165,7 @@ const TasksTab: React.FC<{
       <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2">
         <input
           ref={inputRef}
-          className="flex-1 bg-black/30 rounded-full px-4 py-2.5 text-sm text-gray-100 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--dynamic-accent-start)] transition-shadow"
+          className="flex-1 bg-black/30 rounded-full px-4 py-2.5 text-sm text-primary placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-[var(--dynamic-accent-start)] transition-shadow"
           placeholder="הוסף משימה חדשה..."
           value={newTaskTitle}
           onChange={e => setNewTaskTitle(e.target.value)}
@@ -272,10 +212,10 @@ const NotesTab: React.FC<{
         value={content}
         onChange={e => setContent(e.target.value)}
         rows={10}
-        className="w-full bg-black/30 text-gray-200 text-sm p-4 rounded-xl focus:ring-2 focus:ring-[var(--dynamic-accent-start)] focus:outline-none placeholder:text-gray-500 resize-none transition-shadow"
+        className="w-full bg-black/30 text-primary text-sm p-4 rounded-xl focus:ring-2 focus:ring-[var(--dynamic-accent-start)] focus:outline-none placeholder:text-muted resize-none transition-shadow"
         placeholder="כתוב כאן את המחשבות, המסקנות וההערות לשלב הזה... (נשמר אוטומטית)"
       />
-      <div className="flex justify-between items-center text-xs text-gray-500">
+      <div className="flex justify-between items-center text-xs text-muted">
         <span className="flex items-center gap-2 min-h-[1rem]">
           {isSaving && (
             <>
@@ -311,7 +251,7 @@ const FilesTab: React.FC<{
       <FileUploader onFileSelect={handleFileSelect} label="הוסף קובץ לשלב" />
 
       {!hasFiles ? (
-        <div className="text-center text-gray-500 py-4 space-y-2">
+        <div className="text-center text-muted py-4 space-y-2">
           <p className="text-xs">עדיין אין קבצים. העלה קובץ כדי להתחיל.</p>
         </div>
       ) : (
@@ -319,20 +259,26 @@ const FilesTab: React.FC<{
           {stage.attachments.map(file => (
             <div
               key={file.id}
-              className="flex items-center gap-3 p-3 rounded-lg bg-black/30 hover:bg-black/40 text-sm text-gray-100 transition-colors group"
+              className="flex items-center gap-3 p-3 rounded-lg bg-black/30 hover:bg-black/40 text-sm text-primary transition-colors group"
             >
               <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
                 {getFileIcon(file.mimeType)}
               </div>
               <div className="flex-1 min-w-0 text-right">
-                <a href={file.url} download={file.name} className="truncate font-medium hover:underline block">{file.name}</a>
-                <p className="text-xs text-gray-500">
+                <a
+                  href={file.url}
+                  download={file.name}
+                  className="truncate font-medium hover:underline block"
+                >
+                  {file.name}
+                </a>
+                <p className="text-xs text-muted">
                   {Math.round(file.size / 1024)}kb · {file.mimeType}
                 </p>
               </div>
               <button
                 onClick={() => handleDeleteFile(file.id)}
-                className="text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-2"
+                className="text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-2"
               >
                 <TrashIcon className="w-4 h-4" />
               </button>
@@ -344,9 +290,7 @@ const FilesTab: React.FC<{
   );
 };
 
-const SimpleBarChart: React.FC<{ data: { label: string; value: number }[] }> = ({
-  data,
-}) => {
+const SimpleBarChart: React.FC<{ data: { label: string; value: number }[] }> = ({ data }) => {
   const maxValue = Math.max(...data.map(d => d.value), 1);
 
   return (
@@ -357,13 +301,13 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number }[] }> = (
             <div
               className="w-full rounded-t-md bg-gradient-to-t from-[var(--dynamic-accent-start)] to-[var(--dynamic-accent-end)] transition-all duration-500 hover:opacity-100"
               style={{
-                height: `${(d.value / maxValue) * 100}%`,
+                height: `${(d.value / maxValue) * 100}% `,
                 opacity: 0.7,
               }}
-              title={`${d.label}: ${d.value}`}
+              title={`${d.label}: ${d.value} `}
             />
           </div>
-          <span className="text-xs text-gray-400 font-medium">{d.label}</span>
+          <span className="text-xs text-muted font-medium">{d.label}</span>
         </div>
       ))}
     </div>
@@ -371,18 +315,39 @@ const SimpleBarChart: React.FC<{ data: { label: string; value: number }[] }> = (
 };
 
 const AnalyticsTab: React.FC<{ stage: RoadmapPhase }> = ({ stage }) => {
-  const mockChartData = useMemo(
-    () => [
-      { label: "ש' 1", value: 2 },
-      { label: "ש' 2", value: 5 },
-      { label: "ש' 3", value: 3 },
-      { label: "ש' 4", value: 7 },
-      { label: "ש' 5", value: 4 },
-      { label: "ש' 6", value: 6 },
-      { label: 'השבוע', value: 8 },
-    ],
-    []
-  );
+  const chartData = useMemo(() => {
+    // Initialize array for weeks
+    const weeksMap = new Map<string, number>();
+    const startDate = stage.startDate ? new Date(stage.startDate) : new Date();
+
+    // Group completed tasks by week relative to start
+    stage.tasks.forEach(task => {
+      if (task.isCompleted && task.completedAt) {
+        const completedDate = new Date(task.completedAt);
+        const diffTime = Math.abs(completedDate.getTime() - startDate.getTime());
+        const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+        const weekLabel = `ש' ${diffWeeks + 1}`;
+        weeksMap.set(weekLabel, (weeksMap.get(weekLabel) || 0) + 1);
+      }
+    });
+
+    // Ensure we have at least 'This Week' or some data
+    const sortedWeeks = Array.from(weeksMap.entries())
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => {
+        const wa = parseInt(a.label.replace(/\D/g, '')) || 0;
+        const wb = parseInt(b.label.replace(/\D/g, '')) || 0;
+        return wa - wb;
+      });
+
+    // If empty, show placeholder zero data or current week
+    if (sortedWeeks.length === 0) {
+      return [{ label: 'השבוע', value: 0 }];
+    }
+
+    // Take last 7 weeks max
+    return sortedWeeks.slice(-7);
+  }, [stage.tasks, stage.startDate]);
 
   const stats = useMemo(() => {
     const totalTasks = stage.tasks.length;
@@ -402,32 +367,30 @@ const AnalyticsTab: React.FC<{ stage: RoadmapPhase }> = ({ stage }) => {
     <div className="space-y-5">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <div className="bg-black/30 p-4 rounded-xl border border-white/5">
-          <p className="text-xs text-gray-400 mb-1">התקדמות</p>
-          <p className="text-2xl font-bold text-white">{stats.progress}%</p>
+          <p className="text-xs text-muted mb-1">התקדמות</p>
+          <p className="text-2xl font-bold text-primary">{stats.progress}%</p>
           <div className="mt-2 h-1.5 bg-black/40 rounded-full overflow-hidden">
             <div
               className="h-full bg-[var(--accent-gradient)] transition-all duration-500"
-              style={{ width: `${stats.progress}%` }}
+              style={{ width: `${stats.progress}% ` }}
             />
           </div>
         </div>
         <div className="bg-black/30 p-4 rounded-xl border border-white/5">
-          <p className="text-xs text-gray-400 mb-1">זמן מוערך</p>
-          <p className="text-2xl font-bold text-white">{stage.estimatedHours}</p>
-          <p className="text-xs text-gray-500 mt-1">שעות</p>
+          <p className="text-xs text-muted mb-1">זמן מוערך</p>
+          <p className="text-2xl font-bold text-primary">{stage.estimatedHours}</p>
+          <p className="text-xs text-muted mt-1">שעות</p>
         </div>
         <div className="bg-black/30 p-4 rounded-xl border border-white/5">
-          <p className="text-xs text-gray-400 mb-1">נותרו</p>
-          <p className="text-2xl font-bold text-white">{stats.remaining}</p>
-          <p className="text-xs text-gray-500 mt-1">משימות</p>
+          <p className="text-xs text-muted mb-1">נותרו</p>
+          <p className="text-2xl font-bold text-primary">{stats.remaining}</p>
+          <p className="text-xs text-muted mt-1">משימות</p>
         </div>
       </div>
 
       <div>
-        <h4 className="font-semibold text-sm text-gray-400 mb-3">
-          פעילות שבועית (משימות שהושלמו)
-        </h4>
-        <SimpleBarChart data={mockChartData} />
+        <h4 className="font-semibold text-sm text-muted mb-3">פעילות שבועית (משימות שהושלמו)</h4>
+        <SimpleBarChart data={chartData} />
       </div>
     </div>
   );
@@ -459,16 +422,12 @@ const AiInsightsTab: React.FC<{
           .slice(0, 2)
           .join(' ')
           .slice(0, 180) + '...'
-        : `בשלב זה ${completedCount} מתוך ${stage.tasks.length} משימות הושלמו. המיקוד כעת הוא במשימות שנותרו.`;
+        : `בשלב זה ${completedCount} מתוך ${stage.tasks.length} משימות הושלמו.המיקוד כעת הוא במשימות שנותרו.`;
 
       const actions =
         pendingTasks.length > 0
           ? pendingTasks.slice(0, 3).map(t => t.title)
-          : [
-            'לתכנן את הצעדים הבאים',
-            'לסקור את התקדמות השלב',
-            'לעדכן את לוח הזמנים וההיקף',
-          ];
+          : ['לתכנן את הצעדים הבאים', 'לסקור את התקדמות השלב', 'לעדכן את לוח הזמנים וההיקף'];
 
       const quotes = [
         'התקדמות קטנה וקבועה טובה יותר מקפיצה חד פעמית.',
@@ -496,22 +455,20 @@ const AiInsightsTab: React.FC<{
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center gap-2">
-        <h4 className="font-semibold text-sm text-gray-300">תובנות AI לשלב</h4>
+        <h4 className="font-semibold text-sm text-secondary">תובנות AI לשלב</h4>
         <button
           type="button"
           onClick={handleGenerate}
           disabled={isGenerating}
           className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold bg-[var(--dynamic-accent-start)]/10 text-[var(--dynamic-accent-start)] hover:bg-[var(--dynamic-accent-start)]/20 disabled:opacity-50 transition-all active:scale-95"
         >
-          <SparklesIcon
-            className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`}
-          />
+          <SparklesIcon className={`w - 4 h - 4 ${isGenerating ? 'animate-spin' : ''} `} />
           {isGenerating ? 'מנתח...' : 'נתח שלב'}
         </button>
       </div>
 
       {!hasInsights && !isGenerating && (
-        <div className="text-center py-8 text-gray-500 text-sm">
+        <div className="text-center py-8 text-muted text-sm">
           <SparklesIcon className="w-10 h-10 mx-auto mb-3 opacity-30" />
           <p>עדיין אין תובנות AI</p>
           <p className="text-xs mt-1">לחץ על "נתח שלב" כדי ליצור תובנות</p>
@@ -521,28 +478,26 @@ const AiInsightsTab: React.FC<{
       {isGenerating && (
         <div className="text-center py-8">
           <LoadingSpinner />
-          <p className="text-sm text-gray-400 mt-3">מנתח את השלב...</p>
+          <p className="text-sm text-muted mt-3">מנתח את השלב...</p>
         </div>
       )}
 
       {hasInsights && !isGenerating && (
         <>
           <div>
-            <h5 className="font-semibold text-xs text-gray-400 mb-2">סיכום AI</h5>
-            <p className="text-sm text-gray-200 bg-black/30 p-4 rounded-lg leading-relaxed">
+            <h5 className="font-semibold text-xs text-muted mb-2">סיכום AI</h5>
+            <p className="text-sm text-primary bg-black/30 p-4 rounded-lg leading-relaxed">
               {stage.aiSummary}
             </p>
           </div>
 
           <div>
-            <h5 className="font-semibold text-xs text-gray-400 mb-2">
-              פעולות מומלצות
-            </h5>
+            <h5 className="font-semibold text-xs text-muted mb-2">פעולות מומלצות</h5>
             <ul className="space-y-2">
               {stage.aiActions?.map((action, i) => (
                 <li
                   key={i}
-                  className="flex items-start gap-3 text-sm text-gray-200 bg-black/30 p-3 rounded-lg"
+                  className="flex items-start gap-3 text-sm text-primary bg-black/30 p-3 rounded-lg"
                 >
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--dynamic-accent-start)]/20 text-[var(--dynamic-accent-start)] flex items-center justify-center text-xs font-bold">
                     {i + 1}
@@ -554,8 +509,8 @@ const AiInsightsTab: React.FC<{
           </div>
 
           <div>
-            <h5 className="font-semibold text-xs text-gray-400 mb-2">מוטיבציה</h5>
-            <blockquote className="text-sm text-gray-200 bg-black/30 p-4 rounded-lg border-r-4 border-[var(--dynamic-accent-start)] italic">
+            <h5 className="font-semibold text-xs text-muted mb-2">מוטיבציה</h5>
+            <blockquote className="text-sm text-primary bg-black/30 p-4 rounded-lg border-r-4 border-[var(--dynamic-accent-start)] italic">
               "{stage.aiQuote}"
             </blockquote>
           </div>
@@ -572,12 +527,10 @@ const OverallProgressSummary: React.FC<{ progress: number; text: string }> = ({
   <div className="themed-card flex items-center gap-4 p-5 rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/0 backdrop-blur-sm">
     <DailyProgressCircle percentage={progress} size={72} />
     <div className="space-y-1 flex-1 text-right">
-      <h2 className="text-xl font-bold text-white">
-        {progress === 100
-          ? '🎉 השלמת את המטרה!'
-          : `${Math.round(progress)}% יותר קרוב למטרה!`}
+      <h2 className="text-xl font-bold text-primary">
+        {progress === 100 ? '🎉 השלמת את המטרה!' : `${Math.round(progress)}% יותר קרוב למטרה!`}
       </h2>
-      <p className="text-sm text-gray-300">{text}</p>
+      <p className="text-sm text-secondary">{text}</p>
     </div>
   </div>
 );
@@ -609,33 +562,31 @@ const StageCard: React.FC<StageCardProps> = ({
   const [activeTab, setActiveTab] = useState<ActiveTab>('tasks');
   const [showConfetti, setShowConfetti] = useState(false);
 
-  const { progress, status, statusColor, isCompleted, completedTasks, totalTasks } =
-    useMemo(() => {
-      const completed = stage.tasks.filter(t => t.isCompleted).length;
-      const total = stage.tasks.length;
-      const prog =
-        total > 0 ? (completed / total) * 100 : stage.status === 'completed' ? 100 : 0;
-      const hasCompleted = prog === 100 && total > 0;
+  const { progress, status, statusColor, isCompleted, completedTasks, totalTasks } = useMemo(() => {
+    const completed = stage.tasks.filter(t => t.isCompleted).length;
+    const total = stage.tasks.length;
+    const prog = total > 0 ? (completed / total) * 100 : stage.status === 'completed' ? 100 : 0;
+    const hasCompleted = prog === 100 && total > 0;
 
-      let currentStatus: Status = stage.status;
-      if (hasCompleted && stage.status !== 'completed') currentStatus = 'completed';
-      else if (prog > 0 && stage.status === 'pending') currentStatus = 'active';
+    let currentStatus: Status = stage.status;
+    if (hasCompleted && stage.status !== 'completed') currentStatus = 'completed';
+    else if (prog > 0 && stage.status === 'pending') currentStatus = 'active';
 
-      const statusMap: Record<Status, { label: string; color: string }> = {
-        completed: { label: 'הושלם ✓', color: '#10B981' },
-        active: { label: 'פעיל', color: '#3B82F6' },
-        pending: { label: 'ממתין', color: '#6B7280' },
-      };
+    const statusMap: Record<Status, { label: string; color: string }> = {
+      completed: { label: 'הושלם ✓', color: '#10B981' },
+      active: { label: 'פעיל', color: '#3B82F6' },
+      pending: { label: 'ממתין', color: '#6B7280' },
+    };
 
-      return {
-        progress: prog,
-        isCompleted: hasCompleted,
-        status: statusMap[currentStatus].label,
-        statusColor: statusMap[currentStatus].color,
-        completedTasks: completed,
-        totalTasks: total,
-      };
-    }, [stage.tasks, stage.status]);
+    return {
+      progress: prog,
+      isCompleted: hasCompleted,
+      status: statusMap[currentStatus].label,
+      statusColor: statusMap[currentStatus].color,
+      completedTasks: completed,
+      totalTasks: total,
+    };
+  }, [stage.tasks, stage.status]);
 
   useEffect(() => {
     if (isCompleted && stage.status !== 'completed') {
@@ -645,6 +596,7 @@ const StageCard: React.FC<StageCardProps> = ({
       const t = setTimeout(() => setShowConfetti(false), 4000);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [isCompleted, stage.status, onUpdate, showToast]);
 
   const tabs: { id: ActiveTab; label: string; badge?: number }[] = useMemo(
@@ -664,8 +616,7 @@ const StageCard: React.FC<StageCardProps> = ({
 
   return (
     <div
-      className={`relative rounded-2xl border border-white/10 bg-black/40 backdrop-blur-sm transition-shadow ${isDragging ? 'opacity-70 shadow-xl shadow-black/50' : 'shadow-sm shadow-black/40'
-        }`}
+      className={`roadmap-stage-card ${stage.status === 'active' ? 'active' : ''} ${stage.status === 'completed' ? 'completed' : ''} ${isDragging ? 'opacity-70' : ''}`}
       draggable={enableDrag}
       onDragStart={enableDrag ? e => onDragStart(e, stage.id) : undefined}
       onDragEnter={enableDrag ? e => onDragEnter(e, stage.id) : undefined}
@@ -682,26 +633,26 @@ const StageCard: React.FC<StageCardProps> = ({
           <div className="flex items-start gap-3 flex-1 min-w-0">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--dynamic-accent-start)]/15 border-2 flex-shrink-0 transition-all"
-              style={{ borderColor: `${statusColor}40` }}
+              style={{ borderColor: `${statusColor} 40` }}
             >
-              <span className="text-lg font-bold text-white">{stage.order + 1}</span>
+              <span className="text-lg font-bold text-primary">{stage.order + 1}</span>
             </div>
             <div className="flex flex-col gap-2 flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-base sm:text-lg font-bold text-white truncate">
+                <h3 className="text-base sm:text-lg font-bold text-primary truncate">
                   {stage.title}
                 </h3>
                 <span
                   className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
                   style={{
-                    backgroundColor: `${statusColor}20`,
+                    backgroundColor: `${statusColor} 20`,
                     color: statusColor,
                   }}
                 >
                   {status}
                 </span>
               </div>
-              <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+              <div className="flex items-center gap-3 text-xs text-muted flex-wrap">
                 {stage.startDate && stage.endDate && (
                   <span className="inline-flex items-center gap-1">
                     <CalendarIcon className="w-3.5 h-3.5" />
@@ -726,21 +677,20 @@ const StageCard: React.FC<StageCardProps> = ({
           <div className="flex items-center gap-2">
             {enableDrag && (
               <span
-                className="p-1 text-gray-500 hover:text-gray-300 cursor-grab active:cursor-grabbing"
+                className="p-1 text-muted hover:text-secondary cursor-grab active:cursor-grabbing"
                 onClick={e => e.stopPropagation()}
               >
                 <DragHandleIcon className="w-4 h-4" />
               </span>
             )}
             <ChevronLeftIcon
-              className={`w-6 h-6 text-gray-500 transition-transform duration-300 ${isExpanded ? '-rotate-90' : 'rotate-0'
-                }`}
+              className={`w-6 h-6 text-muted transition-transform duration-300 ${isExpanded ? '-rotate-90' : 'rotate-0'}`}
             />
           </div>
         </div>
 
         {stage.description && (
-          <p className="mt-3 mr-[52px] text-sm text-gray-400 leading-relaxed line-clamp-2">
+          <p className="mt-3 mr-[52px] text-sm text-muted leading-relaxed line-clamp-2">
             {stage.description}
           </p>
         )}
@@ -749,12 +699,10 @@ const StageCard: React.FC<StageCardProps> = ({
           <div className="w-full bg-black/40 rounded-full h-2 overflow-hidden">
             <div
               className="bg-[var(--accent-gradient)] h-2 rounded-full transition-all duration-700 ease-out"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${progress}% ` }}
             />
           </div>
-          <p className="text-xs text-gray-500 mt-1.5 font-medium">
-            {Math.round(progress)}% הושלם
-          </p>
+          <p className="text-xs text-muted mt-1.5 font-medium">{Math.round(progress)}% הושלם</p>
         </div>
       </button>
 
@@ -775,8 +723,8 @@ const StageCard: React.FC<StageCardProps> = ({
                 setActiveTab(tab.id);
               }}
               className={`relative py-3 px-3 text-sm font-semibold shrink-0 border-b-2 transition-all ${activeTab === tab.id
-                  ? 'text-white border-[var(--dynamic-accent-start)]'
-                  : 'text-gray-400 border-transparent hover:text-white hover:border-gray-600'
+                ? 'text-primary border-[var(--dynamic-accent-start)]'
+                : 'text-muted border-transparent hover:text-primary hover:border-muted'
                 }`}
             >
               {tab.label}
@@ -803,10 +751,7 @@ const StageCard: React.FC<StageCardProps> = ({
 
         <div className="p-5 bg-black/30">
           {activeTab === 'tasks' && (
-            <TasksTab
-              stage={stage}
-              onUpdate={updates => onUpdate({ ...stage, ...updates })}
-            />
+            <TasksTab stage={stage} onUpdate={updates => onUpdate({ ...stage, ...updates })} />
           )}
           {activeTab === 'notes' && (
             <NotesTab
@@ -815,10 +760,9 @@ const StageCard: React.FC<StageCardProps> = ({
               showToast={showToast}
             />
           )}
-          {activeTab === 'files' && <FilesTab
-            stage={stage}
-            onUpdate={updates => onUpdate({ ...stage, ...updates })}
-          />}
+          {activeTab === 'files' && (
+            <FilesTab stage={stage} onUpdate={updates => onUpdate({ ...stage, ...updates })} />
+          )}
           {activeTab === 'analytics' && <AnalyticsTab stage={stage} />}
           {activeTab === 'ai' && (
             <AiInsightsTab
@@ -835,13 +779,9 @@ const StageCard: React.FC<StageCardProps> = ({
 
 // --- Main Component ---
 
-const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
-  item,
-  onUpdate,
-  onDelete,
-  onClose,
-}) => {
-  const { dispatch: appDispatch } = useContext(AppContext);
+const RoadmapScreen: React.FC<RoadmapScreenProps> = ({ item, onUpdate, onDelete, onClose }) => {
+  const { setHasUnsavedChanges } = useUI();
+  const today = new Date();
   const [phases, setPhases] = useState<RoadmapPhase[]>(
     item.phases && item.phases.length > 0
       ? [...item.phases].sort((a, b) => a.order - b.order)
@@ -870,20 +810,19 @@ const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
 
   // Warn about unsaved changes
   useEffect(() => {
-    const originalPhases = item.phases && item.phases.length > 0
-      ? [...item.phases].sort((a, b) => a.order - b.order)
-      : sampleRoadmapData;
+    const originalPhases =
+      item.phases && item.phases.length > 0
+        ? [...item.phases].sort((a, b) => a.order - b.order)
+        : sampleRoadmapData;
 
     const isDirty = JSON.stringify(phases) !== JSON.stringify(originalPhases);
 
-    if (isDirty) {
-      appDispatch({ type: 'SET_UNSAVED_CHANGES' });
-    }
+    setHasUnsavedChanges(isDirty);
 
     return () => {
-      appDispatch({ type: 'CLEAR_UNSAVED_CHANGES' });
+      setHasUnsavedChanges(false);
     };
-  }, [phases, item.phases, appDispatch]);
+  }, [phases, item.phases, setHasUnsavedChanges]);
 
   // נעילת גלילת body בזמן שהמודאל פתוח
   useEffect(() => {
@@ -910,8 +849,8 @@ const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
     const end = addDays(start, 2);
 
     const newPhase: RoadmapPhase = {
-      id: `phase-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      title: `שלב ${idx + 1}`,
+      id: `phase - ${Date.now()} -${Math.random().toString(36).slice(2, 9)} `,
+      title: `שלב ${idx + 1} `,
       description: 'תאר את המטרות והפעולות של שלב זה',
       duration: '2 days',
       startDate: formatDate(start),
@@ -936,9 +875,7 @@ const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
   };
 
   const handleUpdatePhase = (phaseId: string, updates: Partial<RoadmapPhase>) => {
-    updatePhases(
-      phases.map(p => (p.id === phaseId ? { ...p, ...updates } : p))
-    );
+    updatePhases(phases.map(p => (p.id === phaseId ? { ...p, ...updates } : p)));
   };
 
   const handleDragStart = (e: DragEvent<HTMLDivElement>, id: string) => {
@@ -956,7 +893,9 @@ const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
 
     const updated = [...current];
     const [moved] = updated.splice(fromIndex, 1);
-    updated.splice(toIndex, 0, moved);
+    if (moved) {
+      updated.splice(toIndex, 0, moved);
+    }
     updatePhases(updated);
   };
 
@@ -971,8 +910,7 @@ const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
     if (allTasks.length === 0) {
       return {
         overallProgress: 0,
-        motivationalText:
-          'בוא נתחיל! הוסף משימות לשלבים כדי לעקוב אחרי ההתקדמות.',
+        motivationalText: 'בוא נתחיל! הוסף משימות לשלבים כדי לעקוב אחרי ההתקדמות.',
         stats: {
           totalTasks: 0,
           completedTasks: 0,
@@ -988,10 +926,8 @@ const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
     let text = 'בוא נתחיל! יש לך תוכנית טובה.';
     if (progress > 0 && progress < 25) text = '🚀 התחלה מצוינת, המשך כך.';
     if (progress >= 25 && progress < 50) text = '💪 התקדמות יפה, אתה על המסלול הנכון.';
-    if (progress >= 50 && progress < 75)
-      text = '🔥 יותר ממחצית הדרך מאחוריך.';
-    if (progress >= 75 && progress < 100)
-      text = '⭐ כמעט שם, עוד קצת דחיפה אחרונה.';
+    if (progress >= 50 && progress < 75) text = '🔥 יותר ממחצית הדרך מאחוריך.';
+    if (progress >= 75 && progress < 100) text = '⭐ כמעט שם, עוד קצת דחיפה אחרונה.';
     if (progress === 100) text = '🎉 מדהים, השלמת את כל המטרות של מפת הדרכים הזו.';
 
     return {
@@ -1037,10 +973,7 @@ const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
       className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 roadmap-modal-overlay"
       onClick={onClose}
     >
-      <div
-        className="bg-[#05060a] w-full h-full flex flex-col"
-        onClick={e => e.stopPropagation()}
-      >
+      <div className="bg-[#05060a] w-full h-full flex flex-col" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <header className="p-4 border-b border-[var(--border-primary)] flex justify-between items-center shrink-0 bg-black/90 backdrop-blur-sm">
           <div className="flex items-center gap-3">
@@ -1092,10 +1025,7 @@ const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4 pb-24">
-          <OverallProgressSummary
-            progress={overallProgress}
-            text={motivationalText}
-          />
+          <OverallProgressSummary progress={overallProgress} text={motivationalText} />
 
           {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1113,15 +1043,11 @@ const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
             </div>
             <div className="bg-black/30 border border-white/5 rounded-xl p-3 text-right">
               <p className="text-xs text-gray-400 mb-0.5">התקדמות</p>
-              <p className="text-2xl font-bold text-white">
-                {Math.round(overallProgress)}%
-              </p>
+              <p className="text-2xl font-bold text-white">{Math.round(overallProgress)}%</p>
             </div>
             <div className="bg-black/30 border border-white/5 rounded-xl p-3 text-right">
               <p className="text-xs text-gray-400 mb-0.5">זמן מוערך</p>
-              <p className="text-2xl font-bold text-white">
-                {totalEstimatedHours}ש'
-              </p>
+              <p className="text-2xl font-bold text-white">{totalEstimatedHours}ש'</p>
             </div>
           </div>
 
@@ -1140,9 +1066,7 @@ const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setViewMode('list')}
-                className={`flex items-center gap-1 px-3 py-1 rounded-full transition-colors ${viewMode === 'list'
-                    ? 'bg-black text-white'
-                    : 'text-gray-400 hover:text-white'
+                className={`flex items-center gap-1 px-3 py-1 rounded-full transition-colors ${viewMode === 'list' ? 'bg-black text-white' : 'text-gray-400 hover:text-white'
                   }`}
               >
                 <ListIcon className="w-3 h-3" />
@@ -1151,9 +1075,7 @@ const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setViewMode('kanban')}
-                className={`flex items-center gap-1 px-3 py-1 rounded-full transition-colors ${viewMode === 'kanban'
-                    ? 'bg-black text-white'
-                    : 'text-gray-400 hover:text-white'
+                className={`flex items-center gap-1 px-3 py-1 rounded-full transition-colors ${viewMode === 'kanban' ? 'bg-black text-white' : 'text-gray-400 hover:text-white'
                   }`}
               >
                 <LayoutDashboardIcon className="w-3 h-3" />
@@ -1162,9 +1084,7 @@ const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setViewMode('timeline')}
-                className={`flex items-center gap-1 px-3 py-1 rounded-full transition-colors ${viewMode === 'timeline'
-                    ? 'bg-black text-white'
-                    : 'text-gray-400 hover:text-white'
+                className={`flex items-center gap-1 px-3 py-1 rounded-full transition-colors ${viewMode === 'timeline' ? 'bg-black text-white' : 'text-gray-400 hover:text-white'
                   }`}
               >
                 <CalendarIcon className="w-3 h-3" />
@@ -1180,12 +1100,8 @@ const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
                 <LayoutDashboardIcon className="w-10 h-10 text-gray-500" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white mb-1">
-                  אין שלבים עדיין
-                </h3>
-                <p className="text-sm text-gray-400">
-                  התחל בבניית מפת הדרכים שלך
-                </p>
+                <h3 className="text-lg font-semibold text-white mb-1">אין שלבים עדיין</h3>
+                <p className="text-sm text-gray-400">התחל בבניית מפת הדרכים שלך</p>
               </div>
               <button
                 type="button"
@@ -1233,21 +1149,15 @@ const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
                       className="rounded-2xl border border-white/10 bg-black/40 p-3 space-y-3"
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="text-sm font-semibold text-white">
-                          {labelMap[statusKey]}
-                        </h3>
-                        <span className="text-xs text-gray-400">
-                          {items.length}
-                        </span>
+                        <h3 className="text-sm font-semibold text-white">{labelMap[statusKey]}</h3>
+                        <span className="text-xs text-gray-400">{items.length}</span>
                       </div>
                       <div className="space-y-3">
                         {items.map(phase => (
                           <StageCard
                             key={phase.id}
                             stage={phase}
-                            onUpdate={updates =>
-                              handleUpdatePhase(phase.id, updates)
-                            }
+                            onUpdate={updates => handleUpdatePhase(phase.id, updates)}
                             onDelete={() => handleDeletePhase(phase.id)}
                             showToast={showToast}
                             enableDrag={false}
@@ -1301,9 +1211,7 @@ const RoadmapScreen: React.FC<RoadmapScreenProps> = ({
 
         {/* FAB – AI לכל הרודמאפ (בינתיים טוסט בלבד) */}
         <button
-          onClick={() =>
-            showToast('כאן AI יסכם את כל מפת הדרכים כשחובר ל־backend 🧠')
-          }
+          onClick={() => showToast('כאן AI יסכם את כל מפת הדרכים כשחובר ל־backend 🧠')}
           className="fixed bottom-6 left-6 w-14 h-14 rounded-full bg-[var(--accent-gradient)] shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
           aria-label="AI Summary"
         >

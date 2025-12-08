@@ -1,137 +1,229 @@
-import * as dataService from './dataService';
+/**
+ * Google OAuth Authentication Service
+ * Handles Google Calendar API authentication and client initialization
+ */
 
-declare const gapi: any;
-declare const google: any;
+// Google API Client configuration
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || '';
+const DISCOVERY_DOCS = [
+    'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest',
+    'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest',
+];
+// Calendar full access + Drive file access (only files created by this app)
+const SCOPES = 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive.file';
 
-// Use Vite's import.meta.env for environment variables
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || (window as any).GOOGLE_CLIENT_ID;
-const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || (window as any).GOOGLE_API_KEY;
+// --- GAPI Type Definitions ---
 
-if (!CLIENT_ID) {
-    console.error("Configuration Error: VITE_GOOGLE_CLIENT_ID is missing. Please add it to your .env.local file.");
+/** Google Calendar API Events resource */
+interface CalendarEventsResource {
+    list: (params: {
+        calendarId: string;
+        timeMin?: string;
+        timeMax?: string;
+        singleEvents?: boolean;
+        orderBy?: string;
+        maxResults?: number;
+    }) => Promise<{ result: { items: unknown[] } }>;
+    insert: (params: {
+        calendarId: string;
+        resource: unknown;
+    }) => Promise<{ result: unknown }>;
+    update: (params: {
+        calendarId: string;
+        eventId: string;
+        resource: unknown;
+    }) => Promise<{ result: unknown }>;
+    delete: (params: {
+        calendarId: string;
+        eventId: string;
+    }) => Promise<void>;
 }
 
-// Scopes for both Calendar and Drive (App Data Folder)
-const SCOPES = 'https://www.googleapis.com/auth/calendar.events.readonly https://www.googleapis.com/auth/drive.file';
+/** Google Calendar API client */
+interface CalendarClient {
+    events: CalendarEventsResource;
+}
 
-let tokenClient: any;
-let onAuthChangeCallback: ((isSignedIn: boolean) => void) | null = null;
-let gapiInitialized = false;
-let gisInitialized = false;
+/** Google Drive API Files resource */
+interface DriveFilesResource {
+    list: (params: {
+        q?: string;
+        fields?: string;
+        spaces?: string;
+    }) => Promise<{ result: { files: Array<{ id: string; name: string }> } }>;
+    get: (params: {
+        fileId: string;
+        alt?: string;
+    }) => Promise<{ result: unknown }>;
+}
 
-// Helper to load scripts dynamically
-const loadScript = (src: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-        if (document.querySelector(`script[src="${src}"]`)) {
-            resolve();
-            return;
-        }
-        const script = document.createElement('script');
-        script.src = src;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
-        document.body.appendChild(script);
-    });
+/** Google Drive API client */
+interface DriveClient {
+    files: DriveFilesResource;
+}
+
+/** GAPI Client interface */
+interface GapiClient {
+    calendar?: CalendarClient;
+    drive?: DriveClient;
+    request: (params: {
+        path: string;
+        method: string;
+        params?: Record<string, string>;
+        headers?: Record<string, string>;
+        body?: string;
+    }) => Promise<{ result: { id: string } }>;
+    init: (config: {
+        apiKey: string;
+        clientId: string;
+        discoveryDocs: string[];
+        scope: string;
+    }) => Promise<void>;
+}
+
+/** GAPI Auth2 instance */
+interface GapiAuth2Instance {
+    isSignedIn: {
+        get: () => boolean;
+        listen: (callback: (isSignedIn: boolean) => void) => void;
+    };
+    signIn: () => Promise<void>;
+    signOut: () => Promise<void>;
+}
+
+/** GAPI Auth2 module */
+interface GapiAuth2 {
+    getAuthInstance: () => GapiAuth2Instance | null;
+}
+
+/** Main GAPI object */
+interface Gapi {
+    load: (
+        modules: string,
+        callbacks: { callback: () => void; onerror: (error: Error) => void }
+    ) => void;
+    client: GapiClient;
+    auth2: GapiAuth2;
+}
+
+/** Window with GAPI */
+interface WindowWithGapi extends Window {
+    gapi?: Gapi;
+}
+
+let gapiClient: Partial<GapiClient> = {};
+let authChangeCallback: ((isSignedIn: boolean) => void) | null = null;
+
+/** Helper to get typed gapi from window */
+const getGapi = (): Gapi | null => {
+    return (window as WindowWithGapi).gapi ?? null;
 };
 
-export const isInitialized = () => gapiInitialized && gisInitialized;
+/**
+ * Initialize the Google API client
+ */
+export const initGoogleClient = async (
+    onAuthChange: (isSignedIn: boolean) => void
+): Promise<void> => {
+    authChangeCallback = onAuthChange;
 
-export const initGoogleClient = async (onAuthChange: (isSignedIn: boolean) => void) => {
-    onAuthChangeCallback = onAuthChange;
-
-    try {
-        // 1. Load Scripts Dynamically if missing
-        if (typeof gapi === 'undefined') {
-            await loadScript('https://apis.google.com/js/api.js');
-        }
-        if (typeof google === 'undefined') {
-            await loadScript('https://accounts.google.com/gsi/client');
-        }
-
-        // 2. Initialize GAPI
-        if (!gapiInitialized) {
-            await new Promise<void>((resolve, reject) => {
-                gapi.load('client', {
-                    callback: resolve,
-                    onerror: reject,
-                    timeout: 10000, // Increased timeout
-                    ontimeout: () => reject(new Error('gapi.load timed out'))
-                });
-            });
-
-            await gapi.client.init({
-                apiKey: API_KEY,
-                discoveryDocs: [
-                    "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest",
-                    "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"
-                ],
-            });
-            gapiInitialized = true;
-            console.log('GAPI Initialized');
-        }
-
-        // 3. Initialize GIS (Identity Services)
-        if (!gisInitialized) {
-            tokenClient = google.accounts.oauth2.initTokenClient({
-                client_id: CLIENT_ID,
-                scope: SCOPES,
-                callback: async (tokenResponse: any) => {
-                    if (tokenResponse.error) {
-                        console.error('GIS Error:', tokenResponse.error);
-                        onAuthChangeCallback?.(false);
-                        return;
-                    }
-                    console.log('Token received', tokenResponse);
-                    await dataService.saveToken('google_auth', tokenResponse);
-                    onAuthChangeCallback?.(true);
-                },
-            });
-            gisInitialized = true;
-            console.log('GIS Initialized');
-        }
-
-        // 4. Check for existing token
-        const token = await dataService.getToken('google_auth');
-        if (token && token.access_token) {
-            gapi.client.setToken(token);
-            // Optional: Verify token validity here if needed
-            onAuthChangeCallback?.(true);
-        } else {
-            onAuthChangeCallback?.(false);
-        }
-
-    } catch (error) {
-        console.error("Google Auth Initialization Failed:", error);
-        onAuthChangeCallback?.(false);
-        throw error; // Re-throw so UI knows it failed
-    }
-};
-
-export const signIn = () => {
-    if (!tokenClient) {
-        console.error("Google GIS client not initialized.");
-        alert("Google Client not ready. Please wait a moment or refresh.");
+    const gapi = getGapi();
+    if (!gapi) {
+        console.warn('Google API client not loaded');
         return;
     }
-    // Request all scopes
-    tokenClient.requestAccessToken({ prompt: 'consent' });
+
+    try {
+        // Load the auth2 and client libraries
+        await new Promise<void>((resolve, reject) => {
+            gapi.load('client:auth2', {
+                callback: resolve,
+                onerror: reject,
+            });
+        });
+
+        // Initialize the client
+        await gapi.client.init({
+            apiKey: API_KEY,
+            clientId: CLIENT_ID,
+            discoveryDocs: DISCOVERY_DOCS,
+            scope: SCOPES,
+        });
+
+        // Store the client
+        gapiClient = gapi.client;
+
+        // Listen for sign-in state changes
+        const authInstance = gapi.auth2.getAuthInstance();
+        if (authInstance) {
+            authInstance.isSignedIn.listen((isSignedIn: boolean) => {
+                if (authChangeCallback) {
+                    authChangeCallback(isSignedIn);
+                }
+            });
+
+            // Check current sign-in status
+            const isSignedIn = authInstance.isSignedIn.get();
+            if (authChangeCallback) {
+                authChangeCallback(isSignedIn);
+            }
+        }
+    } catch (error) {
+        console.error('Error initializing Google client:', error);
+        throw error;
+    }
 };
 
-export const signOut = async () => {
-    const token = await dataService.getToken('google_auth');
-    if (token && token.access_token) {
-        google.accounts.oauth2.revoke(token.access_token, () => { });
+/**
+ * Sign in to Google
+ */
+export const signIn = async (): Promise<void> => {
+    const gapi = getGapi();
+    if (!gapi) {
+        throw new Error('Google API client not loaded');
     }
-    gapi.client.setToken(null);
-    await dataService.removeToken('google_auth');
-    onAuthChangeCallback?.(false);
+
+    const authInstance = gapi.auth2.getAuthInstance();
+
+    if (!authInstance) {
+        throw new Error('Google Auth not initialized');
+    }
+
+    try {
+        await authInstance.signIn();
+    } catch (error) {
+        console.error('Error signing in:', error);
+        throw error;
+    }
 };
 
-export const getGapiClient = () => {
-    if (!gapiInitialized || !gapi.client) {
-        throw new Error("GAPI client not initialized.");
+/**
+ * Sign out from Google
+ */
+export const signOut = async (): Promise<void> => {
+    const gapi = getGapi();
+    if (!gapi) {
+        throw new Error('Google API client not loaded');
     }
-    return gapi.client;
+
+    const authInstance = gapi.auth2.getAuthInstance();
+
+    if (!authInstance) {
+        throw new Error('Google Auth not initialized');
+    }
+
+    try {
+        await authInstance.signOut();
+    } catch (error) {
+        console.error('Error signing out:', error);
+        throw error;
+    }
+};
+
+/**
+ * Get the initialized GAPI client
+ */
+export const getGapiClient = (): Partial<GapiClient> => {
+    return gapiClient;
 };

@@ -44,6 +44,7 @@ git push -u origin main
    - בחר את ה-repository שהעלת
 
 3. **Configure Project**:
+
    ```
    Framework Preset: Vite
    Root Directory: ./
@@ -53,6 +54,7 @@ git push -u origin main
 
 4. **Add Environment Variables**:
    לחץ "Environment Variables" והוסף:
+
    ```
    GEMINI_API_KEY = your_gemini_api_key_here
    ```
@@ -67,6 +69,7 @@ git push -u origin main
 ### שלב 4: הגדרת Google OAuth (חשוב!)
 
 #### 4.1 Google Cloud Console
+
 1. גש ל: https://console.cloud.google.com/
 2. צור פרויקט חדש: "Spark Personal OS"
 3. Enable APIs:
@@ -74,6 +77,7 @@ git push -u origin main
    - Google Calendar API (אופציונלי)
 
 #### 4.2 OAuth Consent Screen
+
 1. APIs & Services → OAuth consent screen
 2. External → Create
 3. מלא רק שדות חובה:
@@ -82,6 +86,7 @@ git push -u origin main
 4. Save
 
 #### 4.3 Create Credentials
+
 1. APIs & Services → Credentials → Create Credentials
 2. "OAuth client ID"
 3. Web application
@@ -96,6 +101,7 @@ git push -u origin main
 6. Create → **העתק את ה-Client ID!**
 
 #### 4.4 עדכן את הקוד
+
 ערוך את `services/googleAuthService.ts`:
 
 ```typescript
@@ -104,6 +110,7 @@ const CLIENT_ID = 'YOUR_PRODUCTION_CLIENT_ID_HERE';
 ```
 
 Push את השינוי:
+
 ```bash
 git add .
 git commit -m "Add production OAuth client ID"
@@ -117,6 +124,7 @@ Vercel יעשה deploy אוטומטי!
 ### שלב 5: השתמש מכל מכשיר!
 
 #### מכשיר 1:
+
 1. גש ל-URL שקיבלת (כמו `https://spark-personal-os.vercel.app`)
 2. לחץ "Connect Google Drive"
 3. התחבר עם חשבון Google
@@ -124,6 +132,7 @@ Vercel יעשה deploy אוטומטי!
 5. התחל להשתמש!
 
 #### מכשיר 2 (טלפון/טאבלט/מחשב אחר):
+
 1. גש לאותו URL
 2. התחבר עם **אותו חשבון Google**
 3. הכל יסתנכרן אוטומטית! ✨
@@ -146,19 +155,23 @@ Vercel יעשה deploy אוטומטי!
 ## Troubleshooting מהיר
 
 ### ❌ Build נכשל
+
 ```bash
 # בדוק מקומי:
 npm install
 npm run build
 ```
+
 אם עובד מקומי, אבל לא ב-Vercel - בדוק Environment Variables.
 
 ### ❌ Google OAuth לא עובד
+
 - וודא שה-URL ב-Google Console תואם ל-Vercel URL
 - וודא שהעתקת את ה-Client ID הנכון
 - נסה במצב incognito
 
 ### ❌ Sync לא עובד
+
 - וודא שהתחברת עם Google
 - וודא ש-Google Drive API מופעל
 - בדוק Console ב-DevTools לשגיאות
@@ -168,7 +181,8 @@ npm run build
 ## מה הלאה?
 
 ### שיפורים מומלצים:
-1. **Custom Domain**: 
+
+1. **Custom Domain**:
    - קנה דומיין (כמו `myspark.com`)
    - חבר ב-Vercel Settings
 

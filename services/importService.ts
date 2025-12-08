@@ -1,9 +1,14 @@
-import { PersonalItem } from '../types';
-import { parseMarkdownFiles } from '../utils/markdownParser';
-import { parseNotionExport, parseNotionDatabase } from '../utils/notionParser';
+/**
+ * Import Service
+ * Handles data import from various formats (JSON, Obsidian, etc.)
+ */
 
-export type ImportSource = 'obsidian' | 'notion' | 'todoist' | 'trello' | 'markdown';
+import type { PersonalItem } from '../types';
 
+// Import sources
+export type ImportSource = 'obsidian' | 'markdown' | 'notion' | 'todoist' | 'trello' | 'json';
+
+// Import result structure
 export interface ImportResult {
     success: boolean;
     itemsImported: number;
@@ -13,7 +18,195 @@ export interface ImportResult {
 }
 
 /**
- * Import from Obsidian (Markdown files)
+ * Generic import item structure for external data sources
+ */
+interface ImportedItemBase {
+    id?: string;
+    type?: string;
+    title?: string;
+    content?: string;
+    name?: string;
+    description?: string;
+    desc?: string;
+    created?: string;
+    updated?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    created_time?: string;
+    last_edited_time?: string;
+    dateLastActivity?: string;
+    dueDate?: string;
+    priority?: 'low' | 'medium' | 'high' | number;
+    isCompleted?: boolean;
+    completed?: boolean;
+    closed?: boolean;
+    tags?: string[];
+    labels?: string[] | Array<{ name: string }>;
+    properties?: {
+        Name?: { title?: Array<{ plain_text: string }> };
+        Tags?: { multi_select?: Array<{ name: string }> };
+    };
+    due?: { date?: string };
+}
+
+/**
+ * Import data from various sources
+ */
+export const importData = async (
+    data: unknown,
+    source: ImportSource,
+    _filename: string
+): Promise<ImportResult> => {
+    const result: ImportResult = {
+        success: false,
+        itemsImported: 0,
+        items: [],
+        errors: [],
+        warnings: [],
+    };
+
+    try {
+        // Validate that it's an array
+        if (!Array.isArray(data)) {
+            result.errors.push('Invalid format: Expected an array of items');
+            return result;
+        }
+
+        // Process items based on source
+        const items: PersonalItem[] = [];
+        const errors: string[] = [];
+
+        (data as ImportedItemBase[]).forEach((item: ImportedItemBase, index: number) => {
+            try {
+                const processedItem = processItemBySource(item, source);
+                items.push(processedItem);
+            } catch (error) {
+                errors.push(`Item ${index + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
+        });
+
+        result.items = items;
+        result.itemsImported = items.length;
+        result.errors = errors;
+        result.success = items.length > 0;
+
+        if (items.length === 0 && errors.length > 0) {
+            result.errors.unshift('No valid items could be imported');
+        }
+
+        return result;
+    } catch (error) {
+        result.errors.push(error instanceof Error ? error.message : 'Failed to process data');
+        return result;
+    }
+};
+
+/**
+ * Process item based on source type
+ */
+const processItemBySource = (item: ImportedItemBase, source: ImportSource): PersonalItem => {
+    switch (source) {
+        case 'notion':
+            return processNotionItem(item);
+        case 'todoist':
+            return processTodoistItem(item);
+        case 'trello':
+            return processTrelloItem(item);
+        default:
+            return processGenericItem(item);
+    }
+};
+
+/**
+ * Process Notion item
+ */
+const processNotionItem = (item: ImportedItemBase): PersonalItem => {
+    return {
+        id: item.id || crypto.randomUUID(),
+        type: 'note',
+        title: item.properties?.Name?.title?.[0]?.plain_text || item.title || 'Untitled',
+        content: item.content || '',
+        createdAt: item.created_time || new Date().toISOString(),
+        updatedAt: item.last_edited_time || new Date().toISOString(),
+        tags: item.properties?.Tags?.multi_select?.map((t: { name: string }) => t.name) || [],
+    };
+};
+
+/**
+ * Process Todoist item
+ */
+const processTodoistItem = (item: ImportedItemBase): PersonalItem => {
+    const priority = typeof item.priority === 'number' ? item.priority : 1;
+    return {
+        id: item.id?.toString() || crypto.randomUUID(),
+        type: 'task',
+        title: item.content || item.title || 'Untitled',
+        content: item.description || '',
+        createdAt: item.created || new Date().toISOString(),
+        updatedAt: item.updated || new Date().toISOString(),
+        dueDate: item.due?.date,
+        priority: priority >= 4 ? 'high' : priority >= 2 ? 'medium' : 'low',
+        isCompleted: item.completed || false,
+        tags: Array.isArray(item.labels) ? item.labels.filter((l): l is string => typeof l === 'string') : [],
+    };
+};
+
+/**
+ * Process Trello item
+ */
+const processTrelloItem = (item: ImportedItemBase): PersonalItem => {
+    const labels = Array.isArray(item.labels)
+        ? item.labels.map((l) => typeof l === 'string' ? l : l.name)
+        : [];
+    return {
+        id: item.id || crypto.randomUUID(),
+        type: 'task',
+        title: item.name || item.title || 'Untitled',
+        content: item.desc || item.description || '',
+        createdAt: item.dateLastActivity || new Date().toISOString(),
+        updatedAt: item.dateLastActivity || new Date().toISOString(),
+        isCompleted: item.closed || false,
+        tags: labels,
+    };
+};
+
+/**
+ * Valid PersonalItem types for type validation
+ */
+const VALID_ITEM_TYPES = [
+    'task', 'habit', 'workout', 'note', 'link', 'learning',
+    'goal', 'journal', 'book', 'idea', 'gratitude', 'roadmap'
+] as const;
+
+type ValidItemType = typeof VALID_ITEM_TYPES[number];
+
+const isValidItemType = (type: unknown): type is ValidItemType => {
+    return typeof type === 'string' && VALID_ITEM_TYPES.includes(type as ValidItemType);
+};
+
+/**
+ * Process generic item
+ */
+const processGenericItem = (item: ImportedItemBase): PersonalItem => {
+    if (!item.id || !item.type || !item.title) {
+        throw new Error('Missing required fields (id, type, title)');
+    }
+
+    const itemType = isValidItemType(item.type) ? item.type : 'note';
+
+    return {
+        id: item.id,
+        type: itemType,
+        title: item.title,
+        content: item.content || '',
+        createdAt: item.createdAt || new Date().toISOString(),
+        updatedAt: item.updatedAt || new Date().toISOString(),
+    };
+};
+
+/**
+ * Import from Obsidian vault  
+ * Converts Obsidian markdown files to PersonalItems
  */
 export const importFromObsidian = async (files: File[]): Promise<ImportResult> => {
     const result: ImportResult = {
@@ -24,240 +217,146 @@ export const importFromObsidian = async (files: File[]): Promise<ImportResult> =
         warnings: [],
     };
 
-    try {
-        const items = await parseMarkdownFiles(files);
-        result.items = items;
-        result.itemsImported = items.length;
-        result.success = true;
-
-        if (items.length === 0) {
-            result.warnings.push('לא נמצאו פריטים תקינים לייבוא');
-        }
-    } catch (error) {
-        result.errors.push(`שגיאה בייבוא מ-Obsidian: ${error}`);
-    }
-
-    return result;
-};
-
-/**
- * Import from Notion (JSON export)
- */
-export const importFromNotion = async (jsonData: any): Promise<ImportResult> => {
-    const result: ImportResult = {
-        success: false,
-        itemsImported: 0,
-        items: [],
-        errors: [],
-        warnings: [],
-    };
-
-    try {
-        // Try parsing as regular export first
-        let items = parseNotionExport(jsonData);
-
-        // If no items found, try parsing as database
-        if (items.length === 0) {
-            items = parseNotionDatabase(jsonData);
+    for (const file of files) {
+        // Only process markdown files
+        if (!file.name.endsWith('.md')) {
+            result.warnings.push(`Skipped ${file.name}: Not a markdown file`);
+            continue;
         }
 
-        result.items = items;
-        result.itemsImported = items.length;
-        result.success = items.length > 0;
+        try {
+            const content = await readFileAsText(file);
 
-        if (items.length === 0) {
-            result.warnings.push('לא נמצאו דפים תקינים בקובץ Notion');
-        }
-    } catch (error) {
-        result.errors.push(`שגיאה בייבוא מ-Notion: ${error}`);
-    }
+            // Extract title from filename (remove .md extension)
+            const title = file.name.replace(/\.md$/, '');
 
-    return result;
-};
+            // Parse frontmatter if it exists
+            const { frontmatter, body } = parseMarkdownWithFrontmatter(content);
 
-/**
- * Import from Todoist (JSON export)
- */
-export const importFromTodoist = async (jsonData: any): Promise<ImportResult> => {
-    const result: ImportResult = {
-        success: false,
-        itemsImported: 0,
-        items: [],
-        errors: [],
-        warnings: [],
-    };
-
-    try {
-        const items: PersonalItem[] = [];
-        const todoistItems = jsonData.items || jsonData.tasks || [];
-
-        for (const task of todoistItems) {
+            // Create PersonalItem
             const item: PersonalItem = {
-                id: `todoist-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-                type: 'task',
-                title: task.content || task.title || 'Untitled',
-                content: task.description || '',
-                createdAt: task.added_at || task.created_at || new Date().toISOString(),
-                isCompleted: task.checked === 1 || task.is_completed === true,
-                dueDate: task.due?.date || task.due_date,
-                priority: task.priority === 4 ? 'high' : task.priority >= 2 ? 'medium' : 'low',
-                tags: (task.labels || []).map((label: any) => ({
-                    id: typeof label === 'string' ? label.toLowerCase() : label.name.toLowerCase(),
-                    name: typeof label === 'string' ? label : label.name,
-                })),
-                metadata: {
-                    source: 'todoist',
-                    originalId: task.id,
-                },
+                id: crypto.randomUUID(),
+                type: determineItemType(frontmatter, body),
+                title: frontmatter.title || title,
+                content: body,
+                createdAt: frontmatter.created || new Date().toISOString(),
+                updatedAt: frontmatter.updated || new Date().toISOString(),
+                tags: frontmatter.tags || [],
+                ...(frontmatter.dueDate && { dueDate: frontmatter.dueDate }),
+                ...(frontmatter.priority && { priority: frontmatter.priority }),
             };
 
-            items.push(item);
+            result.items.push(item);
+        } catch (error) {
+            result.errors.push(`Failed to import ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-
-        result.items = items;
-        result.itemsImported = items.length;
-        result.success = true;
-
-        if (items.length === 0) {
-            result.warnings.push('לא נמצאו משימות בקובץ Todoist');
-        }
-    } catch (error) {
-        result.errors.push(`שגיאה בייבוא מ-Todoist: ${error}`);
     }
+
+    result.itemsImported = result.items.length;
+    result.success = result.items.length > 0;
 
     return result;
 };
 
+
+
 /**
- * Import from Trello (JSON export)
+ * Helper: Read file as text
  */
-export const importFromTrello = async (jsonData: any): Promise<ImportResult> => {
-    const result: ImportResult = {
-        success: false,
-        itemsImported: 0,
-        items: [],
-        errors: [],
-        warnings: [],
-    };
+const readFileAsText = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsText(file);
+    });
+};
 
-    try {
-        const items: PersonalItem[] = [];
-        const cards = jsonData.cards || [];
-        const lists = jsonData.lists || [];
+/**
+ * Frontmatter data structure from markdown files
+ */
+interface FrontmatterData {
+    title?: string;
+    type?: string;
+    created?: string;
+    updated?: string;
+    tags?: string[];
+    dueDate?: string;
+    priority?: 'low' | 'medium' | 'high';
+    [key: string]: unknown;
+}
 
-        // Create a map of list names
-        const listMap = new Map(lists.map((list: any) => [list.id, list.name]));
+/**
+ * Helper: Parse markdown with YAML frontmatter
+ */
+const parseMarkdownWithFrontmatter = (content: string): { frontmatter: FrontmatterData; body: string } => {
+    const frontmatterRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
+    const match = content.match(frontmatterRegex);
 
-        for (const card of cards) {
-            if (card.closed) continue; // Skip archived cards
+    if (!match) {
+        return { frontmatter: {}, body: content };
+    }
 
-            const listName = listMap.get(card.idList);
-            const item: PersonalItem = {
-                id: `trello-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-                type: 'task',
-                title: card.name,
-                content: card.desc || '',
-                createdAt: card.dateLastActivity || new Date().toISOString(),
-                isCompleted: listName?.toLowerCase().includes('done') || listName?.toLowerCase().includes('completed'),
-                dueDate: card.due,
-                tags: (card.labels || []).map((label: any) => ({
-                    id: label.name.toLowerCase(),
-                    name: label.name,
-                })),
-                metadata: {
-                    source: 'trello',
-                    list: listName,
-                    originalId: card.id,
-                },
-            };
+    const frontmatterText = match[1] ?? '';
+    const body = match[2] ?? '';
+    const frontmatter: FrontmatterData = {};
 
-            // Add checklist items as subtasks
-            if (card.checklists && card.checklists.length > 0) {
-                item.subTasks = card.checklists.flatMap((checklist: any) =>
-                    (checklist.checkItems || []).map((checkItem: any) => ({
-                        id: checkItem.id,
-                        title: checkItem.name,
-                        isCompleted: checkItem.state === 'complete',
-                    }))
-                );
+    // Simple YAML parser (for common fields)
+    frontmatterText.split('\n').forEach((line) => {
+        const [key, ...valueParts] = line.split(':');
+        if (key && valueParts.length > 0) {
+            const value = valueParts.join(':').trim();
+
+            // Handle arrays (tags)
+            if (value.startsWith('[') && value.endsWith(']')) {
+                frontmatter[key.trim()] = value
+                    .slice(1, -1)
+                    .split(',')
+                    .map((v) => v.trim().replace(/['"]/g, ''));
+            } else {
+                frontmatter[key.trim()] = value.replace(/['"]/g, '');
             }
-
-            items.push(item);
         }
+    });
 
-        result.items = items;
-        result.itemsImported = items.length;
-        result.success = true;
-
-        if (items.length === 0) {
-            result.warnings.push('לא נמצאו כרטיסים בקובץ Trello');
-        }
-    } catch (error) {
-        result.errors.push(`שגיאה בייבוא מ-Trello: ${error}`);
-    }
-
-    return result;
+    return { frontmatter, body: body.trim() };
 };
 
 /**
- * Auto-detect import source from file/data
+ * Helper: Determine item type from frontmatter/content
  */
-export const detectImportSource = (data: any, filename?: string): ImportSource | null => {
-    // Check filename extension
-    if (filename) {
-        if (filename.endsWith('.md')) return 'markdown';
-        if (filename.endsWith('.json')) {
-            // Try to detect JSON type
-            if (data.items || data.tasks) return 'todoist';
-            if (data.cards && data.lists) return 'trello';
-            if (data.object === 'page' || data.results) return 'notion';
-        }
+const determineItemType = (frontmatter: FrontmatterData, body: string): PersonalItem['type'] => {
+    // Check frontmatter type - validate it's a known type
+    if (frontmatter.type && isValidItemType(frontmatter.type)) {
+        return frontmatter.type;
     }
 
-    // Check data structure
-    if (typeof data === 'object') {
-        if (data.items || data.tasks) return 'todoist';
-        if (data.cards && data.lists) return 'trello';
-        if (data.object === 'page' || data.results) return 'notion';
+    // Heuristics based on content
+    if (frontmatter.dueDate || body.includes('- [ ]') || body.includes('- [x]')) {
+        return 'task';
     }
 
-    return null;
+    if (body.includes('##') || body.length > 500) {
+        return 'note';
+    }
+
+    // Default to 'idea' for general imports (closest to 'spark' concept)
+    return 'idea';
 };
 
 /**
- * Generic import function that auto-detects source
+ * Export current data as JSON
  */
-export const importData = async (
-    data: any,
-    source?: ImportSource,
-    filename?: string
-): Promise<ImportResult> => {
-    const detectedSource = source || detectImportSource(data, filename);
+export const exportData = (items: PersonalItem[], filename: string = 'sparkos-export.json') => {
+    const dataStr = JSON.stringify(items, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
 
-    if (!detectedSource) {
-        return {
-            success: false,
-            itemsImported: 0,
-            items: [],
-            errors: ['לא ניתן לזהות את סוג הקובץ'],
-            warnings: [],
-        };
-    }
-
-    switch (detectedSource) {
-        case 'notion':
-            return importFromNotion(data);
-        case 'todoist':
-            return importFromTodoist(data);
-        case 'trello':
-            return importFromTrello(data);
-        default:
-            return {
-                success: false,
-                itemsImported: 0,
-                items: [],
-                errors: [`סוג ייבוא לא נתמך: ${detectedSource}`],
-                warnings: [],
-            };
-    }
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 };

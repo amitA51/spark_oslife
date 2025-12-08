@@ -1,10 +1,10 @@
-
-import React, { useState, useCallback, useContext, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import type { PersonalItem, SwipeAction } from '../types';
-import { TrashIcon, CheckCircleIcon, PlayIcon, CalendarIcon, StopwatchIcon } from './icons';
+import { TrashIcon, CheckCircleIcon, CalendarIcon } from './icons';
+import { toDateKey } from '../utils/dateUtils';
 import { useHaptics } from '../hooks/useHaptics';
 import { useSound } from '../hooks/useSound';
-import { AppContext } from '../state/AppContext';
+import { useSettings } from '../src/contexts/SettingsContext';
 
 interface TaskItemProps {
   item: PersonalItem;
@@ -12,54 +12,68 @@ interface TaskItemProps {
   onDelete: (id: string) => void;
   onSelect: (item: PersonalItem, event: React.MouseEvent | React.KeyboardEvent) => void;
   onContextMenu: (event: React.MouseEvent, item: PersonalItem) => void;
-  onStartFocus: (item: PersonalItem) => void;
+  // onStartFocus removed - timer feature not used
   index: number;
 }
 
-const CustomCheckbox: React.FC<{ checked: boolean; onToggle: () => void; title: string }> = ({ checked, onToggle, title }) => {
-    const [isAnimating, setIsAnimating] = useState(false);
+const CustomCheckbox: React.FC<{ checked: boolean; onToggle: () => void; title: string }> = ({
+  checked,
+  onToggle,
+  title,
+}) => {
+  const [isAnimating, setIsAnimating] = useState(false);
 
-    const handleToggle = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onToggle();
-        setIsAnimating(true);
-        setTimeout(() => setIsAnimating(false), 300);
-    };
-    
-    return (
-        <button
-            onClick={handleToggle}
-            className={`relative h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 transform active:scale-90
-                ${checked ? 'bg-[var(--accent-gradient)] shadow-[0_0_12px_var(--dynamic-accent-glow)]' : 'bg-[var(--bg-secondary)] border-2 border-[var(--border-primary)]'}
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggle();
+    setIsAnimating(true);
+    setTimeout(() => setIsAnimating(false), 300);
+  };
+
+  return (
+    <button
+      onClick={handleToggle}
+      className={`relative h-6 w-6 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ease-spring-soft
+                ${checked ? 'bg-gradient-to-br from-accent-cyan to-accent-violet shadow-glow-cyan scale-110' : 'bg-white/5 border-2 border-white/20 hover:border-accent-cyan/50'}
                 ${isAnimating ? 'animate-check-bounce' : ''}
             `}
-            aria-label={`סמן את ${title} כ${checked ? 'לא הושלם' : 'הושלם'}`}
-            aria-checked={checked}
-            role="checkbox"
-        >
-           {checked && <CheckCircleIcon className="w-9 h-9 text-white" />}
-        </button>
-    );
+      aria-label={`סמן את ${title} כ${checked ? 'לא הושלם' : 'הושלם'}`}
+      aria-checked={checked}
+      role="checkbox"
+    >
+      {checked && <CheckCircleIcon className="w-4 h-4 text-cosmos-black" />}
+    </button>
+  );
 };
 
-const TaskItem: React.FC<TaskItemProps> = ({ item, onUpdate, onDelete, onSelect, onContextMenu, onStartFocus, index }) => {
-  const { state } = useContext(AppContext);
+const TaskItem: React.FC<TaskItemProps> = ({
+  item,
+  onUpdate,
+  onDelete,
+  onSelect,
+  onContextMenu,
+  index,
+}) => {
   const { triggerHaptic } = useHaptics();
   const { playSuccess, playToggle } = useSound();
-  const { swipeRightAction, swipeLeftAction } = state.settings;
+  const { settings } = useSettings();
+  const { swipeRightAction, swipeLeftAction } = settings;
 
   const [swipeOffset, setSwipeOffset] = useState(0);
+  const [showCelebration, setShowCelebration] = useState(false);
   const touchStartX = useRef<number | null>(null);
-  const swipeThreshold = 100; // Distance to trigger action
-  
+  const swipeThreshold = 100;
+
   const handleToggle = useCallback(() => {
     triggerHaptic('light');
-    
+
     const isCompleting = !item.isCompleted;
     if (isCompleting) {
-        playSuccess();
+      playSuccess();
+      setShowCelebration(true);
+      setTimeout(() => setShowCelebration(false), 1000);
     } else {
-        playToggle(false);
+      playToggle(false);
     }
 
     onUpdate(item.id, {
@@ -68,215 +82,224 @@ const TaskItem: React.FC<TaskItemProps> = ({ item, onUpdate, onDelete, onSelect,
     });
   }, [item.id, item.isCompleted, onUpdate, triggerHaptic, playSuccess, playToggle]);
 
-  const handleStartFocusSession = useCallback((e: React.MouseEvent) => {
-      e.stopPropagation();
-      onStartFocus(item);
-  }, [item, onStartFocus]);
 
-  const handleDelete = useCallback((e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    triggerHaptic('heavy');
-    onDelete(item.id);
-  }, [item.id, onDelete, triggerHaptic]);
+  const handleDelete = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      triggerHaptic('heavy');
+      onDelete(item.id);
+    },
+    [item.id, onDelete, triggerHaptic]
+  );
 
-  const handleDeferToTomorrow = useCallback((e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    triggerHaptic('light');
+  const handleDeferToTomorrow = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      triggerHaptic('light');
 
-    const baseDate = item.dueDate ? new Date(item.dueDate) : new Date();
-    baseDate.setDate(baseDate.getDate() + 1);
-    const tomorrowStr = baseDate.toISOString().split('T')[0];
+      const baseDate = item.dueDate ? new Date(item.dueDate) : new Date();
+      baseDate.setDate(baseDate.getDate() + 1);
+      const tomorrowStr = toDateKey(baseDate);
 
-    onUpdate(item.id, { dueDate: tomorrowStr });
-  }, [item.id, item.dueDate, onUpdate, triggerHaptic]);
+      onUpdate(item.id, { dueDate: tomorrowStr });
+    },
+    [item.id, item.dueDate, onUpdate, triggerHaptic]
+  );
 
   const executeSwipeAction = (action: SwipeAction) => {
-      if (action === 'complete') handleToggle();
-      else if (action === 'delete') handleDelete();
-      else if (action === 'postpone') handleDeferToTomorrow();
+    if (action === 'complete') handleToggle();
+    else if (action === 'delete') handleDelete();
+    else if (action === 'postpone') handleDeferToTomorrow();
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches && e.touches[0]) {
       touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-      if (touchStartX.current === null) return;
-      const currentX = e.touches[0].clientX;
-      const diff = currentX - touchStartX.current;
-      
-      // Limit drag to reasonable bounds
-      if (Math.abs(diff) < 200) {
-          setSwipeOffset(diff);
-      }
-  };
-
-  const handleTouchEnd = () => {
-      if (touchStartX.current === null) return;
-      
-      if (swipeOffset > swipeThreshold) { // Swiped Right
-          if (swipeRightAction !== 'none') {
-            executeSwipeAction(swipeRightAction);
-          }
-      } else if (swipeOffset < -swipeThreshold) { // Swiped Left
-          if (swipeLeftAction !== 'none') {
-            executeSwipeAction(swipeLeftAction);
-          }
-      }
-      
-      setSwipeOffset(0);
-      touchStartX.current = null;
-  };
-
-  const getActionColor = (action: SwipeAction) => {
-      switch(action) {
-          case 'complete': return 'bg-[var(--success)]';
-          case 'delete': return 'bg-[var(--danger)]';
-          case 'postpone': return 'bg-[var(--warning)]';
-          default: return 'bg-transparent';
-      }
-  };
-
-  const getActionIcon = (action: SwipeAction) => {
-      switch(action) {
-          case 'complete': return <CheckCircleIcon className="w-6 h-6 text-white" />;
-          case 'delete': return <TrashIcon className="w-6 h-6 text-white" />;
-          case 'postpone': return <CalendarIcon className="w-6 h-6 text-white" />;
-          default: return null;
-      }
-  };
-
-  const completedCount = item.subTasks?.filter(st => st.isCompleted).length || 0;
-  const totalCount = item.subTasks?.length || 0;
-
-  const getPriorityColor = (priority?: 'low' | 'medium' | 'high') => {
-    switch (priority) {
-      case 'high': return 'border-l-[var(--danger)]';
-      case 'medium': return 'border-l-[var(--dynamic-accent-start)]';
-      case 'low': return 'border-l-[var(--text-secondary)]';
-      default: return 'border-l-transparent';
     }
   };
 
-  const getRelativeDueDate = (dueDate?: string) => {
-      if (!dueDate) return null;
-      const due = new Date(dueDate);
-      const now = new Date();
-      now.setHours(0,0,0,0);
-      due.setHours(23,59,59,999);
-      
-      const diffTime = due.getTime() - now.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) - 1;
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || !e.touches || !e.touches[0]) return;
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - touchStartX.current;
 
-      if (diffDays < 0) return <span className="text-[var(--danger)]">עבר הזמן</span>;
-      if (diffDays === 0) return <span className="text-[var(--warning)]">היום</span>;
-      if (diffDays === 1) return <span className="text-[var(--dynamic-accent-highlight)]">מחר</span>;
-      return <span className="text-[var(--text-secondary)]">בעוד {diffDays} ימים</span>;
+    if (Math.abs(diff) < 200) {
+      setSwipeOffset(diff);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current === null) return;
+
+    if (swipeOffset > swipeThreshold) {
+      if (swipeRightAction !== 'none') {
+        executeSwipeAction(swipeRightAction);
+      }
+    } else if (swipeOffset < -swipeThreshold) {
+      if (swipeLeftAction !== 'none') {
+        executeSwipeAction(swipeLeftAction);
+      }
+    }
+
+    setSwipeOffset(0);
+    touchStartX.current = null;
+  };
+
+  const getActionColor = (action: SwipeAction) => {
+    switch (action) {
+      case 'complete': return 'bg-emerald-500/20 text-emerald-400';
+      case 'delete': return 'bg-red-500/20 text-red-400';
+      case 'postpone': return 'bg-amber-500/20 text-amber-400';
+      default: return 'bg-transparent';
+    }
+  };
+
+  const getActionIcon = (action: SwipeAction) => {
+    switch (action) {
+      case 'complete': return <CheckCircleIcon className="w-6 h-6" />;
+      case 'delete': return <TrashIcon className="w-6 h-6" />;
+      case 'postpone': return <CalendarIcon className="w-6 h-6" />;
+      default: return null;
+    }
+  };
+
+  const totalCount = item.subTasks?.length || 0;
+  const completedCount = item.subTasks?.filter(st => st.isCompleted).length || 0;
+
+  const getRelativeDueDate = (dueDate?: string) => {
+    if (!dueDate) return null;
+    const due = new Date(dueDate);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    due.setHours(23, 59, 59, 999);
+
+    const diffTime = due.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) - 1;
+
+    if (diffDays < 0) return <span className="text-red-400 font-medium">עבר הזמן</span>;
+    if (diffDays === 0) return <span className="text-amber-400 font-medium">היום</span>;
+    if (diffDays === 1) return <span className="font-medium" style={{ color: 'var(--dynamic-accent-start)' }}>מחר</span>;
+    return <span className="text-gray-500">בעוד {diffDays} ימים</span>;
   };
 
   const relativeDue = getRelativeDueDate(item.dueDate);
-  const subTasksProgress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   return (
-    <div className="relative overflow-hidden rounded-[1.25rem] mb-3">
-        {/* Swipe Backgrounds */}
-        <div className={`absolute inset-0 flex items-center justify-start pl-6 transition-opacity duration-200 ${getActionColor(swipeRightAction)} ${swipeOffset > 0 ? 'opacity-100' : 'opacity-0'}`}>
-            {getActionIcon(swipeRightAction)}
+    <div className="relative overflow-hidden rounded-2xl mb-3 group/item">
+      {/* Swipe Backgrounds */}
+      <div className={`absolute inset-0 flex items-center justify-start pl-6 transition-opacity duration-200 ${getActionColor(swipeRightAction)} ${swipeOffset > 0 ? 'opacity-100' : 'opacity-0'}`}>
+        {getActionIcon(swipeRightAction)}
+      </div>
+      <div className={`absolute inset-0 flex items-center justify-end pr-6 transition-opacity duration-200 ${getActionColor(swipeLeftAction)} ${swipeOffset < 0 ? 'opacity-100' : 'opacity-0'}`}>
+        {getActionIcon(swipeLeftAction)}
+      </div>
+
+      {/* Celebration Particles */}
+      {showCelebration && (
+        <div className="absolute inset-0 pointer-events-none overflow-visible z-20">
+          {[...Array(8)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute left-1/2 top-1/2 w-2 h-2 rounded-full animate-celebration-particle"
+              style={{
+                backgroundColor: ['#00F0FF', '#7B61FF', '#FF006E', '#FFB800', '#10B981', '#F43F5E', '#8B5CF6', '#EC4899'][i],
+                animationDelay: `${i * 0.05}s`,
+                transform: `translate(-50%, -50%) rotate(${i * 45}deg) translateX(${20 + Math.random() * 30}px)`,
+              }}
+            />
+          ))}
         </div>
-        <div className={`absolute inset-0 flex items-center justify-end pr-6 transition-opacity duration-200 ${getActionColor(swipeLeftAction)} ${swipeOffset < 0 ? 'opacity-100' : 'opacity-0'}`}>
-            {getActionIcon(swipeLeftAction)}
+      )}
+
+      {/* Main Item Content */}
+      <div
+        onClick={e => {
+          if (!(e.target as HTMLElement).closest('button') && swipeOffset === 0) {
+            onSelect(item, e);
+          }
+        }}
+        onContextMenu={e => onContextMenu(e, item)}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className={`
+          relative p-4 flex items-start gap-4 
+          bg-cosmos-depth/60 backdrop-blur-md border border-white/5 
+          transition-all duration-300 ease-spring-soft
+          hover:bg-cosmos-depth/80 hover:border-white/10 hover:shadow-lg hover:-translate-y-1
+          active:scale-[0.98] cursor-pointer
+          ${item.isCompleted ? 'opacity-60 grayscale-[0.5]' : ''}
+          rounded-2xl
+        `}
+        style={{
+          transform: `translateX(${swipeOffset}px)`,
+          animationDelay: `${index * 50}ms`,
+        }}
+        role="button"
+        tabIndex={0}
+      >
+        <div className="pt-1">
+          <CustomCheckbox
+            checked={!!item.isCompleted}
+            onToggle={handleToggle}
+            title={item.title || ''}
+          />
         </div>
 
-        {/* Main Item Content */}
-        <div
-            onClick={(e) => {
-                if (!(e.target as HTMLElement).closest('button') && swipeOffset === 0) {
-                onSelect(item, e);
-                }
-            }}
-            onContextMenu={(e) => onContextMenu(e, item)}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            className={`group relative themed-card p-4 flex items-start gap-4 border-l-4 transition-transform duration-200 ease-out ${getPriorityColor(item.priority)} ${item.isCompleted ? 'task-completed completed-item' : ''} cursor-pointer active:scale-97 animate-item-enter-fi mb-0 rounded-[1.25rem]`}
-            style={{ 
-                transform: `translateX(${swipeOffset}px)`, 
-                animationDelay: `${index * 50}ms` 
-            }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    onSelect(item, e);
-                }
-            }}
-            aria-label={`פרטי משימה: ${item.title}`}
-        >
-        <CustomCheckbox checked={!!item.isCompleted} onToggle={handleToggle} title={item.title} />
-
-        <div className="flex-1 overflow-hidden pt-0.5">
-            <div className="flex items-center gap-2 justify-between">
-            <div className="flex items-center gap-2 min-w-0">
-                <p className={`relative task-text text-lg text-[var(--text-primary)] transition-colors truncate ${item.isCompleted ? 'text-[var(--text-secondary)]' : ''}`}>
-                {item.title}
-                </p>
-                {totalCount > 0 && !item.isCompleted && (
-                    <span className="text-xs text-[var(--text-secondary)] font-mono shrink-0">
-                        ({completedCount}/{totalCount})
-                    </span>
-                )}
-            </div>
+        <div className="flex-1 min-w-0 space-y-1">
+          <div className="flex items-start justify-between gap-2">
+            <p className={`text-base font-medium leading-snug transition-colors ${item.isCompleted ? 'text-gray-500 line-through decoration-white/20' : 'text-white'}`}>
+              {item.title}
+            </p>
             {item.priority === 'high' && !item.isCompleted && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--danger)]/15 text-[var(--danger)] font-semibold shrink-0">
-                חשוב
-                </span>
+              <span className="shrink-0 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] mt-1.5" />
             )}
-            </div>
+          </div>
 
+          <div className="flex items-center gap-3 text-xs text-gray-500">
             {item.dueDate && (
-            <div className="mt-1 flex items-center gap-2 text-xs">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
-                <CalendarIcon className="w-3 h-3" />
+              <div className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded-md">
+                <CalendarIcon className="w-3 h-3 opacity-70" />
                 {relativeDue}
-                {item.dueTime && ` · ${item.dueTime}`}
-                </span>
-            </div>
+                {item.dueTime && <span className="opacity-50">| {item.dueTime}</span>}
+              </div>
             )}
 
             {totalCount > 0 && (
-            <div className="mt-2 h-1.5 rounded-full bg-[var(--bg-secondary)] overflow-hidden">
-                <div
-                className="h-full rounded-full bg-[var(--dynamic-accent-start)] transition-all"
-                style={{ width: `${subTasksProgress}%` }}
-                />
-            </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-12 h-1 rounded-full bg-white/10 overflow-hidden">
+                  <div
+                    className="h-full bg-accent-cyan transition-all"
+                    style={{
+                      width: `${(completedCount / totalCount) * 100}%`,
+                      transitionDuration: 'var(--transition-speed)'
+                    }}
+                  />
+                </div>
+                <span className="font-mono opacity-70">{completedCount}/{totalCount}</span>
+              </div>
             )}
+          </div>
         </div>
 
-        <div className="flex flex-col items-center justify-start gap-2 pt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <button
-            onClick={handleStartFocusSession}
-            className="text-[var(--text-secondary)] hover:text-[var(--accent-highlight)]"
-            aria-label={`התחל סשן פוקוס עבור: ${item.title}`}
-            >
-            <PlayIcon className="h-5 w-5" />
-            </button>
-            <button
+        {/* Hover Actions */}
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity bg-cosmos-depth/90 backdrop-blur-sm rounded-xl p-1 border border-white/10 shadow-xl translate-x-4 group-hover/item:translate-x-0 ease-spring-soft" style={{ transitionDuration: 'var(--transition-speed)' }}>
+          <button
             onClick={handleDeferToTomorrow}
-            className="text-[var(--text-secondary)] hover:text-[var(--dynamic-accent-highlight)]"
-            aria-label={`דחה את המשימה ${item.title} למחר`}
-            >
-            <CalendarIcon className="h-5 w-5" />
-            </button>
-            <button
+            className="p-2 text-gray-400 hover:text-accent-violet hover:bg-white/5 rounded-lg transition-colors"
+            title="דחה למחר"
+          >
+            <CalendarIcon className="h-4 w-4" />
+          </button>
+          <button
             onClick={handleDelete}
-            className="text-[var(--text-secondary)] hover:text-[var(--danger)]"
-            aria-label={`מחק משימה: ${item.title}`}
-            >
-            <TrashIcon className="h-5 w-5" />
-            </button>
+            className="p-2 text-gray-400 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors"
+            title="מחק"
+          >
+            <TrashIcon className="h-4 w-4" />
+          </button>
         </div>
-        </div>
+      </div>
     </div>
   );
 };
