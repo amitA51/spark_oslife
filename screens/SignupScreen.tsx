@@ -3,53 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { signUp, signInWithGoogle, checkGoogleRedirectResult } from '../services/authService';
 import { GoogleIcon, LockIcon, UserIcon, SparklesIcon } from '../components/icons';
 import { PremiumButton, PremiumInput } from '../components/premium/PremiumComponents';
+import { FloatingParticles } from '../components/auth';
 
 interface SignupScreenProps {
   onNavigateToLogin: () => void;
   onSkip?: () => void;
 }
 
-// Floating particles component
-const FloatingParticles: React.FC = () => {
-  const particles = Array.from({ length: 15 }, (_, i) => ({
-    id: i,
-    size: Math.random() * 4 + 2,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    duration: Math.random() * 20 + 15,
-    delay: Math.random() * 5,
-  }));
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {particles.map((particle) => (
-        <motion.div
-          key={particle.id}
-          className="absolute rounded-full"
-          style={{
-            width: particle.size,
-            height: particle.size,
-            left: `${particle.x}%`,
-            top: `${particle.y}%`,
-            background: `radial-gradient(circle, var(--dynamic-accent-end), transparent)`,
-          }}
-          animate={{
-            y: [0, -25, 0],
-            x: [0, 8, -8, 0],
-            opacity: [0.2, 0.6, 0.2],
-            scale: [1, 1.3, 1],
-          }}
-          transition={{
-            duration: particle.duration,
-            delay: particle.delay,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        />
-      ))}
-    </div>
-  );
-};
 
 const SignupScreen: React.FC<SignupScreenProps> = ({ onNavigateToLogin, onSkip }) => {
   const [email, setEmail] = useState('');
@@ -67,8 +27,9 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ onNavigateToLogin, onSkip }
         if (user) {
           console.log('Google redirect sign-in successful');
         }
-      } catch (err: any) {
-        setError(err.message || 'שגיאה בהתחברות עם Google');
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'שגיאה בהתחברות עם Google';
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -94,8 +55,9 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ onNavigateToLogin, onSkip }
     setIsLoading(true);
     try {
       await signUp(email, password);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'שגיאה בהרשמה';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -106,8 +68,9 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ onNavigateToLogin, onSkip }
     setIsLoading(true);
     try {
       await signInWithGoogle();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'שגיאה בהתחברות עם Google';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

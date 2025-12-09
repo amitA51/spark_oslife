@@ -20,10 +20,10 @@ import { AddableType } from '../types';
 import { useSettings } from '../src/contexts/SettingsContext';
 import { useHaptics } from '../hooks/useHaptics';
 import SmartSearchBar from '../components/add/SmartSearchBar';
-import QuickCreateFAB from '../components/add/QuickCreateFAB';
 import TemplateCarousel, { TemplatePreset } from '../components/add/TemplateCarousel';
 import { AddScreenSkeleton } from '../components/add';
 import { useAISuggestions } from '../hooks/add/useAISuggestions';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const VoiceInputModal = lazy(() => import('../components/VoiceInputModal'));
 
@@ -31,89 +31,99 @@ interface AddScreenProps {
   setActiveScreen: (screen: Screen) => void;
 }
 
-const allItemTypes: { type: AddableType; label: string; icon: React.ReactNode; color: string }[] = [
-  { type: 'spark', label: 'ספארק', icon: <SparklesIcon />, color: 'var(--accent-start)' },
-  { type: 'idea', label: 'רעיון', icon: <LightbulbIcon />, color: 'var(--warning)' },
-  { type: 'note', label: 'פתק', icon: <ClipboardListIcon />, color: '#FBBF24' },
-  { type: 'task', label: 'משימה', icon: <CheckCircleIcon />, color: 'var(--success)' },
-  { type: 'link', label: 'קישור', icon: <LinkIcon />, color: '#60A5FA' },
-  { type: 'learning', label: 'למידה', icon: <SummarizeIcon />, color: '#38BDF8' },
-  { type: 'journal', label: 'יומן', icon: <UserIcon />, color: '#F0ABFC' },
-  { type: 'book', label: 'ספר', icon: <BookOpenIcon />, color: '#A78BFA' },
-  { type: 'workout', label: 'אימון', icon: <DumbbellIcon />, color: '#F472B6' },
-  { type: 'roadmap', label: 'מפת דרכים', icon: <RoadmapIcon />, color: '#3B82F6' },
-  { type: 'ticker', label: 'מניה / מטבע', icon: <ChartBarIcon />, color: 'var(--text-secondary)' },
+const allItemTypes: { type: AddableType; label: string; icon: React.ReactNode; color: string; gradient: string }[] = [
+  { type: 'spark', label: 'ספארק', icon: <SparklesIcon />, color: '#00D4FF', gradient: 'linear-gradient(135deg, #00D4FF 0%, #7C3AED 100%)' },
+  { type: 'idea', label: 'רעיון', icon: <LightbulbIcon />, color: '#FBBF24', gradient: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)' },
+  { type: 'note', label: 'פתק', icon: <ClipboardListIcon />, color: '#FCD34D', gradient: 'linear-gradient(135deg, #FCD34D 0%, #F59E0B 100%)' },
+  { type: 'task', label: 'משימה', icon: <CheckCircleIcon />, color: '#10B981', gradient: 'linear-gradient(135deg, #10B981 0%, #059669 100%)' },
+  { type: 'link', label: 'קישור', icon: <LinkIcon />, color: '#60A5FA', gradient: 'linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%)' },
+  { type: 'learning', label: 'למידה', icon: <SummarizeIcon />, color: '#38BDF8', gradient: 'linear-gradient(135deg, #38BDF8 0%, #0EA5E9 100%)' },
+  { type: 'journal', label: 'יומן', icon: <UserIcon />, color: '#F0ABFC', gradient: 'linear-gradient(135deg, #F0ABFC 0%, #D946EF 100%)' },
+  { type: 'book', label: 'ספר', icon: <BookOpenIcon />, color: '#A78BFA', gradient: 'linear-gradient(135deg, #A78BFA 0%, #8B5CF6 100%)' },
+  { type: 'workout', label: 'אימון', icon: <DumbbellIcon />, color: '#F472B6', gradient: 'linear-gradient(135deg, #F472B6 0%, #EC4899 100%)' },
+  { type: 'roadmap', label: 'מפת דרכים', icon: <RoadmapIcon />, color: '#3B82F6', gradient: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)' },
+  { type: 'ticker', label: 'מניה / מטבע', icon: <ChartBarIcon />, color: '#94A3B8', gradient: 'linear-gradient(135deg, #94A3B8 0%, #64748B 100%)' },
 ];
 
-const AddItemButton: React.FC<{
+// Premium Card Component with glass morphism
+const PremiumItemCard: React.FC<{
   icon: React.ReactNode;
   label: string;
   onClick?: () => void;
   color: string;
-  style?: React.CSSProperties;
+  gradient: string;
+  index: number;
   isEditing?: boolean;
-}> = ({ icon, label, onClick, color, style, isEditing }) => (
-  <button
+}> = ({ icon, label, onClick, color, gradient, index, isEditing }) => (
+  <motion.button
     onClick={onClick}
+    disabled={isEditing}
+    initial={{ opacity: 0, y: 20, scale: 0.9 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    transition={{
+      type: 'spring',
+      stiffness: 300,
+      damping: 25,
+      delay: index * 0.04,
+    }}
+    whileHover={{
+      scale: 1.05,
+      y: -4,
+      transition: { type: 'spring', stiffness: 400, damping: 20 }
+    }}
+    whileTap={{ scale: 0.95 }}
     className={`
       group relative overflow-hidden
-      bg-gradient-to-br from-white/[0.06] to-white/[0.02]
-      backdrop-blur-xl
+      bg-white/[0.04] backdrop-blur-2xl
       border border-white/[0.08]
-      rounded-[1.25rem]
-      p-3 sm:p-4
-      flex flex-col items-center justify-center gap-2.5
-      aspect-square
-      transition-all duration-300 ease-out
-      ${isEditing
-        ? 'cursor-grab active:cursor-grabbing opacity-50 scale-95'
-        : 'hover:scale-[1.04] hover:-translate-y-1 hover:border-white/[0.15] hover:shadow-[0_12px_40px_-10px_var(--glow-color)] active:scale-[0.98]'
-      }
+      rounded-3xl
+      p-4 sm:p-5
+      flex flex-col items-center justify-center gap-3
+      min-h-[100px] sm:min-h-[110px]
+      transition-colors duration-300
+      ${isEditing ? 'opacity-50 cursor-grab' : 'cursor-pointer'}
+      hover:border-white/[0.15]
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50
     `}
-    aria-label={`הוסף ${label}`}
     style={{
-      ...style,
-      '--glow-color': `${color}60`,
-    } as React.CSSProperties}
-    disabled={isEditing}
+      boxShadow: `0 4px 24px -8px ${color}20`,
+    }}
+    aria-label={`הוסף ${label}`}
   >
-    {/* Glass shine effect at top */}
+    {/* Subtle top shine */}
     <div
-      className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+      className="absolute top-0 left-0 right-0 h-[1px] opacity-60"
       style={{
-        background: 'linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.15) 50%, transparent 90%)',
+        background: 'linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.12) 50%, transparent 90%)',
       }}
     />
 
-    {/* Gradient overlay on hover */}
+    {/* Hover gradient overlay */}
     <div
-      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
+      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-3xl"
       style={{
-        background: `radial-gradient(circle at 50% 30%, ${color}15 0%, transparent 70%)`,
+        background: `radial-gradient(circle at 50% 0%, ${color}15 0%, transparent 60%)`,
       }}
     />
 
-    {/* Icon Container */}
+    {/* Icon Container with gradient background */}
     <div
-      className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110"
+      className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110"
       style={{
-        background: `linear-gradient(135deg, ${color}25, ${color}15)`,
-        boxShadow: `0 0 0 1px ${color}25, 0 4px 12px ${color}20`,
+        background: gradient,
+        boxShadow: `0 8px 24px -4px ${color}40`,
       }}
     >
-      {/* Glow effect on hover */}
+      {/* Inner glow */}
       <div
-        className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        className="absolute inset-0 rounded-2xl opacity-40"
         style={{
-          boxShadow: `0 0 20px ${color}50, inset 0 0 10px ${color}30`,
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%)',
         }}
       />
 
       {/* Icon */}
-      <div
-        className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center relative z-10 transition-all duration-300"
-        style={{ color }}
-      >
+      <div className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center relative z-10 text-white">
         {React.isValidElement<{ className?: string }>(icon)
           ? React.cloneElement(icon, {
             ...icon.props,
@@ -124,20 +134,10 @@ const AddItemButton: React.FC<{
     </div>
 
     {/* Label */}
-    <span
-      className="relative z-10 font-semibold text-white/90 text-[10px] sm:text-[11px] leading-tight text-center tracking-wide group-hover:text-white transition-colors duration-300"
-    >
+    <span className="relative z-10 font-semibold text-white/90 text-xs sm:text-sm text-center tracking-wide group-hover:text-white transition-colors duration-300">
       {label}
     </span>
-
-    {/* Bottom accent indicator */}
-    <div
-      className="absolute bottom-2 left-1/2 -translate-x-1/2 w-0 h-[2px] group-hover:w-8 transition-all duration-400 rounded-full"
-      style={{
-        background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
-      }}
-    />
-  </button>
+  </motion.button>
 );
 
 const AddScreen: React.FC<AddScreenProps> = ({ setActiveScreen }) => {
@@ -150,38 +150,25 @@ const AddScreen: React.FC<AddScreenProps> = ({ setActiveScreen }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const [prefilledData, setPrefilledData] = useState<Partial<Record<string, unknown>> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showKeyboardHint, setShowKeyboardHint] = useState(false);
 
   const dragItem = useRef<AddableType | null>(null);
   const dragOverItem = useRef<AddableType | null>(null);
-  // Used for forcing re-render after drag operations
   const [, setForceRender] = useState(0);
 
-  // Simulate initial loading for premium feel
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
+    const timer = setTimeout(() => setIsLoading(false), 400);
     return () => clearTimeout(timer);
   }, []);
 
-  // Keyboard shortcuts for power users
+  // Keyboard shortcuts
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Escape to close form
     if (e.key === 'Escape' && selectedType) {
       e.preventDefault();
       handleCloseForm();
       return;
     }
 
-    // Show keyboard hints with ?
-    if (e.key === '?' && !selectedType) {
-      e.preventDefault();
-      setShowKeyboardHint(prev => !prev);
-      return;
-    }
-
-    // Quick create shortcuts (1-9 for item types)
     if (!selectedType && !isEditing && e.key >= '1' && e.key <= '9') {
       const index = parseInt(e.key) - 1;
       if (index < addScreenLayout.length) {
@@ -191,21 +178,11 @@ const AddScreen: React.FC<AddScreenProps> = ({ setActiveScreen }) => {
           handleItemClick(type, undefined);
         }
       }
-      return;
     }
 
-    // Cmd/Ctrl + N for new item (focus search)
-    if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
-      e.preventDefault();
-      setIsSearchExpanded(true);
-      return;
-    }
-
-    // Cmd/Ctrl + E for edit mode
     if ((e.metaKey || e.ctrlKey) && e.key === 'e' && !selectedType) {
       e.preventDefault();
       setIsEditing(prev => !prev);
-      return;
     }
   }, [selectedType, isEditing, addScreenLayout]);
 
@@ -265,260 +242,299 @@ const AddScreen: React.FC<AddScreenProps> = ({ setActiveScreen }) => {
     handleLayoutChange(newLayout);
   };
 
-  const handleItemClick = (type: AddableType, data?: any) => {
+  const handleItemClick = (type: AddableType, data?: Record<string, unknown>) => {
     triggerHaptic('light');
-    setSelectedType(type);
-    if (data) {
-      setPrefilledData(data);
+    // Store prefilled data in sessionStorage for ItemCreationForm to pick up
+    if (data && Object.keys(data).length > 0) {
+      sessionStorage.setItem('preselect_add_defaults', JSON.stringify(data));
     }
+    setSelectedType(type);
   };
 
   const handleCloseForm = () => {
     setSelectedType(null);
-    setPrefilledData(null);
+    sessionStorage.removeItem('preselect_add_defaults');
   };
 
-  // Show skeleton during initial load
   if (isLoading) {
     return <AddScreenSkeleton />;
   }
 
   return (
-    <div className="screen-shell pb-24 relative overflow-hidden animate-in fade-in-0 duration-500">
-      {/* Premium Background Effects */}
+    <div className="screen-shell pb-24 relative overflow-hidden">
+      {/* Premium Deep Cosmos Background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        {/* Primary ambient glow */}
         <div
-          className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse-slow"
-          style={{ backgroundColor: 'var(--dynamic-accent-glow)' }}
-        />
-        <div
-          className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse-slow"
-          style={{ backgroundColor: 'var(--dynamic-accent-glow)', animationDelay: '1s' }}
-        />
-        {/* Additional ambient effects */}
-        <div className="absolute top-1/2 left-0 w-64 h-64 bg-[var(--dynamic-accent-color)] rounded-full blur-3xl opacity-30" />
-        <div className="absolute top-1/3 right-0 w-48 h-48 bg-[var(--dynamic-accent-color)] rounded-full blur-2xl opacity-30" />
-      </div>
-
-      {/* Keyboard Shortcuts Hint Modal */}
-      {showKeyboardHint && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in-0 duration-200"
-          onClick={() => setShowKeyboardHint(false)}
-        >
-          <div
-            className="bg-[var(--color-cosmos-depth)] border border-white/10 rounded-2xl p-6 max-w-sm mx-4 shadow-2xl animate-in zoom-in-95 duration-300"
-            onClick={e => e.stopPropagation()}
-          >
-            <h3 className="text-lg font-bold text-white mb-4 text-center">⌨️ קיצורי מקלדת</h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between items-center">
-                <span className="text-white/60">יצירה מהירה</span>
-                <kbd className="px-2 py-1 bg-white/10 rounded text-xs text-cyan-400">1-9</kbd>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-white/60">חיפוש חדש</span>
-                <kbd className="px-2 py-1 bg-white/10 rounded text-xs text-cyan-400">⌘N</kbd>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-white/60">מצב עריכה</span>
-                <kbd className="px-2 py-1 bg-white/10 rounded text-xs text-cyan-400">⌘E</kbd>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-white/60">סגירת טופס</span>
-                <kbd className="px-2 py-1 bg-white/10 rounded text-xs text-cyan-400">Esc</kbd>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-white/60">הצג/הסתר עזרה</span>
-                <kbd className="px-2 py-1 bg-white/10 rounded text-xs text-cyan-400">?</kbd>
-              </div>
-            </div>
-            <button
-              onClick={() => setShowKeyboardHint(false)}
-              className="mt-6 w-full py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 text-white font-medium text-sm"
-            >
-              הבנתי!
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Smart Search Bar */}
-      {!isEditing && (
-        <SmartSearchBar
-          onCreateItem={handleItemClick}
-          onVoiceInput={() => setIsVoiceModalOpen(true)}
-          isExpanded={isSearchExpanded}
-          onToggleExpand={setIsSearchExpanded}
-        />
-      )}
-
-      {/* Header with Edit button */}
-      <header className="mb-6 sm:mb-8 relative">
-        <div className="flex items-center justify-between mb-3 sm:mb-4 px-4">
-          {/* Edit Button */}
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="group relative p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/30 text-[var(--text-secondary)] hover:text-white transition-all duration-300 overflow-hidden"
-            aria-label={isEditing ? 'סיים עריכה' : 'ערוך פריסה'}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/0 to-violet-500/0 group-hover:from-cyan-500/10 group-hover:to-violet-500/10 transition-all" />
-            {isEditing ? (
-              <CloseIcon className="w-5 h-5 sm:w-6 sm:h-6 relative z-10" />
-            ) : (
-              <EditIcon className="w-5 h-5 sm:w-6 sm:h-6 relative z-10" />
-            )}
-          </button>
-
-          {/* Premium Title Badge with Time Greeting */}
-          <div
-            className="absolute left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full border backdrop-blur-md"
-            style={{
-              background: 'var(--dynamic-accent-color)',
-              borderColor: 'var(--dynamic-accent-start)',
-            }}
-          >
-            <span
-              className="text-xs font-bold"
-              style={{ color: 'var(--dynamic-accent-start)' }}
-            >
-              ✨ {timeGreeting}
-            </span>
-          </div>
-
-          {/* Keyboard Hint Button */}
-          <button
-            onClick={() => setShowKeyboardHint(true)}
-            className="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/40 hover:text-white/70 transition-all duration-300"
-            aria-label="קיצורי מקלדת"
-          >
-            <span className="text-sm">⌨️</span>
-          </button>
-        </div>
-
-        {/* Title - Only show if search not expanded */}
-        {!isSearchExpanded && (
-          <div className="text-center px-4 animate-in fade-in-0 slide-in-from-top-2 duration-500">
-            <h1 className="text-3xl sm:text-4xl font-black mb-2">
-              <span
-                className="drop-shadow-[0_0_20px_var(--dynamic-accent-glow)]"
-                style={{ color: 'var(--dynamic-accent-start)' }}
-              >
-                מה להוסיף?
-              </span>
-            </h1>
-            <p className="text-sm text-white/60 font-medium">
-              {motivationalMessage}
-            </p>
-          </div>
-        )}
-      </header>
-
-      {/* Template Carousel - Quick Templates */}
-      {!selectedType && !isEditing && !isSearchExpanded && (
-        <TemplateCarousel
-          onSelectTemplate={(template: TemplatePreset) => {
-            handleItemClick(template.type, template.prefillData);
+          className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full blur-[120px] opacity-40"
+          style={{
+            background: 'radial-gradient(circle, var(--dynamic-accent-start) 0%, transparent 70%)',
           }}
         />
-      )}
-
-      {/* Premium Category Grid */}
-      <div
-        className={`transition-all duration-500 ease-out ${selectedType ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-          } ${isSearchExpanded ? 'mt-2' : 'mt-6'} px-3 sm:px-4`}
-      >
-        {/* Section Title */}
-        <div className="flex items-center justify-between mb-4 px-1">
-          <h2
-            className="text-xs font-bold uppercase tracking-widest"
-            style={{ color: 'var(--dynamic-accent-start)' }}
-          >
-            ✦ יצירה מהירה
-          </h2>
-          <span className="text-[10px] text-white/40">גרור לסידור מחדש →</span>
-        </div>
-
+        {/* Secondary subtle glow */}
         <div
-          className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 gap-2.5 sm:gap-3 max-w-4xl mx-auto"
-          onDrop={handleDrop}
-          onDragOver={e => e.preventDefault()}
-        >
-          {addScreenLayout.map((type, index) => {
-            const item = allItemTypes.find(it => it.type === type);
-            if (!item) return null;
-            return (
-              <div
-                key={item.type}
-                draggable={isEditing}
-                onDragStart={() => (dragItem.current = item.type)}
-                onDragEnter={() => (dragOverItem.current = item.type)}
-                onDragEnd={handleDrop}
-                className={`relative transition-transform duration-300 ${dragItem.current === item.type ? 'dragging-item' : ''}`}
-              >
-                {isEditing && (
-                  <button
-                    onClick={() => handleHideItem(item.type)}
-                    className="absolute -top-2 -right-2 z-10 bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-transform hover:scale-110 active:scale-90"
-                    aria-label={`הסתר ${item.label}`}
-                  >
-                    <CloseIcon className="w-3.5 h-3.5" />
-                  </button>
-                )}
-                <AddItemButton
-                  label={item.label}
-                  icon={item.icon}
-                  color={item.color}
-                  onClick={() => handleItemClick(item.type, undefined)}
-                  style={{ animationDelay: `${index * 40}ms` }}
-                  isEditing={isEditing}
-                />
-              </div>
-            );
-          })}
-        </div>
+          className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full blur-[100px] opacity-20"
+          style={{
+            background: 'radial-gradient(circle, var(--dynamic-accent-end) 0%, transparent 70%)',
+          }}
+        />
+        {/* Noise texture overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.015]"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          }}
+        />
       </div>
 
-      {isEditing && (
-        <div className="mt-6 text-center animate-in fade-in-0 slide-in-from-bottom-4 duration-500 px-4">
-          <button
-            onClick={() => {
-              sessionStorage.setItem('settings_deep_link', 'add-layout');
-              setActiveScreen('settings');
-            }}
-            className="group relative px-5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-[var(--dynamic-accent-start)]/30 text-white/80 hover:text-white text-sm font-medium transition-all duration-300 overflow-hidden hover:scale-[1.02] active:scale-[0.98]"
-            style={{
-              boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-            }}
-          >
-            <div
-              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+      {/* Main Content */}
+      <div className="relative z-10 px-4 sm:px-6">
+        {/* Hero Header Section */}
+        <motion.header
+          className="pt-4 pb-6 sm:pb-8"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        >
+          {/* Top Bar with Edit Button */}
+          <div className="flex items-center justify-between mb-6">
+            {/* Edit Toggle */}
+            <motion.button
+              onClick={() => setIsEditing(!isEditing)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`
+                p-3 rounded-2xl border transition-all duration-300
+                ${isEditing
+                  ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400'
+                  : 'bg-white/[0.04] border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/[0.15]'
+                }
+              `}
+              aria-label={isEditing ? 'סיים עריכה' : 'ערוך פריסה'}
+            >
+              {isEditing ? (
+                <CloseIcon className="w-5 h-5" />
+              ) : (
+                <EditIcon className="w-5 h-5" />
+              )}
+            </motion.button>
+
+            {/* Premium Time Badge */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1, type: 'spring', stiffness: 300, damping: 25 }}
+              className="px-5 py-2 rounded-full backdrop-blur-xl border border-white/[0.08]"
               style={{
-                background: 'linear-gradient(135deg, var(--dynamic-accent-color), transparent)',
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%)',
               }}
-            />
-            <span className="relative z-10">⚙️ ניהול פריטים מוסתרים</span>
-          </button>
-        </div>
-      )}
+            >
+              <span
+                className="text-sm font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent"
+              >
+                ✨ {timeGreeting}
+              </span>
+            </motion.div>
 
-      {/* Quick Create FAB */}
-      {!isEditing && !selectedType && (
-        <QuickCreateFAB
-          onCreateItem={(type) => handleItemClick(type, undefined)}
-          suggestedTypes={addScreenLayout.slice(0, 5)}
-        />
-      )}
+            {/* Spacer for alignment */}
+            <div className="w-11" />
+          </div>
 
-      {selectedType && (
-        <ItemCreationForm
-          key={selectedType}
-          itemType={selectedType}
-          onClose={handleCloseForm}
-          setActiveScreen={setActiveScreen}
-        />
-      )}
+          {/* Main Title - Show when search is not expanded */}
+          <AnimatePresence>
+            {!isSearchExpanded && (
+              <motion.div
+                className="text-center"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              >
+                <h1 className="text-4xl sm:text-5xl font-black mb-3">
+                  <span
+                    className="bg-gradient-to-r from-white via-white to-white/80 bg-clip-text text-transparent"
+                    style={{
+                      textShadow: '0 0 40px var(--dynamic-accent-glow)',
+                    }}
+                  >
+                    מה להוסיף?
+                  </span>
+                </h1>
+                <p className="text-sm text-white/50 font-medium max-w-xs mx-auto">
+                  {motivationalMessage}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.header>
 
+        {/* Smart Search Bar */}
+        {!isEditing && (
+          <SmartSearchBar
+            onCreateItem={handleItemClick}
+            onVoiceInput={() => setIsVoiceModalOpen(true)}
+            isExpanded={isSearchExpanded}
+            onToggleExpand={setIsSearchExpanded}
+          />
+        )}
+
+        {/* Premium Item Grid - Quick Creation (NOW FIRST) */}
+        <AnimatePresence mode="wait">
+          {!selectedType && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3 }}
+              className={`${isSearchExpanded ? 'mt-4' : 'mt-2'}`}
+            >
+              {/* Section Header */}
+              <div className="flex items-center justify-between mb-5 px-1">
+                <h2 className="text-xs font-bold uppercase tracking-[0.15em] text-white/40">
+                  יצירה מהירה
+                </h2>
+                {isEditing && (
+                  <span className="text-[10px] text-cyan-400/60 font-medium">
+                    גרור לסידור מחדש
+                  </span>
+                )}
+              </div>
+
+              {/* The Grid - 3 columns on mobile, 4 on tablet, 5 on desktop */}
+              <div
+                className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 max-w-3xl mx-auto"
+                onDrop={handleDrop}
+                onDragOver={e => e.preventDefault()}
+              >
+                {addScreenLayout.map((type, index) => {
+                  const item = allItemTypes.find(it => it.type === type);
+                  if (!item) return null;
+                  return (
+                    <div
+                      key={item.type}
+                      draggable={isEditing}
+                      onDragStart={() => (dragItem.current = item.type)}
+                      onDragEnter={() => (dragOverItem.current = item.type)}
+                      onDragEnd={handleDrop}
+                      className="relative"
+                    >
+                      {/* Delete button in edit mode */}
+                      {isEditing && (
+                        <motion.button
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          onClick={() => handleHideItem(item.type)}
+                          className="absolute -top-2 -right-2 z-10 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg"
+                          aria-label={`הסתר ${item.label}`}
+                        >
+                          <CloseIcon className="w-4 h-4" />
+                        </motion.button>
+                      )}
+
+                      <PremiumItemCard
+                        label={item.label}
+                        icon={item.icon}
+                        color={item.color}
+                        gradient={item.gradient}
+                        onClick={() => handleItemClick(item.type, undefined)}
+                        index={index}
+                        isEditing={isEditing}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Edit Mode Actions */}
+              {isEditing && (
+                <motion.div
+                  className="mt-8 text-center"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <button
+                    onClick={() => {
+                      sessionStorage.setItem('settings_deep_link', 'add-layout');
+                      setActiveScreen('settings');
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:border-cyan-500/30 text-white/70 hover:text-white text-sm font-medium transition-all duration-300"
+                  >
+                    ⚙️ ניהול פריטים מוסתרים
+                  </button>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Template Carousel - NOW BELOW quick creation with toggle */}
+        <AnimatePresence>
+          {!selectedType && !isEditing && !isSearchExpanded && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.15 }}
+              className="mt-8"
+            >
+              {/* Toggle Header for Templates */}
+              <button
+                onClick={() => {
+                  triggerHaptic('light');
+                  updateSettings({ hideQuickTemplates: !settings.hideQuickTemplates });
+                }}
+                className="w-full flex items-center justify-between px-4 py-3 mb-2 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-white/[0.12] transition-all duration-300 group"
+              >
+                <div className="flex items-center gap-2">
+                  <SparklesIcon className="w-4 h-4 text-cyan-400" />
+                  <span className="text-sm font-semibold text-white/70 group-hover:text-white/90 transition-colors">
+                    תבניות מהירות
+                  </span>
+                </div>
+                <motion.span
+                  className="text-white/40 text-xs font-medium"
+                  animate={{ rotate: settings.hideQuickTemplates ? 0 : 180 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                >
+                  {settings.hideQuickTemplates ? '▼ הצג' : '▲ הסתר'}
+                </motion.span>
+              </button>
+
+              {/* Collapsible Templates */}
+              <AnimatePresence>
+                {!settings.hideQuickTemplates && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <TemplateCarousel
+                      onSelectTemplate={(template: TemplatePreset) => {
+                        handleItemClick(template.type, template.prefillData);
+                      }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+
+        {/* Item Creation Form */}
+        {selectedType && (
+          <ItemCreationForm
+            key={selectedType}
+            itemType={selectedType}
+            onClose={handleCloseForm}
+            setActiveScreen={setActiveScreen}
+          />
+        )}
+      </div>
+
+      {/* Voice Input Modal */}
       <Suspense fallback={null}>
         {isVoiceModalOpen && (
           <VoiceInputModal

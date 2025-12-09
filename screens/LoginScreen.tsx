@@ -1,126 +1,32 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * LoginScreen - Refactored
+ * 
+ * UI components extracted to components/auth/
+ * Auth logic extracted to hooks/useLoginAuth.ts
+ */
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { signIn, signInWithGoogle, checkGoogleRedirectResult } from '../services/authService';
 import { GoogleIcon, LockIcon, UserIcon, SparklesIcon } from '../components/icons';
 import { PremiumButton, PremiumInput } from '../components/premium/PremiumComponents';
+import { FloatingParticles, FeatureBadge } from '../components/auth';
+import { useLoginAuth } from '../hooks/useLoginAuth';
 
 interface LoginScreenProps {
   onNavigateToSignup: () => void;
   onSkip: () => void;
 }
 
-// Floating particles component
-const FloatingParticles: React.FC = () => {
-  const particles = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    size: Math.random() * 4 + 2,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    duration: Math.random() * 20 + 15,
-    delay: Math.random() * 5,
-  }));
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {particles.map((particle) => (
-        <motion.div
-          key={particle.id}
-          className="absolute rounded-full"
-          style={{
-            width: particle.size,
-            height: particle.size,
-            left: `${particle.x}%`,
-            top: `${particle.y}%`,
-            background: `radial-gradient(circle, var(--dynamic-accent-start), transparent)`,
-          }}
-          animate={{
-            y: [0, -30, 0],
-            x: [0, 10, -10, 0],
-            opacity: [0.3, 0.7, 0.3],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: particle.duration,
-            delay: particle.delay,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        />
-      ))}
-    </div>
-  );
-};
-
-// Feature badge component
-const FeatureBadge: React.FC<{ icon: React.ReactNode; label: string; delay: number }> = ({
-  icon,
-  label,
-  delay,
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay, duration: 0.5 }}
-    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm"
-  >
-    <span className="text-[var(--dynamic-accent-start)]">{icon}</span>
-    <span className="text-xs font-medium text-gray-300">{label}</span>
-  </motion.div>
-);
-
 const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToSignup, onSkip }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-
-    // Check for Google redirect result (for mobile auth flow)
-    const handleRedirectResult = async () => {
-      try {
-        setIsLoading(true);
-        const user = await checkGoogleRedirectResult();
-        if (user) {
-          // User successfully signed in via redirect, auth state will update automatically
-          console.log('Google redirect sign-in successful');
-        }
-      } catch (err: any) {
-        setError(err.message || 'שגיאה בהתחברות עם Google');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    handleRedirectResult();
-  }, []);
-
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-    try {
-      await signIn(email, password);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setError('');
-    setIsLoading(true);
-    try {
-      await signInWithGoogle();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    error,
+    isLoading,
+    handleEmailLogin,
+    handleGoogleLogin,
+  } = useLoginAuth();
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[var(--bg-primary)]">
@@ -162,7 +68,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToSignup, onSkip })
           }}
         />
 
-        {/* Floating particles */}
+        {/* Floating particles - now from separate component */}
         <FloatingParticles />
 
         {/* Noise texture */}
@@ -171,7 +77,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToSignup, onSkip })
 
       {/* Main Content */}
       <div className="relative z-10 w-full max-w-lg mx-4 p-2">
-        {/* Feature badges above card */}
+        {/* Feature badges above card - now using extracted component */}
         <motion.div
           className="flex flex-wrap justify-center gap-2 mb-6"
           initial={{ opacity: 0 }}

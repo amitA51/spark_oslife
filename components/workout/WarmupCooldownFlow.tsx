@@ -70,7 +70,8 @@ const WarmupCooldownFlow: React.FC<WarmupCooldownFlowProps> = ({ type, onComplet
     } catch {
       setItems(defaultItems);
     }
-  }, [type]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
 
   // Save selections whenever they change
   const saveSelections = useCallback((newItems: RoutineItem[]) => {
@@ -181,7 +182,7 @@ const WarmupCooldownFlow: React.FC<WarmupCooldownFlowProps> = ({ type, onComplet
               {/* Header */}
               <div className="text-center mb-6">
                 <h2 className="text-3xl font-black text-white mb-2">
-                  {type === 'warmup' ? '🔥 חימום' : '❄️ צינון'}
+                  {type === 'warmup' ? 'חימום' : 'צינון'}
                 </h2>
                 <p className="text-white/60 text-sm">
                   בחר את התרגילים שתרצה לבצע
@@ -199,14 +200,14 @@ const WarmupCooldownFlow: React.FC<WarmupCooldownFlowProps> = ({ type, onComplet
                     whileTap={{ scale: 0.98 }}
                     onClick={() => toggleSelection(item.id)}
                     className={`p-4 min-h-[60px] rounded-2xl flex items-center justify-between cursor-pointer transition-all border ${item.selected
-                        ? 'bg-[var(--cosmos-accent-primary)]/15 border-[var(--cosmos-accent-primary)]'
-                        : 'bg-white/5 border-white/10 hover:border-white/20'
+                      ? 'bg-[var(--cosmos-accent-primary)]/15 border-[var(--cosmos-accent-primary)]'
+                      : 'bg-white/5 border-white/10 hover:border-white/20'
                       }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${item.selected
-                          ? 'bg-[var(--cosmos-accent-primary)] border-[var(--cosmos-accent-primary)]'
-                          : 'border-white/30'
+                        ? 'bg-[var(--cosmos-accent-primary)] border-[var(--cosmos-accent-primary)]'
+                        : 'border-white/30'
                         }`}>
                         {item.selected && <span className="text-black text-sm">✓</span>}
                       </div>
@@ -228,7 +229,7 @@ const WarmupCooldownFlow: React.FC<WarmupCooldownFlowProps> = ({ type, onComplet
                   onClick={onSkip}
                   className="w-full h-14 min-h-[56px] rounded-2xl bg-transparent border border-white/20 text-white/70 hover:text-white hover:border-white/40 transition-all font-medium"
                 >
-                  דלג על {type === 'warmup' ? 'החימום' : 'הצינון'} ⏭️
+                  דלג על {type === 'warmup' ? 'החימום' : 'הצינון'}
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.98 }}
@@ -236,7 +237,7 @@ const WarmupCooldownFlow: React.FC<WarmupCooldownFlowProps> = ({ type, onComplet
                   disabled={activeItems.length === 0}
                   className="w-full h-14 min-h-[56px] rounded-2xl bg-[var(--cosmos-accent-primary)] text-black font-bold text-lg shadow-[0_0_25px_rgba(99,102,241,0.4)] hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  🚀 התחל שגרה ({activeItems.length})
+                  התחל שגרה ({activeItems.length})
                 </motion.button>
               </div>
             </motion.div>
@@ -257,7 +258,7 @@ const WarmupCooldownFlow: React.FC<WarmupCooldownFlowProps> = ({ type, onComplet
                   onClick={onSkip}
                   className="text-white/50 hover:text-white transition-colors text-sm"
                 >
-                  דלג על הכל ⏭️
+                  דלג על הכל
                 </button>
               </div>
 
@@ -313,12 +314,12 @@ const WarmupCooldownFlow: React.FC<WarmupCooldownFlowProps> = ({ type, onComplet
                     </motion.span>
                     {isPaused && (
                       <span className="text-yellow-400 text-xs font-semibold mt-2 animate-pulse">
-                        ⏸️ מושהה
+                        מושהה
                       </span>
                     )}
                     {timeLeft === 0 && (
                       <span className="text-green-400 text-xs font-semibold mt-2">
-                        ✓ הושלם!
+                        הושלם!
                       </span>
                     )}
                   </div>
@@ -347,7 +348,7 @@ const WarmupCooldownFlow: React.FC<WarmupCooldownFlowProps> = ({ type, onComplet
                   onClick={nextExercise}
                   className="flex-1 h-14 min-h-[56px] rounded-2xl bg-green-500 text-white font-bold text-lg shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:brightness-110 transition-all"
                 >
-                  {currentIndex === activeItems.length - 1 ? '✓ סיום' : 'הבא ←'}
+                  {currentIndex === activeItems.length - 1 ? 'סיום' : 'הבא'}
                 </motion.button>
               </div>
             </motion.div>
@@ -363,4 +364,4 @@ const WarmupCooldownFlow: React.FC<WarmupCooldownFlowProps> = ({ type, onComplet
   );
 };
 
-export default WarmupCooldownFlow;
+export default React.memo(WarmupCooldownFlow);

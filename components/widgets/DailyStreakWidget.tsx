@@ -77,6 +77,7 @@ const DailyStreakWidget: React.FC<DailyStreakWidgetProps> = ({ compact = false }
             const timer = setTimeout(() => setShowCelebration(false), 3000);
             return () => clearTimeout(timer);
         }
+        return undefined;
     }, [streakData.streak]);
 
     if (compact) {

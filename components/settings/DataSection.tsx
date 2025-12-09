@@ -9,9 +9,11 @@ import {
   FolderIcon,
   TrashIcon,
   ShieldIcon,
+  CloudIcon,
 } from '../../components/icons';
 import { Screen } from '../../types';
 import * as dataService from '../../services/dataService';
+import { syncService } from '../../services/syncService';
 import ManageSpacesModal from '../../components/ManageSpacesModal';
 import ImportWizard from '../../components/ImportWizard';
 import PasswordPromptModal from '../../components/PasswordPromptModal';
@@ -74,11 +76,12 @@ const DataSection: React.FC<DataSectionProps> = ({ setActiveScreen, setStatusMes
       try {
         await dataService.importAllData(json);
         window.location.reload();
-      } catch (error: any) {
-        if (error.message === 'PASSWORD_REQUIRED') {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : '';
+        if (errorMessage === 'PASSWORD_REQUIRED') {
           setPasswordModalConfig({ mode: 'import', data: json });
           setIsPasswordModalOpen(true);
-        } else if (error.message === 'INVALID_PASSWORD') {
+        } else if (errorMessage === 'INVALID_PASSWORD') {
           setStatusMessage({ type: 'error', text: 'סיסמה שגויה.', id: Date.now() });
         } else {
           console.error(error);
@@ -108,8 +111,9 @@ const DataSection: React.FC<DataSectionProps> = ({ setActiveScreen, setStatusMes
       try {
         await dataService.importAllData(passwordModalConfig.data, password);
         window.location.reload();
-      } catch (e: any) {
-        if (e.message === 'INVALID_PASSWORD') {
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : '';
+        if (errorMessage === 'INVALID_PASSWORD') {
           setStatusMessage({ type: 'error', text: 'סיסמה שגויה.', id: Date.now() });
         } else {
           setStatusMessage({ type: 'error', text: 'שגיאה בשחזור הנתונים.', id: Date.now() });
@@ -152,6 +156,35 @@ const DataSection: React.FC<DataSectionProps> = ({ setActiveScreen, setStatusMes
       {/* Backup & Sync */}
       <SettingsCard title="גיבוי ושחזור" icon={<DatabaseIcon className="w-5 h-5" />}>
         <div className="space-y-3">
+          {/* Restore from Google Drive */}
+          <button
+            onClick={async () => {
+              if (confirm('האם לשחזר נתונים מ-Google Drive? פעולה זו תחליף את הנתונים הנוכחיים.')) {
+                try {
+                  setStatusMessage({ type: 'info', text: 'משחזר נתונים...', id: Date.now() });
+                  await syncService.restoreFromBackup();
+                  setStatusMessage({ type: 'success', text: 'השחזור הושלם בהצלחה! מרענן...', id: Date.now() });
+                  setTimeout(() => window.location.reload(), 1500);
+                } catch (error) {
+                  console.error(error);
+                  const msg = error instanceof Error ? error.message : 'שגיאה בשחזור מ-Drive.';
+                  setStatusMessage({ type: 'error', text: msg, id: Date.now() });
+                }
+              }
+            }}
+            className="w-full flex items-center justify-between p-4 rounded-xl bg-[var(--dynamic-accent-start)]/10 hover:bg-[var(--dynamic-accent-start)]/20 border border-[var(--dynamic-accent-start)]/20 hover:border-[var(--dynamic-accent-start)]/40 transition-all group mb-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-[var(--dynamic-accent-start)] text-white shadow-lg shadow-[var(--dynamic-accent-start)]/30">
+                <CloudIcon className="w-5 h-5" />
+              </div>
+              <div className="text-right">
+                <span className="text-white font-medium block">שחזור מ-Google Drive</span>
+                <span className="text-xs text-[var(--text-secondary)]">שחזר נתונים מגיבוי ענן ישן</span>
+              </div>
+            </div>
+            <ChevronLeftIcon className="w-5 h-5 text-[var(--dynamic-accent-start)]" />
+          </button>
           {/* Export Button */}
           <button
             onClick={handleExport}

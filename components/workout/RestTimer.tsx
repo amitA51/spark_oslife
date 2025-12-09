@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 interface RestTimerProps {
   targetSeconds: number;
@@ -132,10 +132,10 @@ const RestTimer: React.FC<RestTimerProps> = ({
               initial={{ scale: 1.1 }}
               animate={{ scale: 1 }}
               className={`text-6xl font-black tabular-nums ${isWarning
-                  ? 'text-red-500'
-                  : isComplete
-                    ? 'text-green-500'
-                    : 'text-white'
+                ? 'text-red-500'
+                : isComplete
+                  ? 'text-green-500'
+                  : 'text-white'
                 }`}
               style={{
                 textShadow: isWarning
@@ -212,8 +212,8 @@ const RestTimer: React.FC<RestTimerProps> = ({
             whileTap={{ scale: 0.98 }}
             onClick={togglePause}
             className={`flex-1 h-14 min-h-[56px] rounded-2xl font-bold text-base transition-all ${isPaused
-                ? 'bg-green-500 text-white shadow-[0_0_25px_rgba(34,197,94,0.4)]'
-                : 'bg-yellow-500/20 border border-yellow-500/40 text-yellow-400'
+              ? 'bg-green-500 text-white shadow-[0_0_25px_rgba(34,197,94,0.4)]'
+              : 'bg-yellow-500/20 border border-yellow-500/40 text-yellow-400'
               }`}
           >
             {isPaused ? '▶️ המשך' : '⏸️ השהה'}
@@ -239,4 +239,4 @@ const RestTimer: React.FC<RestTimerProps> = ({
   );
 };
 
-export default RestTimer;
+export default React.memo(RestTimer);

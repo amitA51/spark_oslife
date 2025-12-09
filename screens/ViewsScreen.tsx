@@ -1,4 +1,15 @@
-setActiveScreen: (screen: Screen) => void;
+import React, { useState, useMemo } from 'react';
+import { Screen } from '../types';
+import TodayView from '../components/views/TodayView';
+import PriorityView from '../components/views/PriorityView';
+import { ChevronLeftIcon } from '../components/icons';
+import PersonalItemDetailModal from '../components/PersonalItemDetailModal';
+import type { PersonalItem } from '../types';
+import { useData } from '../src/contexts/DataContext';
+import { todayKey } from '../utils/dateUtils';
+
+interface ViewsScreenProps {
+  setActiveScreen: (screen: Screen) => void;
 }
 
 type ViewTab = 'today' | 'priority';
@@ -44,7 +55,7 @@ const ViewsScreen: React.FC<ViewsScreenProps> = ({ setActiveScreen }) => {
       label: 'היום',
       badge: tasks.filter(t => {
         if (t.isCompleted) return false;
-        const today = new Date().toISOString().split('T')[0];
+        const today = todayKey();
         return (today && t.dueDate === today) || (t.dueDate && today && t.dueDate < today);
       }).length,
     },
@@ -113,6 +124,7 @@ const ViewsScreen: React.FC<ViewsScreenProps> = ({ setActiveScreen }) => {
             onTaskClick={handleTaskClick}
             onUpdateTask={handleUpdateItem}
             onDeleteTask={handleDeleteItem}
+            onContextMenu={() => { }}
           />
         )}
         {activeTab === 'priority' && (
@@ -121,6 +133,7 @@ const ViewsScreen: React.FC<ViewsScreenProps> = ({ setActiveScreen }) => {
             onTaskClick={handleTaskClick}
             onUpdateTask={handleUpdateItem}
             onDeleteTask={handleDeleteItem}
+            onContextMenu={() => { }}
           />
         )}
       </div>

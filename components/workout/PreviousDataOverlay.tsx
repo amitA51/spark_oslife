@@ -243,4 +243,4 @@ const PreviousDataOverlay: React.FC<PreviousDataOverlayProps> = ({
     );
 };
 
-export default PreviousDataOverlay;
+export default React.memo(PreviousDataOverlay);

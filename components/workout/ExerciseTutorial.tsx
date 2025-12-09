@@ -18,45 +18,45 @@ const TUTORIALS: Record<
   { description: string; keyPoints: string[]; commonMistakes: string[] }
 > = {
   'bench press': {
-    description: 'A compound exercise that targets the chest, shoulders, and triceps.',
+    description: 'תרגיל מרוכב שמתמקד בחזה, כתפיים וטריצפס.',
     keyPoints: [
-      'Keep your feet flat on the floor.',
-      'Arch your back slightly, keeping your butt on the bench.',
-      'Lower the bar to your mid-chest.',
-      'Press the bar back up in a slight curve towards your face.',
+      'שמור על כפות רגליים שטוחות על הרצפה.',
+      'קשת קלה בגב, הישבן נשאר על הספסל.',
+      'הורד את המוט לאמצע החזה.',
+      'דחוף את המוט חזרה למעלה בקשת קלה לכיוון הפנים.',
     ],
     commonMistakes: [
-      'Bouncing the bar off your chest.',
-      'Flaring your elbows out too wide (keep them at ~45 degrees).',
-      'Lifting your butt off the bench.',
+      'קפיצה של המוט מהחזה.',
+      'מרפקים פתוחים מדי (שמור על ~45 מעלות).',
+      'הרמת הישבן מהספסל.',
     ],
   },
   squat: {
-    description: 'The king of leg exercises, targeting quads, hamstrings, and glutes.',
+    description: 'מלך תרגילי הרגליים - מתמקד בקוואדריספס, המסטרינג והישבן.',
     keyPoints: [
-      'Keep your chest up and core braced.',
-      'Break at the hips and knees simultaneously.',
-      'Keep your knees in line with your toes.',
-      'Go down until your thighs are at least parallel to the floor.',
+      'שמור על חזה מורם ומרכז מתוח.',
+      'שבור בירכיים ובברכיים בו-זמנית.',
+      'שמור על ברכיים בקו עם קצות הרגליים.',
+      'ירידה עד שהירכיים מקבילים לרצפה לפחות.',
     ],
     commonMistakes: [
-      'Letting knees cave inward.',
-      'Rounding the lower back (butt wink).',
-      'Not going deep enough.',
+      'ברכיים נכנסות פנימה.',
+      'עיגול הגב התחתון.',
+      'ירידה לא מספיק עמוקה.',
     ],
   },
   deadlift: {
-    description: 'A full-body pull exercise focusing on the posterior chain.',
+    description: 'תרגיל משיכה לכל הגוף - מתמקד בשרשרת האחורית.',
     keyPoints: [
-      'Stand with feet hip-width apart.',
-      'Grip the bar just outside your legs.',
-      'Keep your back flat and chest up.',
-      'Drive through your heels and extend your hips.',
+      'עמוד עם רגליים ברוחב האגן.',
+      'אחיזת מוט מחוץ לרגליים.',
+      'שמור על גב ישר וחזה מורם.',
+      'דחוף דרך העקבים והרחב את הירכיים.',
     ],
     commonMistakes: [
-      'Rounding the back.',
-      'Jerking the bar off the floor.',
-      'Hyperextending the back at the top.',
+      'עיגול הגב.',
+      'משיכה חדה של המוט.',
+      'כיפוף יתר של הגב בסוף.',
     ],
   },
 };
@@ -94,10 +94,10 @@ const ExerciseTutorial: React.FC<ExerciseTutorialProps> = ({
           const text = [
             fallbackTutorial.description,
             '',
-            'Key Points:',
+            'נקודות מפתח:',
             ...fallbackTutorial.keyPoints.map(p => `• ${p}`),
             '',
-            'Common Mistakes:',
+            'טעויות נפוצות:',
             ...fallbackTutorial.commonMistakes.map(p => `• ${p}`),
           ].join('\n');
           setMessages([{ role: 'assistant', text }]);
@@ -181,11 +181,10 @@ const ExerciseTutorial: React.FC<ExerciseTutorialProps> = ({
             {messages.map((msg, idx) => (
               <div
                 key={idx}
-                className={`max-w-full rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-line border ${
-                  msg.role === 'assistant'
-                    ? 'bg-[var(--cosmos-glass-bg)]/80 border-[var(--cosmos-glass-border)] text-[var(--cosmos-text-primary)]'
-                    : 'bg-[var(--cosmos-accent-primary)] text-black border-[var(--cosmos-accent-primary)]/60 ml-auto'
-                }`}
+                className={`max-w-full rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-line border ${msg.role === 'assistant'
+                  ? 'bg-[var(--cosmos-glass-bg)]/80 border-[var(--cosmos-glass-border)] text-[var(--cosmos-text-primary)]'
+                  : 'bg-[var(--cosmos-accent-primary)] text-black border-[var(--cosmos-accent-primary)]/60 ml-auto'
+                  }`}
               >
                 {msg.text}
               </div>
@@ -200,7 +199,7 @@ const ExerciseTutorial: React.FC<ExerciseTutorialProps> = ({
             {customNotes && (
               <div className="mt-2 p-3 bg-white/5 rounded-xl border border-white/5">
                 <h3 className="text-[var(--cosmos-accent-secondary)] text-[10px] uppercase tracking-wider font-bold mb-1">
-                  Your Notes
+                  ההערות שלך
                 </h3>
                 <p className="text-[var(--cosmos-text-primary)] text-xs leading-relaxed">
                   {customNotes}
@@ -240,4 +239,4 @@ const ExerciseTutorial: React.FC<ExerciseTutorialProps> = ({
   );
 };
 
-export default ExerciseTutorial;
+export default React.memo(ExerciseTutorial);

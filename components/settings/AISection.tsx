@@ -18,9 +18,10 @@ const inputStyles =
 const AISection: React.FC = () => {
   const { settings, updateSettings } = useSettings();
 
-  const handleSettingChange = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
-    updateSettings({ [key]: value } as any);
+  const handleSettingChange = <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) => {
+    updateSettings({ [key]: value } as Pick<typeof settings, K>);
   };
+
 
   return (
     <SettingsSection title="בינה מלאכותית" id="ai">

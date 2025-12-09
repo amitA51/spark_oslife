@@ -61,14 +61,31 @@ const THEMES: Record<string, ThemeSettings> = {
     backgroundEffect: 'dark',
     borderRadius: 'xl',
   },
+  neon: {
+    name: 'Neon',
+    accentColor: '#FF006E',
+    font: 'satoshi',
+    cardStyle: 'glass',
+    backgroundEffect: 'dark',
+    borderRadius: 'lg',
+  },
+  aurora: {
+    name: 'Aurora',
+    accentColor: '#10B981',
+    font: 'clash-display',
+    cardStyle: 'glass',
+    backgroundEffect: 'particles',
+    borderRadius: 'xl',
+  },
 };
 
 const AppearanceSection: React.FC = () => {
   const { settings, updateSettings } = useSettings();
 
-  const handleSettingChange = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
-    updateSettings({ [key]: value } as any);
+  const handleSettingChange = <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) => {
+    updateSettings({ [key]: value } as Pick<typeof settings, K>);
   };
+
 
   return (
     <SettingsSection title="מראה ותצוגה" id="appearance">
@@ -223,7 +240,7 @@ const AppearanceSection: React.FC = () => {
             onChange={v =>
               handleSettingChange('themeSettings', {
                 ...settings.themeSettings,
-                fontWeight: v,
+                fontWeight: v as 'normal' | 'medium' | 'bold',
               })
             }
             options={[
@@ -272,6 +289,8 @@ const AppearanceSection: React.FC = () => {
             }
             className="bg-white/[0.05] border border-white/[0.1] text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[var(--dynamic-accent-start)] focus:ring-2 focus:ring-[var(--dynamic-accent-start)]/20 transition-all cursor-pointer"
           >
+            <option value="satoshi">Satoshi (פרימיום) ✨</option>
+            <option value="clash-display">Clash Display (כותרות) ✨</option>
             <option value="inter">Inter (נקי)</option>
             <option value="lato">Lato (עגול)</option>
             <option value="rubik">Rubik (מודרני)</option>

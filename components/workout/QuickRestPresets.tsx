@@ -53,8 +53,8 @@ const QuickRestPresets: React.FC<QuickRestPresetsProps> = ({
                             whileTap={{ scale: 0.95 }}
                             onClick={() => onSelectDuration(preset.seconds)}
                             className={`relative px-4 py-3 rounded-2xl font-bold text-sm transition-all ${isSelected
-                                    ? 'bg-gradient-to-br from-[var(--cosmos-accent-primary)] to-[var(--cosmos-accent-cyan)] text-white shadow-[0_0_25px_rgba(99,102,241,0.4)]'
-                                    : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:border-white/20'
+                                ? 'bg-gradient-to-br from-[var(--cosmos-accent-primary)] to-[var(--cosmos-accent-cyan)] text-white shadow-[0_0_25px_rgba(99,102,241,0.4)]'
+                                : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:border-white/20'
                                 }`}
                         >
                             <span className="flex items-center gap-2">
@@ -133,4 +133,4 @@ const QuickRestPresets: React.FC<QuickRestPresetsProps> = ({
     );
 };
 
-export default QuickRestPresets;
+export default React.memo(QuickRestPresets);

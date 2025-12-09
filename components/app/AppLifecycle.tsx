@@ -11,6 +11,7 @@ interface AppLifecycleProps {
   setIsGuest: (isGuest: boolean) => void;
   setActiveScreen: (screen: Screen | ((prev: Screen) => Screen)) => void;
   defaultScreen: Screen;
+  setIsAuthLoading: (loading: boolean) => void;
 }
 
 /**
@@ -26,6 +27,7 @@ const AppLifecycle: React.FC<AppLifecycleProps> = ({
   setIsGuest,
   setActiveScreen,
   defaultScreen,
+  setIsAuthLoading,
 }) => {
   const { removePersonalItem } = useData();
   const [isCheckingRedirect, setIsCheckingRedirect] = useState(true);
@@ -44,11 +46,12 @@ const AppLifecycle: React.FC<AppLifecycleProps> = ({
         console.error('Error checking Google redirect result:', error);
       } finally {
         setIsCheckingRedirect(false);
+        setIsAuthLoading(false);
       }
     };
 
     handleRedirect();
-  }, [defaultScreen, setActiveScreen]);
+  }, [defaultScreen, setActiveScreen, setIsAuthLoading]);
 
   // Auth State Listener - Only runs after redirect check is complete
   useEffect(() => {

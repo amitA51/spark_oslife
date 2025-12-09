@@ -121,7 +121,7 @@ const PersonalItemCard: React.FC<PersonalItemCardProps> = props => {
             ${isDragging ? 'opacity-50 scale-95' : ''} 
             ${isSelected ? 'ring-2 ring-accent-cyan shadow-glow-cyan' : ''}
             ${isCompleted ? 'opacity-60 grayscale-[0.5]' : ''}
-            rounded-2xl
+            rounded-xl
         `}
       style={{ animationDelay: `${index * 40}ms` }}
       onClick={handleClick}
@@ -141,11 +141,14 @@ const PersonalItemCard: React.FC<PersonalItemCardProps> = props => {
       onDragEnd={e => onDragEnd && onDragEnd(e)}
     >
       {/* Premium Card Background & Effects */}
-      <div className="absolute inset-0 bg-cosmos-depth/80 backdrop-blur-md rounded-2xl border border-white/5 transition-all duration-base ease-spring-soft group-hover:bg-cosmos-depth group-hover:border-white/10 group-hover:-translate-y-1 group-hover:shadow-lg shadow-sm" />
+      <div
+        className="absolute inset-0 bg-cosmos-depth/80 backdrop-blur-md rounded-xl border border-white/5 transition-all duration-base ease-spring-soft group-hover:bg-cosmos-depth group-hover:border-white/10 group-hover:-translate-y-1 group-hover:shadow-lg"
+        style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 4px 12px rgba(0, 0, 0, 0.3)' }}
+      />
 
       {/* Selection Overlay */}
       {isInSelectionMode && (
-        <div className="absolute inset-0 bg-black/40 z-20 flex items-center justify-center rounded-2xl backdrop-blur-[2px] transition-all duration-fast">
+        <div className="absolute inset-0 bg-black/40 z-20 flex items-center justify-center rounded-xl backdrop-blur-[2px] transition-all duration-fast">
           <div
             className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all duration-fast ease-spring-soft ${isSelected ? 'bg-accent-cyan border-accent-cyan scale-110' : 'border-white/50 bg-black/50'}`}
           >
@@ -154,15 +157,15 @@ const PersonalItemCard: React.FC<PersonalItemCardProps> = props => {
         </div>
       )}
 
-      <div className="relative z-10 flex p-4 gap-4 items-center">
+      <div className="relative z-10 flex p-5 gap-4 items-center">
         {/* Icon Container - Premium Depth */}
         <div
           className="relative w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-base ease-spring-soft group-hover:scale-105"
         >
-          {/* Icon Background Layer */}
+          {/* Icon Background Layer - Enhanced Gradient */}
           <div
-            className="absolute inset-0 rounded-xl opacity-20"
-            style={{ backgroundColor: accentColor }}
+            className="absolute inset-0 rounded-xl"
+            style={{ background: `linear-gradient(135deg, ${accentColor}33 0%, ${accentColor}15 100%)` }}
           />
 
           {/* Inner Shadow/Depth Layer */}
@@ -183,7 +186,7 @@ const PersonalItemCard: React.FC<PersonalItemCardProps> = props => {
         <div className="flex-1 min-w-0 flex flex-col gap-1.5">
           <div className="flex justify-between items-center">
             <h3
-              className={`font-heading font-semibold text-base leading-tight truncate tracking-wide text-gray-100 group-hover:text-white transition-colors duration-fast ${isCompleted ? 'line-through text-gray-500' : ''}`}
+              className={`font-heading font-bold text-base leading-tight truncate tracking-tight text-gray-100 group-hover:text-white transition-colors duration-fast ${isCompleted ? 'line-through text-gray-500' : ''}`}
             >
               {highlightMatches(item.title || '', searchQuery || '')}
             </h3>
@@ -196,7 +199,7 @@ const PersonalItemCard: React.FC<PersonalItemCardProps> = props => {
                     e.stopPropagation();
                     onUpdate(item.id, { isCompleted: !item.isCompleted });
                   }}
-                  className="p-1.5 bg-white/5 hover:bg-green-500/20 rounded-lg text-green-400 transition-colors backdrop-blur-sm"
+                  className="p-1.5 bg-white/5 hover:bg-green-500/20 rounded-lg text-green-400 transition-all backdrop-blur-sm border border-transparent hover:border-green-500/30"
                   title={isCompleted ? "Mark as incomplete" : "Mark as complete"}
                 >
                   <CheckCircleIcon className="w-4 h-4" />
@@ -204,7 +207,7 @@ const PersonalItemCard: React.FC<PersonalItemCardProps> = props => {
               )}
               <button
                 onClick={handleDelete}
-                className="p-1.5 bg-white/5 hover:bg-red-500/20 rounded-lg text-gray-400 hover:text-red-400 transition-colors backdrop-blur-sm"
+                className="p-1.5 bg-white/5 hover:bg-red-500/20 rounded-lg text-gray-400 hover:text-red-400 transition-all backdrop-blur-sm border border-transparent hover:border-red-500/30"
                 title="Delete item"
               >
                 <TrashIcon className="w-4 h-4" />

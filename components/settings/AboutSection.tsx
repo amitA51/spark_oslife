@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     InfoIcon,
     StarIcon,
@@ -13,8 +13,10 @@ import {
     SettingsLinkRow,
     SettingsInfoBanner,
 } from './SettingsComponents';
+import ChangelogModal from '../ChangelogModal';
 
 const AboutSection: React.FC = () => {
+    const [isChangelogOpen, setIsChangelogOpen] = useState(false);
     const appVersion = '2.0.0';
     const buildNumber = '2024.12.05';
 
@@ -36,7 +38,7 @@ const AboutSection: React.FC = () => {
     };
 
     const handleOpenChangelog = () => {
-        // Could open a modal or navigate to changelog page
+        setIsChangelogOpen(true);
     };
 
     return (
@@ -132,6 +134,11 @@ const AboutSection: React.FC = () => {
                     <button className="hover:text-white transition-colors">מדיניות פרטיות</button>
                 </div>
             </div>
+
+            <ChangelogModal
+                isOpen={isChangelogOpen}
+                onClose={() => setIsChangelogOpen(false)}
+            />
         </SettingsSection>
     );
 };

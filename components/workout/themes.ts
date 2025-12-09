@@ -104,12 +104,13 @@ export const WORKOUT_THEMES: Record<string, WorkoutTheme> = {
  * Includes accessibility considerations for light themes
  */
 export const getThemeVariables = (themeId: string): Record<string, string> => {
-  const theme = WORKOUT_THEMES[themeId] || WORKOUT_THEMES.deepCosmos;
+  const theme = WORKOUT_THEMES[themeId] ?? WORKOUT_THEMES['deepCosmos']!;
   const isLight = themeId === 'pureLight';
   const isOLED = themeId === 'midnight';
 
   // Safe access with fallbacks
-  const colors = theme?.colors || WORKOUT_THEMES.deepCosmos.colors;
+  const deepCosmosColors = WORKOUT_THEMES['deepCosmos']!.colors;
+  const colors = theme?.colors ?? deepCosmosColors;
 
   return {
     // Background
@@ -159,7 +160,7 @@ export const getThemeVariables = (themeId: string): Record<string, string> => {
  * Get theme by ID with safe fallback
  */
 export const getTheme = (themeId: string): WorkoutTheme => {
-  return WORKOUT_THEMES[themeId] || WORKOUT_THEMES.deepCosmos;
+  return WORKOUT_THEMES[themeId] ?? WORKOUT_THEMES['deepCosmos']!;
 };
 
 /**

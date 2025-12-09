@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PlayIcon, PauseIcon, StopIcon } from '../icons';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useSound } from '../../hooks/useSound';
-import { useFocusTimer, useFocusControls, useFocusStats, useIsInFocusSession } from '../../src/contexts/FocusContext';
+import { useFocusSession, useFocusControls, useFocusStats } from '../../src/contexts/FocusContext';
 import { PersonalItem } from '../../types';
 
 interface FocusTimerWidgetProps {
@@ -19,24 +19,23 @@ const PRESETS = [
 
 const FocusTimerWidget: React.FC<FocusTimerWidgetProps> = ({ title = 'טיימר למידה' }) => {
     const { triggerHaptic } = useHaptics();
-    const { playSuccess } = useSound();
+    useSound(); // Hook called for side effects only
 
-    // Focus Context Hooks
-    const { timeRemaining, progress, isPaused, activeSession } = useFocusTimer();
-    const { startSession, pauseSession, resumeSession, endSession, cancelSession } = useFocusControls();
-    const { todaySessions } = useFocusStats();
-    const isSessionActive = useIsInFocusSession();
+    // Focus Context Hooks - using useFocusSession for full context
+    const { timeRemaining, progress, isPaused, activeSession, isActive } = useFocusSession();
+    const { startSession, pauseSession, resumeSession, cancelSession } = useFocusControls();
+    const { stats } = useFocusStats();
 
     const [selectedPreset, setSelectedPreset] = useState(0);
 
     // Initial time logic for display when not active
-    const currentPreset = PRESETS[selectedPreset];
+    const currentPreset = PRESETS[selectedPreset] ?? PRESETS[0];
     const initialDuration = currentPreset.minutes * 60 * 1000;
 
     // Display values
-    const validTimeRemaining = isSessionActive ? timeRemaining : initialDuration;
+    const validTimeRemaining = isActive ? timeRemaining : initialDuration;
     // Context progress is 0 to 1. widget expects 0 to 1 for strokeDashoffset calculation (or 0-100 if math differs).
-    const validProgress = isSessionActive ? progress : 0;
+    const validProgress = isActive ? progress : 0;
 
     const formatTime = (ms: number): string => {
         const totalSeconds = Math.ceil(ms / 1000);
@@ -46,10 +45,10 @@ const FocusTimerWidget: React.FC<FocusTimerWidgetProps> = ({ title = 'טיימר
     };
 
     const handlePresetSelect = useCallback((index: number) => {
-        if (isSessionActive) return;
+        if (isActive) return;
         triggerHaptic('light');
         setSelectedPreset(index);
-    }, [isSessionActive, triggerHaptic]);
+    }, [isActive, triggerHaptic]);
 
     const handleStart = useCallback(() => {
         triggerHaptic('medium');
@@ -92,9 +91,9 @@ const FocusTimerWidget: React.FC<FocusTimerWidgetProps> = ({ title = 'טיימר
                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
                     📚 {activeSession ? activeSession.item.title : title}
                 </h3>
-                {todaySessions > 0 && (
+                {stats.todaySessions > 0 && (
                     <span className="text-xs text-gray-400 bg-white/5 px-2 py-1 rounded-full">
-                        {todaySessions} סשנים היום
+                        {stats.todaySessions} סשנים היום
                     </span>
                 )}
             </div>
@@ -129,7 +128,7 @@ const FocusTimerWidget: React.FC<FocusTimerWidgetProps> = ({ title = 'טיימר
                         <span className="text-3xl font-bold text-white font-mono">
                             {formatTime(validTimeRemaining)}
                         </span>
-                        {isSessionActive && <span className="text-[10px] text-gray-400 mt-1">בריכוז...</span>}
+                        {isActive && <span className="text-[10px] text-gray-400 mt-1">בריכוז...</span>}
                     </div>
                 </div>
             </div>
@@ -139,7 +138,7 @@ const FocusTimerWidget: React.FC<FocusTimerWidgetProps> = ({ title = 'טיימר
                     <button
                         key={index}
                         onClick={() => handlePresetSelect(index)}
-                        disabled={isSessionActive}
+                        disabled={isActive}
                         className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${selectedPreset === index
                             ? `bg-gradient-to-r ${preset.color} text-white shadow-lg`
                             : 'bg-white/5 text-gray-400 hover:bg-white/10 disabled:opacity-50'
@@ -152,7 +151,7 @@ const FocusTimerWidget: React.FC<FocusTimerWidgetProps> = ({ title = 'טיימר
 
             <div className="flex gap-2">
                 <AnimatePresence mode="wait">
-                    {!isSessionActive ? (
+                    {!isActive ? (
                         <motion.button
                             key="start"
                             initial={{ scale: 0.9, opacity: 0 }}

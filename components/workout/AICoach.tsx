@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     suggestExercises,
     getExerciseTutorial,
@@ -7,7 +7,7 @@ import {
     ExerciseChatMessage
 } from '../../services/geminiService';
 import { getWorkoutSessions } from '../../services/dataService';
-import { WorkoutSession, Exercise } from '../../types';
+import { Exercise } from '../../types';
 import { CloseIcon } from '../icons';
 
 interface AICoachProps {
@@ -49,21 +49,65 @@ const AICoach: React.FC<AICoachProps> = ({ onClose, currentExercise }) => {
 
     const muscleGroups = ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core'];
 
-    // Load tutorial when exercise changes
+    // Static offline tips for common exercises
+    const offlineTips: Record<string, string> = useMemo(() => ({
+        'Bench Press': '**Bench Press**\n\n• שכב על הספסל כשהעיניים מתחת למוט\n• אחיזה ברוחב כתפיים וחצי\n• הורד את המוט לאמצע החזה\n• דחף למעלה בקו ישר\n• שמור על הגב צמוד לספסל',
+        'Squat': '**Squat**\n\n• עמוד ברוחב כתפיים\n• הברכיים בכיוון האצבעות\n• רד עד שהירכיים מקבילות לרצפה\n• שמור על הגב ישר\n• דחף דרך העקבים',
+        'Deadlift': '**Deadlift**\n\n• עמוד קרוב למוט\n• אחיזה ברוחב כתפיים\n• שמור על הגב ישר לאורך התנועה\n• הרם עם הרגליים, לא עם הגב\n• נעל את הירכיים בסוף',
+        'Shoulder Press': '**Shoulder Press**\n\n• התחל עם המשקולות בגובה הכתפיים\n• דחף ישר למעלה\n• אל תקשת את הגב\n• הורד בשליטה',
+        'Pull-ups': '**Pull-ups**\n\n• אחיזה רחבה מכתפיים\n• משוך את הסנטר מעל המוט\n• שלוט בירידה\n• הפעל את השרירים מהתחתית',
+        'Rows': '**Rows**\n\n• כופף קדימה 45 מעלות\n• משוך אל הבטן התחתונה\n• לחץ את השכמות יחד\n• שמור על הגב ישר',
+        'default': '**טיפים כלליים לאימון**\n\n• חמם היטב לפני תרגילים כבדים\n• שמור על טכניקה נכונה\n• נשום - נשוף במאמץ\n• שלוט בתנועה בשני הכיוונים\n• הגדל משקל בהדרגה'
+    }), []);
+
+    // Load tutorial when exercise changes - with caching
     const loadTutorial = useCallback(async () => {
         if (!currentExercise?.name) return;
 
         setLoading(true);
         setError(null);
+
+        // Check localStorage cache first
+        const cacheKey = `ai_tutorial_${currentExercise.name.toLowerCase().replace(/\s+/g, '_')}`;
+        try {
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                setTutorialContent(cached);
+                setLoading(false);
+                return;
+            }
+        } catch { /* localStorage not available */ }
+
         try {
             const tutorial = await getExerciseTutorial(currentExercise.name);
             setTutorialContent(tutorial);
-        } catch (e) {
-            setError('לא ניתן לטעון הדרכה. נסה שוב.');
+            // Cache successful response
+            try {
+                localStorage.setItem(cacheKey, tutorial);
+            } catch { /* localStorage full or not available */ }
+        } catch (e: unknown) {
+            console.error('[AICoach] Tutorial load error:', e);
+            const errorMsg = e instanceof Error ? e.message : 'שגיאה לא ידועה';
+
+            // Try offline fallback
+            const exerciseName = currentExercise.name;
+            const offlineTip = Object.entries(offlineTips).find(([key]) =>
+                exerciseName.toLowerCase().includes(key.toLowerCase())
+            )?.[1] || offlineTips['default'];
+
+            setTutorialContent(offlineTip + '\n\n---\n_טיפ אופליין - התחבר לאינטרנט לתוכן מלא_');
+
+            if (errorMsg.includes('API Key')) {
+                setError('מפתח AI לא מוגדר. מציג טיפים אופליין.');
+            } else if (errorMsg.includes('429') || errorMsg.includes('rate')) {
+                setError('יותר מדי בקשות. מציג טיפים אופליין.');
+            } else {
+                setError(`מציג טיפים אופליין.`);
+            }
         } finally {
             setLoading(false);
         }
-    }, [currentExercise?.name]);
+    }, [currentExercise?.name, offlineTips]);
 
     // Send chat message
     const handleSendMessage = useCallback(async () => {
@@ -118,7 +162,7 @@ const AICoach: React.FC<AICoachProps> = ({ onClose, currentExercise }) => {
 
             // Calculate stats locally
             const totalSessions = sessions.length;
-            const totalDuration = sessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+            const totalDuration = sessions.reduce((sum, s) => sum + ((s as { duration?: number }).duration ?? 0), 0);
             const avgDuration = Math.round(totalDuration / totalSessions / 60);
 
             const exerciseCount: Record<string, number> = {};
@@ -149,7 +193,7 @@ const AICoach: React.FC<AICoachProps> = ({ onClose, currentExercise }) => {
                 .sort(([, a], [, b]) => b - a)
                 .slice(0, 3);
 
-            const avgVolume = totalSets > 0 ? Math.round(totalVolume / totalSets) : 0;
+            // Volume calculations available in totalVolume and totalSets
 
             // Build analysis text
             const analysisText = `
@@ -222,8 +266,8 @@ ${avgDuration < 30 ? '⚠️ אימונים קצרים - שקול להאריך' 
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     className={`p-3 rounded-xl max-w-[85%] ${msg.role === 'user'
-                                            ? 'bg-[var(--cosmos-accent-primary)]/20 ml-auto text-white'
-                                            : 'bg-white/10 mr-auto text-white/90'
+                                        ? 'bg-[var(--cosmos-accent-primary)]/20 ml-auto text-white'
+                                        : 'bg-white/10 mr-auto text-white/90'
                                         }`}
                                 >
                                     <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
@@ -270,8 +314,8 @@ ${avgDuration < 30 ? '⚠️ אימונים קצרים - שקול להאריך' 
                                         key={group}
                                         onClick={() => setMuscleGroup(group)}
                                         className={`px-3 py-2 rounded-full text-xs font-medium transition-all ${muscleGroup === group
-                                                ? 'bg-[var(--cosmos-accent-primary)] text-black'
-                                                : 'bg-white/10 text-white/60'
+                                            ? 'bg-[var(--cosmos-accent-primary)] text-black'
+                                            : 'bg-white/10 text-white/60'
                                             }`}
                                     >
                                         {group}
@@ -355,7 +399,7 @@ ${avgDuration < 30 ? '⚠️ אימונים קצרים - שקול להאריך' 
         >
             {/* Header */}
             <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/10 safe-area-top">
-                <h2 className="text-lg font-bold text-white">🤖 מאמן AI</h2>
+                <h2 className="text-lg font-bold text-white">מאמן AI</h2>
                 <button
                     onClick={onClose}
                     className="p-2 text-white/60 hover:text-white"
@@ -367,19 +411,19 @@ ${avgDuration < 30 ? '⚠️ אימונים קצרים - שקול להאריך' 
             {/* Tabs */}
             <div className="flex-shrink-0 flex gap-2 px-4 py-3 border-b border-white/10">
                 {[
-                    { id: 'chat', label: '💬 צ׳אט', disabled: !currentExercise },
-                    { id: 'suggestions', label: '✨ המלצות' },
-                    { id: 'analysis', label: '📊 ניתוח' },
+                    { id: 'chat', label: 'צ׳אט', disabled: !currentExercise },
+                    { id: 'suggestions', label: 'המלצות' },
+                    { id: 'analysis', label: 'ניתוח' },
                 ].map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => !tab.disabled && setActiveTab(tab.id as CoachTab)}
                         disabled={tab.disabled}
                         className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === tab.id
-                                ? 'bg-[var(--cosmos-accent-primary)] text-black'
-                                : tab.disabled
-                                    ? 'bg-white/5 text-white/30 cursor-not-allowed'
-                                    : 'bg-white/10 text-white/70'
+                            ? 'bg-[var(--cosmos-accent-primary)] text-black'
+                            : tab.disabled
+                                ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                                : 'bg-white/10 text-white/70'
                             }`}
                     >
                         {tab.label}
@@ -404,4 +448,4 @@ ${avgDuration < 30 ? '⚠️ אימונים קצרים - שקול להאריך' 
     );
 };
 
-export default AICoach;
+export default React.memo(AICoach);

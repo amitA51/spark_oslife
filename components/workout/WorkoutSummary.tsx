@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WorkoutSession } from '../../types';
-import { TrophyIcon, FlameIcon, CloseIcon, CheckCircleIcon } from '../icons';
+import { TrophyIcon, FlameIcon, CloseIcon, CheckCircleIcon, ClockIcon } from '../icons';
 import { getWorkoutSessions } from '../../services/dataService';
-import { calculatePRsFromHistory, isNewPR } from '../../services/prService';
+import { calculatePRsFromHistory, isNewPR, exportWorkoutHistoryCSV } from '../../services/prService';
 import './workout-premium.css';
 
 interface WorkoutSummaryProps {
@@ -225,12 +225,6 @@ const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({ session, onClose, onSav
             >
               <h2 className="text-2xl font-black workout-gradient-text-accent flex items-center gap-2">
                 אימון הושלם!
-                <motion.span
-                  animate={{ rotate: [0, 15, -15, 0] }}
-                  transition={{ repeat: Infinity, duration: 1, delay: 0.5 }}
-                >
-                  🎉
-                </motion.span>
               </h2>
               <p className="text-sm text-white/50 mt-1">כל הכבוד על האימון!</p>
             </motion.div>
@@ -298,7 +292,7 @@ const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({ session, onClose, onSav
                     delay={0.4}
                   />
                   <StatCard
-                    icon={<span className="text-sm">⏱️</span>}
+                    icon={<ClockIcon className="w-4 h-4 text-purple-400" />}
                     label="משך"
                     value={duration}
                     suffix=" דק'"
@@ -413,6 +407,25 @@ const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({ session, onClose, onSav
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9 }}
           >
+            {/* Export Button */}
+            <motion.button
+              onClick={() => {
+                const csv = exportWorkoutHistoryCSV([session as WorkoutSession]);
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `workout_${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+                URL.revokeObjectURL(url);
+              }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full py-3.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 hover:border-cyan-400/30 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2"
+            >
+              ייצא לקובץ
+            </motion.button>
+
             {onSaveAsTemplate && (
               <motion.button
                 onClick={onSaveAsTemplate}
@@ -420,7 +433,6 @@ const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({ session, onClose, onSav
                 whileTap={{ scale: 0.98 }}
                 className="w-full py-3.5 bg-white/5 hover:bg-white/10 text-white border border-white/10 hover:border-[var(--cosmos-accent-primary)]/30 rounded-2xl font-semibold transition-all flex items-center justify-center gap-2"
               >
-                <span>💾</span>
                 שמור כתבנית
               </motion.button>
             )}
@@ -439,5 +451,5 @@ const WorkoutSummary: React.FC<WorkoutSummaryProps> = ({ session, onClose, onSav
   );
 };
 
-export default WorkoutSummary;
+export default React.memo(WorkoutSummary);
 

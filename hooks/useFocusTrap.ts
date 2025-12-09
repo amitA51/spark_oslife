@@ -101,8 +101,9 @@ export const useFocusTrap = (
    */
   const focusFirst = useCallback(() => {
     const elements = getFocusableElements();
-    if (elements.length > 0) {
-      elements[0].focus();
+    const firstElement = elements[0];
+    if (firstElement) {
+      firstElement.focus();
     }
   }, [getFocusableElements]);
 
@@ -111,8 +112,9 @@ export const useFocusTrap = (
    */
   const focusLast = useCallback(() => {
     const elements = getFocusableElements();
-    if (elements.length > 0) {
-      elements[elements.length - 1].focus();
+    const lastElement = elements[elements.length - 1];
+    if (lastElement) {
+      lastElement.focus();
     }
   }, [getFocusableElements]);
 
@@ -121,8 +123,9 @@ export const useFocusTrap = (
    */
   const focusByIndex = useCallback((index: number) => {
     const elements = getFocusableElements();
-    if (index >= 0 && index < elements.length) {
-      elements[index].focus();
+    const element = elements[index];
+    if (element) {
+      element.focus();
     }
   }, [getFocusableElements]);
 
@@ -192,6 +195,8 @@ export const useFocusTrap = (
       const firstElement = focusableElements[0];
       const lastElement = focusableElements[focusableElements.length - 1];
       const activeElement = document.activeElement;
+
+      if (!firstElement || !lastElement) return;
 
       if (e.shiftKey) {
         // Shift + Tab: Going backwards

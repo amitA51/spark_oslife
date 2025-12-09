@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ViewProps, EditProps, smallInputStyles } from './common';
 import { TrashIcon, AddIcon, PlayIcon } from '../icons';
 import { Exercise, WorkoutSet } from '../../types';
-import ActiveWorkout from '../workout/ActiveWorkout';
+import { ActiveWorkout } from '../workout';
 import WorkoutTemplates from '../workout/WorkoutTemplates';
 import * as dataService from '../../services/dataService';
 
@@ -141,11 +141,10 @@ export const WorkoutView: React.FC<ViewProps> = ({ item, onUpdate }) => {
                 {ex.sets.map((set, setIndex) => (
                   <div
                     key={setIndex}
-                    className={`p-3 rounded-xl transition-all ${
-                      set.completedAt
+                    className={`p-3 rounded-xl transition-all ${set.completedAt
                         ? 'bg-green-500/10 border-2 border-green-500/50'
                         : 'bg-[var(--surface-secondary)] border-2 border-transparent'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">

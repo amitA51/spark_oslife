@@ -63,9 +63,9 @@ const AssetCard = memo(function AssetCard({
   const price =
     asset.price !== undefined
       ? asset.price.toLocaleString('en-US', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: asset.price < 1 ? 6 : 2,
-        })
+        minimumFractionDigits: 2,
+        maximumFractionDigits: asset.price < 1 ? 6 : 2,
+      })
       : '--';
   const change = asset.change24h !== undefined ? asset.change24h.toFixed(2) : '--';
 
@@ -190,8 +190,9 @@ const InvestmentsScreen: React.FC<InvestmentsScreenProps> = ({ setActiveScreen }
       if (window.navigator.vibrate) window.navigator.vibrate(20);
       setNewTicker('');
       showStatus('success', `${newTicker.toUpperCase()} נוסף למעקב.`);
-    } catch (error: any) {
-      showStatus('error', error.message || 'שגיאה בהוספת נכס');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'שגיאה בהוספת נכס';
+      showStatus('error', errorMessage);
     } finally {
       setIsAdding(false);
     }

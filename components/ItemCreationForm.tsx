@@ -1,20 +1,14 @@
 import React, { useState, useEffect, useReducer, useRef, useCallback, useMemo } from 'react';
 import type {
   PersonalItem,
-  Exercise,
   Template,
-  WorkoutSet,
   AddableType,
   Screen,
-  RoadmapPhase,
-  Attachment,
-  SubTask,
 } from '../types';
 import * as dataService from '../services/dataService';
 import * as geminiService from '../services/geminiService';
 import {
   FlameIcon,
-  CheckCircleIcon,
   LinkIcon,
   ClipboardListIcon,
   BookOpenIcon,
@@ -25,7 +19,7 @@ import {
   SparklesIcon,
   RoadmapIcon,
   CloudIcon,
-  CheckIcon,
+  CheckCircleIcon,
 } from './icons';
 import { useDebounce } from '../hooks/useDebounce';
 import LoadingSpinner from './LoadingSpinner';
@@ -37,246 +31,17 @@ import { useData } from '../src/contexts/DataContext';
 import { useUI } from '../src/contexts/UIContext';
 import { Toast } from './ui/Toast';
 
-// --- Reducer for Complex State Management ---
-type SubmissionStatus = 'idle' | 'submitting';
+// Import extracted reducer and types
+import {
+  formReducer,
+  createInitialState,
+  type FormState as State,
+} from './itemCreationFormReducer';
 
-interface State {
-  title: string;
-  content: string;
-  url: string;
-  dueDate: string;
-  dueTime: string; // Added dueTime to state
-  priority: 'low' | 'medium' | 'high';
-  author: string;
-  totalPages: string;
-  exercises: Exercise[];
-  phases: RoadmapPhase[];
-  attachments: Attachment[];
-  icon: string;
-  projectId: string;
-  spaceId: string;
-  isFetchingMetadata: boolean;
-  submissionStatus: SubmissionStatus;
-  status?: 'todo' | 'doing' | 'done';
-  isGeneratingRoadmap: boolean;
-  // Habit specific
-  habitType: 'good' | 'bad';
-  reminderEnabled: boolean;
-  reminderTime: string;
-  // Compatibility fields for HabitEdit
-  subTasks: SubTask[];
-  quotes: string[];
-  autoDeleteAfter: number;
-}
+// Use createInitialState for the reducer
+const initialState = createInitialState();
 
-/** Type for form field values - covers all possible field types in State */
-type StateFieldValue =
-  | string
-  | boolean
-  | number
-  | Exercise[]
-  | RoadmapPhase[]
-  | Attachment[]
-  | SubTask[]
-  | string[]
-  | 'low' | 'medium' | 'high'
-  | 'todo' | 'doing' | 'done'
-  | 'good' | 'bad';
-
-type Action =
-  | { type: 'SET_FIELD'; payload: { field: keyof State; value: StateFieldValue } }
-  | { type: 'ADD_EXERCISE' }
-  | { type: 'UPDATE_EXERCISE'; payload: { index: number; name: string } }
-  | { type: 'REMOVE_EXERCISE'; payload: { index: number } }
-  | { type: 'ADD_SET'; payload: { exerciseIndex: number } }
-  | {
-    type: 'UPDATE_SET';
-    payload: { exerciseIndex: number; setIndex: number; field: keyof WorkoutSet; value: string | number };
-  }
-  | { type: 'REMOVE_SET'; payload: { exerciseIndex: number; setIndex: number } }
-  | { type: 'ADD_PHASE' }
-  | {
-    type: 'UPDATE_PHASE';
-    payload: {
-      index: number;
-      field: keyof Omit<RoadmapPhase, 'isCompleted' | 'id' | 'notes' | 'tasks' | 'order'>;
-      value: string;
-    };
-  }
-  | { type: 'REMOVE_PHASE'; payload: { index: number } }
-  | { type: 'APPLY_TEMPLATE'; payload: Template }
-  | { type: 'SET_METADATA_RESULT'; payload: Partial<PersonalItem> }
-  | { type: 'RESET_FORM' }
-  | { type: 'SUBMIT_START' }
-  | { type: 'SUBMIT_DONE' }
-  | { type: 'SET_GENERATED_PHASES'; payload: Omit<RoadmapPhase, 'id' | 'order' | 'notes'>[] };
-
-const initialState: State = {
-  title: '',
-  content: '',
-  url: '',
-  dueDate: '',
-  dueTime: '', // Initial state
-  priority: 'medium',
-  author: '',
-  totalPages: '',
-  exercises: [{ id: `ex-${Date.now()}`, name: '', sets: [{ reps: 0, weight: 0, notes: '' }] }],
-  phases: [
-    {
-      id: `phase-${Date.now()}`,
-      title: '',
-      description: '',
-      duration: '',
-      tasks: [],
-      order: 0,
-      startDate: new Date().toISOString().split('T')[0] ?? '',
-      endDate: new Date().toISOString().split('T')[0] ?? '',
-      attachments: [],
-      status: 'pending',
-      dependencies: [],
-      estimatedHours: 0,
-    },
-  ],
-  attachments: [],
-  icon: '',
-  projectId: '',
-  spaceId: '',
-  isFetchingMetadata: false,
-  submissionStatus: 'idle',
-  status: 'todo',
-  isGeneratingRoadmap: false,
-  habitType: 'good',
-  reminderEnabled: false,
-  reminderTime: '09:00',
-  subTasks: [],
-  quotes: [],
-  autoDeleteAfter: 0,
-};
-
-const formReducer = (state: State, action: Action): State => {
-  switch (action.type) {
-    case 'SET_FIELD':
-      return { ...state, [action.payload.field]: action.payload.value };
-    case 'ADD_EXERCISE':
-      return {
-        ...state,
-        exercises: [
-          ...state.exercises,
-          { id: `ex-${Date.now()}`, name: '', sets: [{ reps: 0, weight: 0, notes: '' }] },
-        ],
-      };
-    case 'UPDATE_EXERCISE':
-      return {
-        ...state,
-        exercises: state.exercises.map((ex, i) =>
-          i === action.payload.index ? { ...ex, name: action.payload.name } : ex
-        ),
-      };
-    case 'REMOVE_EXERCISE':
-      return { ...state, exercises: state.exercises.filter((_, i) => i !== action.payload.index) };
-    case 'ADD_SET':
-      return {
-        ...state,
-        exercises: state.exercises.map((ex, i) =>
-          i === action.payload.exerciseIndex
-            ? { ...ex, sets: [...ex.sets, { reps: 0, weight: 0, notes: '' }] }
-            : ex
-        ),
-      };
-    case 'UPDATE_SET':
-      return {
-        ...state,
-        exercises: state.exercises.map((ex, i) =>
-          i === action.payload.exerciseIndex
-            ? {
-              ...ex,
-              sets: ex.sets.map((set, si) =>
-                si === action.payload.setIndex
-                  ? { ...set, [action.payload.field]: action.payload.value }
-                  : set
-              ),
-            }
-            : ex
-        ),
-      };
-    case 'REMOVE_SET':
-      return {
-        ...state,
-        exercises: state.exercises.map((ex, i) =>
-          i === action.payload.exerciseIndex
-            ? { ...ex, sets: ex.sets.filter((_, si) => si !== action.payload.setIndex) }
-            : ex
-        ),
-      };
-    case 'ADD_PHASE':
-      return {
-        ...state,
-        phases: [
-          ...state.phases,
-          {
-            id: `phase-${Date.now()}`,
-            title: '',
-            description: '',
-            duration: '',
-            tasks: [],
-            order: state.phases.length,
-            startDate: new Date().toISOString().split('T')[0] ?? '',
-            endDate: new Date().toISOString().split('T')[0] ?? '',
-            attachments: [],
-            status: 'pending',
-            dependencies: [],
-            estimatedHours: 0,
-          },
-        ],
-      };
-    case 'UPDATE_PHASE':
-      return {
-        ...state,
-        phases: state.phases.map((phase, i) =>
-          i === action.payload.index
-            ? { ...phase, [action.payload.field]: action.payload.value }
-            : phase
-        ),
-      };
-    case 'REMOVE_PHASE':
-      return { ...state, phases: state.phases.filter((_, i) => i !== action.payload.index) };
-    case 'APPLY_TEMPLATE':
-      const { title, content, exercises, icon } = action.payload.content;
-      return {
-        ...state,
-        title: title ? title.replace('{DATE}', new Date().toLocaleDateString('he-IL')) : '',
-        content: content || '',
-        exercises: exercises ? JSON.parse(JSON.stringify(exercises)) : state.exercises,
-        icon: icon || '',
-      };
-    case 'SET_METADATA_RESULT':
-      return {
-        ...state,
-        title: action.payload.title || '',
-        content: action.payload.content || '',
-        isFetchingMetadata: false,
-      };
-    case 'SET_GENERATED_PHASES':
-      return {
-        ...state,
-        phases: action.payload.map((p, i) => ({
-          ...p,
-          id: `phase-${Date.now()}-${i}`,
-          order: i,
-          notes: '',
-        })),
-        isGeneratingRoadmap: false,
-      };
-    case 'RESET_FORM':
-      return initialState;
-    case 'SUBMIT_START':
-      return { ...state, submissionStatus: 'submitting' };
-    case 'SUBMIT_DONE':
-      return { ...initialState, submissionStatus: 'idle' };
-    default:
-      return state;
-  }
-};
+// formReducer is imported from ./itemCreationFormReducer
 
 // --- Premium UI Enhancements ---
 
@@ -795,8 +560,9 @@ export const ItemCreationForm: React.FC<{
         return;
       }
 
-      const newItemData: any = {
-        type: itemType,
+
+      const newItemData: Omit<PersonalItem, 'id' | 'createdAt' | 'updatedAt'> = {
+        type: itemType as PersonalItem['type'],
         title: formState.title,
         content: formState.content,
         spaceId: formState.spaceId || undefined,
@@ -834,7 +600,8 @@ export const ItemCreationForm: React.FC<{
         }
       }
 
-      await addPersonalItem(newItemData as any);
+      await addPersonalItem(newItemData);
+
 
       // Navigate based on type
       if (itemType === 'workout') {
@@ -994,18 +761,24 @@ export const ItemCreationForm: React.FC<{
         );
       case 'workout':
         return (
-          <div className="flex flex-col items-center justify-center py-8 text-center space-y-6 animate-fade-in">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
-              <DumbbellIcon className="w-10 h-10 text-white" />
+          <div className="flex flex-col items-center justify-center min-h-[60vh] py-8 text-center space-y-8 animate-fade-in">
+            {/* Premium Hero Section */}
+            <div className="relative">
+              {/* Glow Effect */}
+              <div className="absolute inset-0 w-28 h-28 rounded-full bg-gradient-to-br from-pink-500/40 to-purple-600/40 blur-2xl" />
+              <div className="relative w-24 h-24 rounded-3xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-purple-500/40 ring-2 ring-white/10">
+                <DumbbellIcon className="w-12 h-12 text-white" />
+              </div>
             </div>
-            <div>
-              <h3 className="text-2xl font-bold text-white mb-2">אימון חדש</h3>
-              <p className="text-muted max-w-xs mx-auto text-sm">
+
+            <div className="space-y-2">
+              <h3 className="text-3xl font-black text-white">אימון חדש</h3>
+              <p className="text-white/50 max-w-xs mx-auto text-sm leading-relaxed">
                 התחל אימון לייב מיד. תוכל להוסיף תרגילים תוך כדי תנועה.
               </p>
             </div>
 
-            <div className="w-full max-w-sm text-right">
+            <div className="w-full max-w-sm text-right px-2">
               <SimpleFormFields
                 title={formState.title}
                 setTitle={v =>
@@ -1023,9 +796,10 @@ export const ItemCreationForm: React.FC<{
 
             <button
               type="submit"
-              className="w-full max-w-sm py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl font-bold text-white shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-center gap-2 mt-4"
+              className="w-full max-w-sm py-5 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 rounded-2xl font-bold text-white text-lg shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 ring-1 ring-white/20"
             >
-              <span className="text-lg">התחל אימון עכשיו ⚡</span>
+              <span>התחל אימון עכשיו</span>
+              <span className="text-xl">⚡</span>
             </button>
           </div>
         );
@@ -1211,71 +985,83 @@ export const ItemCreationForm: React.FC<{
 
       <DraggableModalWrapper
         onClose={onClose}
-        className="
-          bg-gradient-to-br from-[#1a1d24]/98 to-[#0f1115]/98 
-          w-full h-[100dvh] 
-          md:w-[90vw] md:max-w-2xl md:h-auto md:max-h-[85vh] 
-          md:rounded-2xl shadow-2xl 
+        className={`
+          bg-gradient-to-br from-[#1a1d24]/98 via-[#12141a]/98 to-[#0a0c10]/98
+          w-full 
+          ${itemType === 'workout' ? 'h-auto max-h-[90dvh] rounded-t-[32px] sm:rounded-2xl' : 'h-[100dvh] sm:h-auto sm:max-h-[90vh] sm:rounded-2xl'}
+          md:w-[90vw] md:max-w-2xl
+          shadow-2xl shadow-black/50
           flex flex-col 
-          md:border border-white/10 
+          border-0 sm:border border-white/10 
           will-change-[transform,opacity]
           overflow-hidden
-        "
+        `}
       >
-        {/* Premium Header with Glow */}
-        <header className="relative px-4 py-3 sm:px-6 sm:py-4 shrink-0 overflow-hidden">
-          {/* Subtle gradient background - reduced for performance */}
-          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/3 via-transparent to-violet-500/3 pointer-events-none" />
-          <div
-            className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 rounded-full blur-2xl pointer-events-none opacity-20 hidden sm:block"
-            style={{ backgroundColor: accentColor }}
-          />
+        {/* Premium Header with Glow - Simplified for workout */}
+        {itemType === 'workout' ? (
+          <header className="relative px-4 pt-safe-top py-3 shrink-0 flex justify-end">
+            <button
+              onClick={onClose}
+              className="p-2.5 bg-white/5 rounded-xl text-white/50 hover:bg-white/10 hover:text-white transition-all duration-200 active:scale-90"
+            >
+              <CloseIcon className="w-5 h-5" />
+            </button>
+          </header>
+        ) : (
+          <header className="relative px-4 pt-safe-top py-3 sm:px-6 sm:py-4 shrink-0 overflow-hidden">
+            {/* Subtle gradient background - reduced for performance */}
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/3 via-transparent to-violet-500/3 pointer-events-none" />
+            <div
+              className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 rounded-full blur-2xl pointer-events-none opacity-20 hidden sm:block"
+              style={{ backgroundColor: accentColor }}
+            />
 
-          <div className="relative z-10 flex justify-between items-start">
-            <div className="flex items-center gap-4">
-              {/* Premium Icon Container - Smaller on mobile */}
-              <div
-                className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg ring-1 ring-white/20 overflow-hidden"
-                style={{ backgroundColor: `${accentColor}20` }}
-              >
-                <TypeIcon className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" style={{ color: accentColor }} />
+            <div className="relative z-10 flex justify-between items-start">
+              <div className="flex items-center gap-4">
+                {/* Premium Icon Container - Smaller on mobile */}
+                <div
+                  className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg ring-1 ring-white/20 overflow-hidden"
+                  style={{ backgroundColor: `${accentColor}20` }}
+                >
+                  <TypeIcon className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" style={{ color: accentColor }} />
+                </div>
+
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                    הוספת {typeLabel}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-white/50 font-medium mt-0.5 hidden sm:block">הזן את הפרטים למטה</p>
+                </div>
               </div>
 
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                  הוספת {typeLabel}
-                </h2>
-                <p className="text-xs sm:text-sm text-white/50 font-medium mt-0.5 hidden sm:block">הזן את הפרטים למטה</p>
+              <div className="flex items-center gap-2">
+                {/* Auto-save indicator */}
+                <AutoSaveIndicator status={autoSaveStatus} />
+
+                {/* Keyboard shortcuts button */}
+                <button
+                  type="button"
+                  onClick={() => setShowKeyboardShortcuts(true)}
+                  className="p-2 bg-white/5 rounded-xl text-white/40 hover:bg-white/10 hover:text-white/70 transition-all"
+                  title="קיצורי מקלדת (Cmd+/)"
+                >
+                  <span className="text-sm">⌨️</span>
+                </button>
+
+                {/* Close button */}
+                <button
+                  onClick={onClose}
+                  className="p-2.5 bg-white/5 rounded-xl text-white/50 hover:bg-white/10 hover:text-white transition-all duration-200 active:scale-90"
+                >
+                  <CloseIcon className="w-5 h-5" />
+                </button>
               </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              {/* Auto-save indicator */}
-              <AutoSaveIndicator status={autoSaveStatus} />
-
-              {/* Keyboard shortcuts button */}
-              <button
-                type="button"
-                onClick={() => setShowKeyboardShortcuts(true)}
-                className="p-2 bg-white/5 rounded-xl text-white/40 hover:bg-white/10 hover:text-white/70 transition-all"
-                title="קיצורי מקלדת (Cmd+/)"
-              >
-                <span className="text-sm">⌨️</span>
-              </button>
-
-              {/* Close button */}
-              <button
-                onClick={onClose}
-                className="p-2.5 bg-white/5 rounded-xl text-white/50 hover:bg-white/10 hover:text-white transition-all duration-200 active:scale-90"
-              >
-                <CloseIcon className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        </header>
+          </header>
+        )}
 
         <form onSubmit={(e) => { handleSubmit(e); clearDraft(); }} className="flex flex-col flex-1 overflow-hidden relative">
-          <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 space-y-5 sm:space-y-6 pb-28 sm:pb-24 custom-scrollbar overscroll-contain">
+          <div className={`flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 space-y-5 sm:space-y-6 custom-scrollbar overscroll-contain ${itemType === 'workout' ? 'pb-6' : 'pb-28 sm:pb-24'}`}>
             {renderFormFields()}
 
             {/* AI Suggestions Panel */}

@@ -305,5 +305,5 @@ const WorkoutTemplates: React.FC<WorkoutTemplatesProps> = ({ onStartWorkout, onC
   );
 };
 
-export default WorkoutTemplates;
+export default React.memo(WorkoutTemplates);
 

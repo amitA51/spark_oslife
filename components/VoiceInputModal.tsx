@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as geminiService from '../services/geminiService';
 import { MicrophoneIcon, CloseIcon, SparklesIcon } from './icons';
+import { ERRORS } from '../utils/errorMessages';
 import { Screen, NlpResult, PersonalItem, PersonalItemType } from '../types';
 import { useData } from '../src/contexts/DataContext';
 
@@ -69,6 +70,37 @@ interface VoiceInputModalProps {
 
 type VoiceStatus = 'idle' | 'listening' | 'processing' | 'success' | 'error' | 'unsupported';
 
+/**
+ * Status configuration - all status-based UI logic in one place
+ * Replaces multiple switch/if chains with a declarative config
+ */
+const STATUS_CONFIG: Record<VoiceStatus, { text: string; buttonClass: string }> = {
+  idle: {
+    text: 'לחץ על המיקרופון, דבר חופשי, וה-AI ידע איפה לשים את זה',
+    buttonClass: 'bg-[var(--accent-gradient)]',
+  },
+  listening: {
+    text: 'מקשיב...',
+    buttonClass: 'animate-pulse-deep',
+  },
+  processing: {
+    text: 'AI מנתח את מה שאמרת...',
+    buttonClass: 'bg-blue-500/50',
+  },
+  success: {
+    text: 'נוסף בהצלחה!',
+    buttonClass: 'bg-green-500/50',
+  },
+  error: {
+    text: 'אירעה שגיאה',
+    buttonClass: 'bg-red-500/50',
+  },
+  unsupported: {
+    text: 'הדפדפן שלך לא תומך בזיהוי דיבור.',
+    buttonClass: 'bg-gray-500/50',
+  },
+};
+
 const VoiceInputModal: React.FC<VoiceInputModalProps> = ({ isOpen, onClose, setActiveScreen }) => {
   const { addPersonalItem, personalItems, spaces } = useData();
   const [status, setStatus] = useState<VoiceStatus>('idle');
@@ -77,6 +109,12 @@ const VoiceInputModal: React.FC<VoiceInputModalProps> = ({ isOpen, onClose, setA
   const [error, setError] = useState('');
   const [aiSuggestion, setAiSuggestion] = useState<NlpResult | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const transcriptRef = useRef('');
+  const finalTranscriptRef = useRef('');
+
+  // Keep refs in sync with state
+  useEffect(() => { transcriptRef.current = transcript; }, [transcript]);
+  useEffect(() => { finalTranscriptRef.current = finalTranscript; }, [finalTranscript]);
 
   const resetState = () => {
     setStatus('idle');
@@ -199,7 +237,8 @@ const VoiceInputModal: React.FC<VoiceInputModalProps> = ({ isOpen, onClose, setA
 
       recognition.onend = () => {
         // סיום ההאזנה – מפעילים את ה-AI על התמליל הסופי
-        const textToAnalyze = (finalTranscript || transcript).trim();
+        // Use refs to avoid stale closures without adding to dependencies
+        const textToAnalyze = (finalTranscriptRef.current || transcriptRef.current).trim();
         if (textToAnalyze) {
           analyzeWithAI(textToAnalyze);
         } else {
@@ -213,16 +252,22 @@ const VoiceInputModal: React.FC<VoiceInputModalProps> = ({ isOpen, onClose, setA
         switch (event.error) {
           case 'no-speech':
           case 'audio-capture':
-            setError('לא זוהה דיבור או שאין גישה למיקרופון. נסה שוב.');
+            setError(ERRORS.SPEECH.NO_SPEECH);
             break;
           case 'not-allowed':
-            setError('הגישה למיקרופון נדחתה. נא לאשר בהגדרות הדפדפן.');
+            setError(ERRORS.SPEECH.NOT_ALLOWED);
             break;
           case 'network':
-            setError('שגיאת רשת בזיהוי דיבור.');
+            setError(ERRORS.SPEECH.NETWORK);
+            break;
+          case 'parse-failed':
+            setError(ERRORS.SPEECH.PARSE_FAILED);
+            break;
+          case 'unsupported':
+            setError(ERRORS.SPEECH.UNSUPPORTED);
             break;
           default:
-            setError('אירעה שגיאה בזיהוי הדיבור.');
+            setError(ERRORS.SPEECH.GENERIC);
         }
         setStatus('error');
       };
@@ -237,7 +282,7 @@ const VoiceInputModal: React.FC<VoiceInputModalProps> = ({ isOpen, onClose, setA
         recognitionRef.current.stop();
       }
     };
-  }, [isOpen, analyzeWithAI, finalTranscript, transcript]);
+  }, [isOpen, analyzeWithAI]); // Removed transcript dependencies
 
   const startListening = () => {
     if (recognitionRef.current && status !== 'listening') {
@@ -250,29 +295,14 @@ const VoiceInputModal: React.FC<VoiceInputModalProps> = ({ isOpen, onClose, setA
   };
 
   const getStatusContent = () => {
-    if (status === 'listening') return 'מקשיב...';
-    if (status === 'processing') return 'AI מנתח את מה שאמרת...';
-    if (status === 'success') return 'נוסף בהצלחה!';
-    if (status === 'error') return error || 'אירעה שגיאה';
-    if (status === 'unsupported') return 'הדפדפן שלך לא תומך בזיהוי דיבור.';
-    if (aiSuggestion) return 'בדוק את ההצעה ויצור פריט אם מתאים';
-    return 'לחץ על המיקרופון, דבר חופשי, וה-AI ידע איפה לשים את זה';
+    // Special cases that override config
+    if (status === 'error' && error) return error;
+    if (status === 'idle' && aiSuggestion) return 'בדוק את ההצעה ויצור פריט אם מתאים';
+    // Default: use config
+    return STATUS_CONFIG[status].text;
   };
 
-  const microphoneButtonClass = () => {
-    switch (status) {
-      case 'listening':
-        return 'animate-pulse-deep';
-      case 'processing':
-        return 'bg-blue-500/50';
-      case 'success':
-        return 'bg-green-500/50';
-      case 'error':
-        return 'bg-red-500/50';
-      default:
-        return 'bg-[var(--accent-gradient)]';
-    }
-  };
+  const microphoneButtonClass = () => STATUS_CONFIG[status].buttonClass;
 
   if (!isOpen) return null;
 

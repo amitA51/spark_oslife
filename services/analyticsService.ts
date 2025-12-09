@@ -18,6 +18,14 @@ export interface FrequencyData {
   workoutCount: number;
 }
 
+export interface MuscleGroupData {
+  name: string;
+  count: number;
+  volume: number;
+  color: string;
+  percentage: number;
+}
+
 /**
  * Calculate total volume per workout session
  */
@@ -142,7 +150,85 @@ export const getAverageVolume = (sessions: WorkoutSession[], lastN: number = 10)
   return Math.round(totalVolume / recentSessions.length);
 };
 
-// Helper functions
+// Muscle group color mapping
+const MUSCLE_GROUP_COLORS: Record<string, string> = {
+  'חזה': 'rgba(239, 68, 68, 0.8)',   // Red
+  'Chest': 'rgba(239, 68, 68, 0.8)',
+  'גב': 'rgba(59, 130, 246, 0.8)',   // Blue
+  'Back': 'rgba(59, 130, 246, 0.8)',
+  'רגליים': 'rgba(34, 197, 94, 0.8)', // Green
+  'Legs': 'rgba(34, 197, 94, 0.8)',
+  'כתפיים': 'rgba(168, 85, 247, 0.8)', // Purple
+  'Shoulders': 'rgba(168, 85, 247, 0.8)',
+  'ידיים': 'rgba(251, 146, 60, 0.8)', // Orange
+  'Arms': 'rgba(251, 146, 60, 0.8)',
+  'בטן': 'rgba(236, 72, 153, 0.8)',  // Pink
+  'Core': 'rgba(236, 72, 153, 0.8)',
+  'אחר': 'rgba(156, 163, 175, 0.8)', // Gray
+  'Other': 'rgba(156, 163, 175, 0.8)',
+};
+
+// Exercise name patterns for muscle group inference
+const MUSCLE_GROUP_PATTERNS: Record<string, RegExp> = {
+  'חזה': /bench|press|push.*up|chest|fly|dip|חזה|לחיצ/i,
+  'גב': /row|pull|lat|back|deadlift|גב|משיכ/i,
+  'רגליים': /squat|leg|lunge|calf|ham|quad|רגל|כריעה/i,
+  'כתפיים': /shoulder|ohp|lateral|raise|delt|כתפ|הרמ/i,
+  'ידיים': /curl|tricep|bicep|extension|hammer|יד|זרוע/i,
+  'בטן': /crunch|plank|ab|core|twist|בטן|מתח/i,
+};
+
+const inferMuscleGroup = (exerciseName: string): string => {
+  for (const [group, pattern] of Object.entries(MUSCLE_GROUP_PATTERNS)) {
+    if (pattern.test(exerciseName)) {
+      return group;
+    }
+  }
+  return 'אחר';
+};
+
+/**
+ * Calculate muscle group distribution from workout sessions
+ */
+export const calculateMuscleGroupDistribution = (
+  sessions: WorkoutSession[],
+  lastN: number = 30
+): MuscleGroupData[] => {
+  const recentSessions = sessions.filter(s => s.endTime).slice(-lastN);
+
+  const groupStats = new Map<string, { count: number; volume: number }>();
+
+  recentSessions.forEach(session => {
+    session.exercises.forEach(exercise => {
+      const group = exercise.muscleGroup || inferMuscleGroup(exercise.name);
+      const current = groupStats.get(group) || { count: 0, volume: 0 };
+
+      const exerciseVolume = exercise.sets.reduce((sum, set) => {
+        if (set.completedAt && set.weight && set.reps) {
+          return sum + set.weight * set.reps;
+        }
+        return sum;
+      }, 0);
+
+      groupStats.set(group, {
+        count: current.count + 1,
+        volume: current.volume + exerciseVolume,
+      });
+    });
+  });
+
+  const totalCount = Array.from(groupStats.values()).reduce((sum, g) => sum + g.count, 0);
+
+  return Array.from(groupStats.entries())
+    .map(([name, stats]) => ({
+      name,
+      count: stats.count,
+      volume: stats.volume,
+      color: MUSCLE_GROUP_COLORS[name] ?? 'rgba(156, 163, 175, 0.8)',
+      percentage: totalCount > 0 ? Math.round((stats.count / totalCount) * 100) : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+};
 const calculateOneRM = (weight: number, reps: number): number => {
   if (reps === 1) return weight;
   return Math.round(weight * (1 + reps / 30));

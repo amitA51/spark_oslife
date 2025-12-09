@@ -1,4 +1,7 @@
 {
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -13,6 +16,10 @@
           {
             "key": "Permissions-Policy",
             "value": "microphone=(self), camera=(self), geolocation=(self)"
+          },
+          {
+            "key": "Cross-Origin-Opener-Policy",
+            "value": "same-origin-allow-popups"
           }
         ]
       }

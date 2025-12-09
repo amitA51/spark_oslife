@@ -26,7 +26,7 @@ interface CelebrationOptions {
 export const useCelebration = () => {
   // Use enhanced haptics with new effects
   const {
-    triggerHaptic,
+    triggerHaptic: _triggerHaptic, // Kept for potential future use
     hapticSuccess,
     triggerEffect
   } = useHaptics();
@@ -37,7 +37,7 @@ export const useCelebration = () => {
     playComplete,
     playLevelUp,
     playStreak,
-    playNotification,
+    playNotification: _playNotification, // Kept for potential future use
   } = useSound();
 
   /**

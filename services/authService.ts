@@ -3,7 +3,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   GoogleAuthProvider,
-
+  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   sendPasswordResetEmail,
@@ -14,7 +14,21 @@ import {
 } from 'firebase/auth';
 import { getAuthInstance } from '../config/firebase';
 
+/**
+ * Detect if running in standalone PWA mode or mobile
+ */
+const isPWAorMobile = (): boolean => {
+  // Check if running as installed PWA
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true;
 
+  // Check if mobile device
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+
+  return isStandalone || isMobile;
+};
 
 // --- Auth Actions ---
 
@@ -46,10 +60,14 @@ export const signIn = async (email: string, password: string) => {
 
 /**
  * התחברות עם גוגל
- * Always uses redirect flow for better compatibility with modern browsers
- * (popup is blocked due to third-party cookie restrictions)
+ * 
+ * IMPORTANT: Chrome M115+ (June 2024) blocks third-party storage access,
+ * breaking signInWithRedirect in PWA/mobile contexts.
+ * 
+ * Solution: Use signInWithPopup for mobile/PWA (works around the issue),
+ * and signInWithRedirect for desktop (more seamless UX).
  */
-export const signInWithGoogle = async (additionalScopes: string[] = []) => {
+export const signInWithGoogle = async (additionalScopes: string[] = []): Promise<User | null> => {
   try {
     const auth = getAuthInstance();
     const provider = new GoogleAuthProvider();
@@ -68,17 +86,38 @@ export const signInWithGoogle = async (additionalScopes: string[] = []) => {
       prompt: 'select_account',
     });
 
-    // Always use redirect - popup is blocked in modern browsers due to third-party cookie restrictions
-    console.log('[Auth] Starting Google sign-in with redirect...');
+    // Use popup for mobile/PWA (redirect doesn't work due to third-party storage blocking)
+    if (isPWAorMobile()) {
+      console.log('[Auth] Starting Google sign-in with POPUP (mobile/PWA mode)...');
+      try {
+        const result = await signInWithPopup(auth, provider);
+        if (result?.user) {
+          console.log('[Auth] Popup sign-in successful:', result.user.email);
+          return handleGoogleAuthResult(result);
+        }
+        return null;
+      } catch (popupError: any) {
+        // If popup is blocked, fall back to redirect as last resort
+        if (popupError?.code === 'auth/popup-blocked') {
+          console.warn('[Auth] Popup blocked, falling back to redirect...');
+          await signInWithRedirect(auth, provider);
+          return null;
+        }
+        throw popupError;
+      }
+    } else {
+      // Desktop: use redirect for seamless experience
+      console.log('[Auth] Starting Google sign-in with REDIRECT (desktop mode)...');
 
-    // Store flag that we initiated auth
-    try {
-      sessionStorage.setItem('google_auth_pending', 'true');
-    } catch { /* ignore storage errors */ }
+      // Store flag that we initiated auth
+      try {
+        sessionStorage.setItem('google_auth_pending', 'true');
+      } catch { /* ignore storage errors */ }
 
-    await signInWithRedirect(auth, provider);
-    // This will redirect away, function won't return normally
-    return null;
+      await signInWithRedirect(auth, provider);
+      // This will redirect away, function won't return normally
+      return null;
+    }
   } catch (error) {
     console.error('[Auth] Google sign-in error:', error);
     throw new Error(getErrorMessage(error as AuthError));
@@ -125,7 +164,7 @@ export const checkGoogleRedirectResult = async (): Promise<User | null> => {
 /**
  * Handle the Google auth result and store access token
  */
-const handleGoogleAuthResult = (result: any): User => {
+const handleGoogleAuthResult = (result: import('firebase/auth').UserCredential): User => {
   const credential = GoogleAuthProvider.credentialFromResult(result);
   const accessToken = credential?.accessToken;
 
@@ -142,7 +181,16 @@ const handleGoogleAuthResult = (result: any): User => {
 };
 
 /**
+ * Token retrieval result with reason for failure
+ */
+export interface GoogleTokenResult {
+  token: string | null;
+  reason?: 'expired' | 'not_found' | 'storage_error';
+}
+
+/**
  * Get the stored Google access token for API calls
+ * Returns structured result with reason for better error handling
  */
 export const getGoogleAccessToken = (): string | null => {
   try {
@@ -163,6 +211,30 @@ export const getGoogleAccessToken = (): string | null => {
     return null;
   }
 };
+
+/**
+ * Get detailed token status for better UX messaging
+ */
+export const getGoogleAccessTokenWithReason = (): GoogleTokenResult => {
+  try {
+    const token = localStorage.getItem('google_access_token');
+    const expiry = localStorage.getItem('google_access_token_expiry');
+
+    if (!token) {
+      return { token: null, reason: 'not_found' };
+    }
+
+    if (!expiry || Date.now() >= parseInt(expiry, 10)) {
+      clearGoogleAccessToken();
+      return { token: null, reason: 'expired' };
+    }
+
+    return { token };
+  } catch {
+    return { token: null, reason: 'storage_error' };
+  }
+};
+
 
 /**
  * Check if we have a valid Google access token

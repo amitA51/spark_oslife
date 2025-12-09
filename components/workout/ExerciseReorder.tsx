@@ -153,8 +153,8 @@ const ExerciseReorderItem: React.FC<ExerciseReorderItemProps> = ({
             dragListener={false}
             dragControls={dragControls}
             className={`relative rounded-2xl overflow-hidden ${isActive
-                    ? 'bg-gradient-to-r from-[var(--cosmos-accent-primary)]/20 to-[var(--cosmos-accent-cyan)]/10 border border-[var(--cosmos-accent-primary)]/40'
-                    : 'bg-white/5 border border-white/10'
+                ? 'bg-gradient-to-r from-[var(--cosmos-accent-primary)]/20 to-[var(--cosmos-accent-cyan)]/10 border border-[var(--cosmos-accent-primary)]/40'
+                : 'bg-white/5 border border-white/10'
                 }`}
             whileDrag={{
                 scale: 1.02,
@@ -175,10 +175,10 @@ const ExerciseReorderItem: React.FC<ExerciseReorderItemProps> = ({
 
                 {/* Exercise Number */}
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isComplete
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : isActive
-                            ? 'bg-[var(--cosmos-accent-primary)]/30 text-[var(--cosmos-accent-primary)]'
-                            : 'bg-white/10 text-white/50'
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : isActive
+                        ? 'bg-[var(--cosmos-accent-primary)]/30 text-[var(--cosmos-accent-primary)]'
+                        : 'bg-white/10 text-white/50'
                     }`}>
                     {isComplete ? <CheckCheckIcon className="w-4 h-4" /> : index + 1}
                 </div>
@@ -215,8 +215,8 @@ const ExerciseReorderItem: React.FC<ExerciseReorderItemProps> = ({
                         onDelete();
                     }}
                     className={`p-2 rounded-xl transition-all ${isDeleteConfirm
-                            ? 'bg-red-500/20 text-red-400'
-                            : 'bg-white/5 text-white/30 hover:text-red-400 hover:bg-red-500/10'
+                        ? 'bg-red-500/20 text-red-400'
+                        : 'bg-white/5 text-white/30 hover:text-red-400 hover:bg-red-500/10'
                         }`}
                 >
                     <TrashIcon className="w-4 h-4" />
@@ -247,4 +247,4 @@ const ExerciseReorderItem: React.FC<ExerciseReorderItemProps> = ({
     );
 };
 
-export default ExerciseReorder;
+export default React.memo(ExerciseReorder);

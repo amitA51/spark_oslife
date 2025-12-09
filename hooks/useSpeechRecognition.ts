@@ -6,6 +6,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { ERRORS } from '../utils/errorMessages';
 
 // --- Type Definitions ---
 interface SpeechRecognitionResult {
@@ -53,15 +54,8 @@ declare global {
     }
 }
 
-// --- Error Messages (Hebrew) ---
-export const SPEECH_ERRORS = {
-    NO_SPEECH: 'לא זוהה דיבור או שאין גישה למיקרופון. נסה שוב.',
-    NOT_ALLOWED: 'הגישה למיקרופון נדחתה. נא לאשר בהגדרות הדפדפן.',
-    NETWORK: 'שגיאת רשת בזיהוי דיבור.',
-    AUDIO_CAPTURE: 'לא ניתן לגשת למיקרופון.',
-    UNSUPPORTED: 'הדפדפן שלך לא תומך בזיהוי דיבור.',
-    GENERIC: 'אירעה שגיאה בזיהוי הדיבור.',
-} as const;
+// Re-export for backward compatibility
+export const SPEECH_ERRORS = ERRORS.SPEECH;
 
 // --- Hook Options ---
 export interface UseSpeechRecognitionOptions {
@@ -128,7 +122,7 @@ export const useSpeechRecognition = (
         }
     }, []);
 
-    const start = useCallback(() => {
+    const start = useCallback(async () => {
         if (!isSupported) {
             setError(SPEECH_ERRORS.UNSUPPORTED);
             onError?.(SPEECH_ERRORS.UNSUPPORTED);
@@ -139,6 +133,19 @@ export const useSpeechRecognition = (
 
         const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognitionAPI) return;
+
+        // Request microphone permission explicitly for PWA/Mobile support
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            // Close the stream immediately - we just needed to trigger the permission
+            stream.getTracks().forEach(track => track.stop());
+        } catch (permissionError) {
+            console.error('Microphone permission denied:', permissionError);
+            const errorMessage = SPEECH_ERRORS.NOT_ALLOWED;
+            setError(errorMessage);
+            onError?.(errorMessage);
+            return;
+        }
 
         try {
             const recognition = new SpeechRecognitionAPI();

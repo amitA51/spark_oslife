@@ -30,11 +30,18 @@
     {
       "action": "/?action=import",
       "accept": {
-        "application/json": [".json"]
+        "application/json": [
+          ".json"
+        ]
       }
     }
   ],
-  "categories": ["productivity", "lifestyle", "personalization", "news"],
+  "categories": [
+    "productivity",
+    "lifestyle",
+    "personalization",
+    "news"
+  ],
   "screenshots": [
     {
       "src": "/images/screenshot-home.png",
@@ -63,25 +70,45 @@
       "name": "הוסף משימה חדשה",
       "short_name": "משימה",
       "url": "/?action=add_task",
-      "icons": [{ "src": "/images/resized-image.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/images/resized-image.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "הוסף ספארק חדש",
       "short_name": "ספארק",
       "url": "/?action=add_spark",
-      "icons": [{ "src": "/images/resized-image.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/images/resized-image.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "פתח את 'היום'",
       "short_name": "היום",
       "url": "/?action=go_today",
-      "icons": [{ "src": "/images/resized-image.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/images/resized-image.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "פתח את הפיד",
       "short_name": "פיד",
       "url": "/?action=go_feed",
-      "icons": [{ "src": "/images/resized-image.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/images/resized-image.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ],
   "share_target": {
@@ -101,7 +128,12 @@
       "description": "הוסף במהירות משימה או ספארק חדש.",
       "tag": "quick-add",
       "template": "list",
-      "icons": [{ "src": "/images/resized-image.png", "sizes": "192x192" }],
+      "icons": [
+        {
+          "src": "/images/resized-image.png",
+          "sizes": "192x192"
+        }
+      ],
       "data": {
         "items": [
           {
@@ -121,5 +153,8 @@
       "protocol": "web+spark",
       "url": "/?action=search&q=%s"
     }
+  ],
+  "permissions": [
+    "microphone"
   ]
 }

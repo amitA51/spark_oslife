@@ -27,8 +27,8 @@ const WaterReminderToast: React.FC<WaterReminderToastProps> = ({ isVisible, onDi
         >
           <span className="text-2xl">💧</span>
           <div>
-            <div className="font-bold text-white text-sm">Hydrate!</div>
-            <div className="text-xs text-white/80">Time for a sip of water</div>
+            <div className="font-bold text-white text-sm">שתה מים!</div>
+            <div className="text-xs text-white/80">זמן ללגום מעט מים</div>
           </div>
         </motion.div>
       )}
@@ -36,4 +36,4 @@ const WaterReminderToast: React.FC<WaterReminderToastProps> = ({ isVisible, onDi
   );
 };
 
-export default WaterReminderToast;
+export default React.memo(WaterReminderToast);

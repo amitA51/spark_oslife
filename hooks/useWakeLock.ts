@@ -17,11 +17,12 @@ interface WakeLockSentinel extends EventTarget {
   release(): Promise<void>;
 }
 
-interface NavigatorWithWakeLock extends Navigator {
+// Navigator type augmentation for Wake Lock API
+type NavigatorWithWakeLock = Navigator & {
   wakeLock?: {
     request(type: 'screen'): Promise<WakeLockSentinel>;
   };
-}
+};
 
 export interface WakeLockStats {
   /** Total time screen has been kept awake (ms) */

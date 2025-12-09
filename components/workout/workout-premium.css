@@ -560,6 +560,20 @@
     user-select: none;
 }
 
+/* --- Workout Button Touch Fix --- */
+.touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.workout-input-btn {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+    min-height: 48px;
+    min-width: 48px;
+}
+
 /* --- GPU Acceleration --- */
 .workout-gpu-accelerate {
     transform: translateZ(0);
@@ -739,4 +753,83 @@
             transparent 70%);
     animation: workout-rest-pulse 2s ease-in-out infinite;
     pointer-events: none;
+}
+
+/* ===========================================
+   RESPONSIVE BREAKPOINTS - Mobile First
+   =========================================== */
+
+/* Small screens (max-width: 380px) - Compact mode */
+@media (max-width: 380px) {
+    .workout-glass-card {
+        padding: 12px;
+        border-radius: 16px;
+    }
+
+    /* Reduce font sizes for small screens */
+    .workout-title-large {
+        font-size: 1.25rem !important;
+    }
+
+    .workout-stat-value {
+        font-size: 1.5rem !important;
+    }
+
+    /* Ensure minimum touch targets */
+    .workout-touch-target {
+        min-height: 48px;
+        min-width: 48px;
+    }
+}
+
+/* Medium screens (381px - 640px) - Standard mobile */
+@media (min-width: 381px) and (max-width: 640px) {
+    .workout-glass-card {
+        padding: 16px;
+        border-radius: 20px;
+    }
+
+    .workout-touch-target {
+        min-height: 52px;
+    }
+}
+
+/* Large screens (641px+) - Tablet/Desktop */
+@media (min-width: 641px) {
+    .workout-glass-card {
+        padding: 20px;
+        border-radius: 24px;
+    }
+
+    .workout-touch-target {
+        min-height: 56px;
+    }
+}
+
+/* Safe area handling for notched devices */
+@supports (padding-top: env(safe-area-inset-top)) {
+    .workout-safe-area-top {
+        padding-top: env(safe-area-inset-top, 0);
+    }
+
+    .workout-safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+
+    .workout-safe-area-all {
+        padding-top: env(safe-area-inset-top, 0);
+        padding-bottom: env(safe-area-inset-bottom, 16px);
+        padding-left: env(safe-area-inset-left, 0);
+        padding-right: env(safe-area-inset-right, 0);
+    }
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+
+    .workout-shimmer,
+    .workout-pulse-glow,
+    .workout-particle-float {
+        animation: none !important;
+    }
 }

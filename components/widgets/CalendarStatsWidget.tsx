@@ -4,7 +4,7 @@ import { useCalendarStats } from '../../src/contexts/CalendarContext';
 import { CalendarIcon, TrendingUpIcon, TrendingDownIcon } from '../icons';
 
 const CalendarStatsWidget: React.FC = () => {
-    const { totalEvents, todayEvents, thisWeekEvents, upcomingEvents } = useCalendarStats();
+    const { todayEvents, thisWeekEvents, upcomingEvents } = useCalendarStats();
 
     return (
         <div className="spark-card p-4 space-y-4">

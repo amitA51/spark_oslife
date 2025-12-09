@@ -1,5 +1,5 @@
-import { exportAllData } from './dataService';
-import { uploadBackup, findBackupFile } from './googleDriveService';
+import { exportAllData, importAllData } from './dataService';
+import { uploadBackup, findBackupFile, downloadBackup } from './googleDriveService';
 import { auth } from '../config/firebase';
 
 class SyncService {
@@ -10,6 +10,7 @@ class SyncService {
 
   init() {
     // Setup listeners if needed, or just ensure auth state
+    if (!auth) return;
     auth.onAuthStateChanged(async (user) => {
       if (user) {
         console.log('SyncService: User authenticated, ready to sync.');
@@ -26,9 +27,9 @@ class SyncService {
 
   triggerAutoSave() {
     if (this.isAutoSavePending) return;
-    
+
     this.isAutoSavePending = true;
-    
+
     if (this.autoSaveTimer) {
       clearTimeout(this.autoSaveTimer);
     }
@@ -40,7 +41,7 @@ class SyncService {
   }
 
   private async performAutoSave() {
-    const user = auth.currentUser;
+    const user = auth?.currentUser;
     if (!user) {
       console.log('SyncService: No user logged in, skipping auto-save.');
       return;
@@ -50,23 +51,53 @@ class SyncService {
       console.log('SyncService: Starting auto-save...');
       // Export data without password for cloud backup (assuming user's drive is secure)
       // Or we could implement a user setting for backup password later.
-      const data = await exportAllData(); 
-      
+      const data = await exportAllData();
+
       // Refresh file ID if we don't have it (might have been created since init)
       if (!this.backupFileId) {
         this.backupFileId = await findBackupFile();
       }
 
       const newFileId = await uploadBackup(data, this.backupFileId || undefined);
-      
+
       // Update our cache if it was a new file
       if (newFileId) {
         this.backupFileId = newFileId;
       }
-      
+
       console.log('SyncService: Auto-save completed successfully.');
     } catch (error) {
       console.error('SyncService: Auto-save failed:', error);
+    }
+  }
+
+  /**
+   * Restore data manually from Google Drive
+   */
+  async restoreFromBackup(): Promise<boolean> {
+    try {
+      console.log('SyncService: Starting restore...');
+      const backupId = this.backupFileId || await findBackupFile();
+
+      if (!backupId) {
+        throw new Error('לא נמצא קובץ גיבוי ב-Google Drive.');
+      }
+
+      const backupData = await downloadBackup(backupId);
+
+      if (!backupData) {
+        throw new Error('קובץ הגיבוי ריק.');
+      }
+
+      // Convert to string for importAllData if it's already an object
+      const jsonString = typeof backupData === 'string' ? backupData : JSON.stringify(backupData);
+
+      await importAllData(jsonString);
+      console.log('SyncService: Restore completed.');
+      return true;
+    } catch (error) {
+      console.error('SyncService: Restore failed:', error);
+      throw error;
     }
   }
 }

@@ -125,11 +125,10 @@ const ExerciseLibraryTab: React.FC = () => {
             <button
               key={group}
               onClick={() => setSelectedMuscleGroup(group)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
-                selectedMuscleGroup === group
-                  ? 'bg-[var(--aw-accent)] text-black shadow-[0_0_10px_var(--aw-accent-glow)]'
-                  : 'bg-white/10 text-white/70 hover:bg-white/20'
-              }`}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap ${selectedMuscleGroup === group
+                ? 'bg-[var(--aw-accent)] text-black shadow-[0_0_10px_var(--aw-accent-glow)]'
+                : 'bg-white/10 text-white/70 hover:bg-white/20'
+                }`}
             >
               {group === 'all' ? 'הכל' : group}
             </button>
@@ -189,7 +188,7 @@ const ExerciseLibraryTab: React.FC = () => {
             </select>
             <select
               value={newExercise.category}
-              onChange={e => setNewExercise({ ...newExercise, category: e.target.value as any })}
+              onChange={e => setNewExercise({ ...newExercise, category: e.target.value as PersonalExercise['category'] | '' })}
               className="aw-input text-sm appearance-none"
             >
               <option value="">קטגוריה (אופציונלי)</option>
@@ -311,4 +310,4 @@ const ExerciseLibraryTab: React.FC = () => {
   );
 };
 
-export default ExerciseLibraryTab;
+export default React.memo(ExerciseLibraryTab);

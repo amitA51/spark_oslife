@@ -8,6 +8,7 @@ import {
   InboxIcon,
   ChevronLeftIcon,
   FileIcon,
+  PlusIcon,
 } from '../components/icons';
 
 import SkeletonLoader from '../components/SkeletonLoader';
@@ -39,6 +40,7 @@ import {
   PremiumSpaceCard,
   PremiumQuickActionsFAB,
   PremiumLibraryEmptyState,
+  AddSpaceModal,
 } from '../components/library';
 
 type HubView = 'dashboard' | 'timeline' | 'board' | 'calendar' | 'vault' | 'investments' | 'files';
@@ -91,7 +93,8 @@ const FileGallery: React.FC<{ items: PersonalItem[]; onSelect: (item: PersonalIt
             className="group relative aspect-square rounded-2xl overflow-hidden"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: index * 0.05 }}
+            // PERF: Cap stagger delay to prevent 5s+ animation with 100+ items
+            transition={{ delay: index < 12 ? index * 0.05 : 0 }}
             whileHover={{ scale: 1.03, y: -4 }}
             whileTap={{ scale: 0.98 }}
             style={{
@@ -173,6 +176,7 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
     updatePersonalItem,
     removePersonalItem,
     updateSpace,
+    addSpace,
     refreshAll,
   } = useData();
   const { settings } = useSettings();
@@ -191,9 +195,13 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedQuery = useDebounce(searchQuery, 200);
 
+  // Space drag & drop state
   const dragSpace = useRef<Space | null>(null);
   const dragOverSpace = useRef<Space | null>(null);
-  const [draggingSpace, setDraggingSpace] = useState<Space | null>(null);
+  const [draggingSpaceId, setDraggingSpaceId] = useState<string | null>(null);
+
+  // Add Space Modal state
+  const [isAddSpaceModalOpen, setIsAddSpaceModalOpen] = useState(false);
 
   const [quickNoteDate, setQuickNoteDate] = useState<string | null>(null);
 
@@ -293,20 +301,52 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
     [startSession]
   );
 
-  const { inboxItems, projectItems, personalSpaces } = useMemo(() => {
-    const inbox = personalItems
-      .filter(i => !i.spaceId && !i.projectId && i.type !== 'goal' && !i.dueDate)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  // PERF: Single-pass O(n) instead of O(3n) triple filter
+  const { inboxItems, projectItems, personalSpaces, childItemsByProject, itemCountBySpace } = useMemo(() => {
+    const inbox: PersonalItem[] = [];
+    const projects: PersonalItem[] = [];
+    const childrenByProject = new Map<string, PersonalItem[]>();
+    const countBySpace = new Map<string, number>();
 
-    const projects = personalItems
-      .filter(i => i.type === 'roadmap')
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    for (const item of personalItems) {
+      // Build project children lookup
+      if (item.projectId) {
+        if (!childrenByProject.has(item.projectId)) childrenByProject.set(item.projectId, []);
+        childrenByProject.get(item.projectId)!.push(item);
+      }
 
-    const pSpaces = spaces
-      .filter(s => s.type === 'personal')
-      .sort((a, b) => a.order - b.order);
+      // Build space item count lookup
+      if (item.spaceId) {
+        countBySpace.set(item.spaceId, (countBySpace.get(item.spaceId) || 0) + 1);
+      }
 
-    return { inboxItems: inbox, projectItems: projects, personalSpaces: pSpaces };
+      // Classify items
+      if (item.type === 'roadmap') {
+        projects.push(item);
+      } else if (
+        !item.spaceId &&
+        !item.projectId &&
+        item.type !== 'goal' &&
+        item.type !== 'habit' &&
+        item.type !== 'task' &&
+        !item.dueDate
+      ) {
+        inbox.push(item);
+      }
+    }
+
+    // Sort smaller arrays after filtering
+    inbox.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    projects.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const pSpaces = spaces.filter(s => s.type === 'personal').sort((a, b) => a.order - b.order);
+
+    return {
+      inboxItems: inbox,
+      projectItems: projects,
+      personalSpaces: pSpaces,
+      childItemsByProject: childrenByProject,
+      itemCountBySpace: countBySpace,
+    };
   }, [personalItems, spaces]);
 
   const libraryStats = useMemo(() => {
@@ -319,14 +359,34 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
   }, [inboxItems.length, projectItems.length, personalSpaces.length, personalItems.length]);
 
   const inboxReordering = useItemReordering(inboxItems, handleUpdateItem);
-  const projectReordering = useItemReordering(projectItems, handleUpdateItem);
 
-  const handleSpaceDrop = () => {
+  const searchResults = useMemo(() => {
+    if (!debouncedQuery) return [];
+    const lowerCaseQuery = debouncedQuery.toLowerCase();
+    return personalItems.filter(
+      item =>
+        (item.title && item.title.toLowerCase().includes(lowerCaseQuery)) ||
+        (item.content && item.content.toLowerCase().includes(lowerCaseQuery))
+    );
+  }, [debouncedQuery, personalItems]);
+
+
+  // Space drag & drop handlers
+  const handleSpaceDragStart = useCallback((space: Space) => {
+    dragSpace.current = space;
+    setDraggingSpaceId(space.id);
+  }, []);
+
+  const handleSpaceDragOver = useCallback((space: Space) => {
+    dragOverSpace.current = space;
+  }, []);
+
+  const handleSpaceDrop = useCallback(() => {
     const draggedSpace = dragSpace.current;
     const targetSpace = dragOverSpace.current;
 
     if (!draggedSpace || !targetSpace || draggedSpace.id === targetSpace.id) {
-      setDraggingSpace(null);
+      setDraggingSpaceId(null);
       return;
     }
 
@@ -334,7 +394,10 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
     const dragItemIndex = currentSpaces.findIndex(s => s.id === draggedSpace.id);
     const dragOverItemIndex = currentSpaces.findIndex(s => s.id === targetSpace.id);
 
-    if (dragItemIndex === -1 || dragOverItemIndex === -1) return;
+    if (dragItemIndex === -1 || dragOverItemIndex === -1) {
+      setDraggingSpaceId(null);
+      return;
+    }
 
     let newOrder: number;
 
@@ -360,29 +423,19 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
       }
     }
 
-    const updates = { order: newOrder };
-
-    updateSpace(draggedSpace.id, updates).catch(err => {
+    updateSpace(draggedSpace.id, { order: newOrder }).catch(err => {
       console.error('Failed to update space order:', err);
+      showStatus('error', 'שגיאה בעדכון סדר המרחבים');
     });
 
-    setDraggingSpace(null);
+    setDraggingSpaceId(null);
     dragSpace.current = null;
     dragOverSpace.current = null;
-  };
+  }, [personalSpaces, updateSpace, showStatus]);
 
-  const searchResults = useMemo(() => {
-    if (!debouncedQuery) return [];
-    const lowerCaseQuery = debouncedQuery.toLowerCase();
-    return personalItems.filter(
-      item =>
-        (item.title && item.title.toLowerCase().includes(lowerCaseQuery)) ||
-        (item.content && item.content.toLowerCase().includes(lowerCaseQuery))
-    );
-  }, [debouncedQuery, personalItems]);
-
-  const getProjectData = (project: PersonalItem) => {
-    const childItems = personalItems.filter(i => i.projectId === project.id);
+  // Get project/roadmap progress based on child items
+  const getProjectProgress = useCallback((project: PersonalItem) => {
+    const childItems = childItemsByProject.get(project.id) || [];
     const childTasks = childItems.filter(
       i => i.type === 'task' || i.type === 'roadmap' || (i.phases && i.phases.length > 0)
     );
@@ -400,40 +453,29 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
       return acc;
     }, 0);
 
-    const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-
     return {
-      id: project.id,
-      name: project.title || 'ללא שם',
-      status: project.isCompleted ? ('completed' as const) : ('active' as const),
-      progress,
-      totalTasks,
       completedTasks,
-      dueDate: project.dueDate,
-      color: 'var(--dynamic-accent-start)',
-      icon: undefined,
-      isPinned: false,
-      description: project.content,
+      totalTasks,
+      progress: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
     };
-  };
+  }, [childItemsByProject]);
 
-  const getSpaceData = (space: Space) => {
-    const itemCount = personalItems.filter(i => i.spaceId === space.id).length;
+  // PERF: Use pre-computed lookup instead of filtering all items per space
+  const getSpaceData = useCallback((space: Space) => {
     return {
       id: space.id,
       name: space.name,
       icon: space.icon || '📁',
       color: space.color || 'var(--dynamic-accent-start)',
-      itemCount,
+      itemCount: itemCountBySpace.get(space.id) || 0,
       description: undefined,
     };
-  };
+  }, [itemCountBySpace]);
 
   const renderMainHub = () => {
     const hasTimelineItems = personalItems.some(i => i.dueDate);
     const shouldShowProjectsEmpty = !isLoading && projectItems.length === 0;
     const shouldShowSpacesEmpty = !isLoading && personalSpaces.length === 0;
-    const shouldShowInboxEmpty = !isLoading && inboxItems.length === 0;
 
     return (
       <div className="relative min-h-screen">
@@ -444,7 +486,7 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
           onSearchChange={setSearchQuery}
           onOpenSettings={() => setActiveScreen('settings')}
           onOpenAssistant={() => setActiveScreen('assistant')}
-
+          onOpenSplitView={() => openModal('splitViewConfiguration')}
         />
 
         <AnimatePresence mode="wait">
@@ -592,6 +634,63 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
                         />
                       )}
 
+                      {/* Spaces Section - Moved to appear right after Inbox */}
+                      <motion.section
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.15 }}
+                      >
+                        <h2
+                          className="text-sm font-bold uppercase tracking-widest mb-4 px-1"
+                          style={{ color: 'var(--dynamic-accent-start)' }}
+                        >
+                          מרחבים
+                        </h2>
+                        <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
+                          {personalSpaces.map((space, index) => (
+                            <PremiumSpaceCard
+                              key={space.id}
+                              space={getSpaceData(space)}
+                              onOpen={() => setActiveView({ type: 'space', item: space })}
+                              index={index}
+                              isDragging={draggingSpaceId === space.id}
+                              onDragStart={() => handleSpaceDragStart(space)}
+                              onDragOver={() => handleSpaceDragOver(space)}
+                              onDrop={handleSpaceDrop}
+                            />
+                          ))}
+
+                          {/* Add Space Card */}
+                          <motion.button
+                            onClick={() => setIsAddSpaceModalOpen(true)}
+                            className="group relative rounded-2xl p-4 flex flex-col items-center justify-center gap-2 min-h-[100px] transition-all"
+                            style={{
+                              background: 'rgba(255,255,255,0.03)',
+                              border: '1px dashed rgba(255,255,255,0.15)',
+                            }}
+                            whileHover={{
+                              scale: 1.02,
+                              borderColor: 'var(--dynamic-accent-start)',
+                              background: 'rgba(255,255,255,0.06)',
+                            }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <motion.div
+                              className="w-10 h-10 rounded-xl flex items-center justify-center"
+                              style={{
+                                background: 'rgba(var(--dynamic-accent-rgb), 0.15)',
+                              }}
+                              whileHover={{ scale: 1.1 }}
+                            >
+                              <PlusIcon className="w-5 h-5" style={{ color: 'var(--dynamic-accent-start)' }} />
+                            </motion.div>
+                            <span className="text-sm font-medium text-gray-400 group-hover:text-white transition-colors">
+                              הוסף מרחב
+                            </span>
+                          </motion.button>
+                        </div>
+                      </motion.section>
+
                       {projectItems.length > 0 ? (
                         <motion.section
                           initial={{ opacity: 0, y: 20 }}
@@ -605,26 +704,53 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
                             מפות דרכים
                           </h2>
                           <div className="grid grid-cols-1 gap-3">
-                            {projectItems.map((roadmap, index) => (
-                              <motion.div
-                                key={roadmap.id}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.1 + index * 0.05 }}
-                              >
-                                <PersonalItemCard
-                                  item={roadmap}
-                                  index={index}
-                                  onSelect={handleSelectItem}
-                                  onUpdate={handleUpdateItem}
-                                  onDelete={handleDeleteItem}
-                                  onContextMenu={handleContextMenu}
-                                  onLongPress={() => { }}
-                                  isInSelectionMode={false}
-                                  isSelected={false}
-                                />
-                              </motion.div>
-                            ))}
+                            {projectItems.map((roadmap, index) => {
+                              const progress = getProjectProgress(roadmap);
+                              return (
+                                <motion.div
+                                  key={roadmap.id}
+                                  initial={{ opacity: 0, y: 20 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: 0.1 + index * 0.05 }}
+                                  className="relative"
+                                >
+                                  <PersonalItemCard
+                                    item={roadmap}
+                                    index={index}
+                                    onSelect={handleSelectItem}
+                                    onUpdate={handleUpdateItem}
+                                    onDelete={handleDeleteItem}
+                                    onContextMenu={handleContextMenu}
+                                    onLongPress={() => { }}
+                                    isInSelectionMode={false}
+                                    isSelected={false}
+                                  />
+                                  {/* Project Progress Bar */}
+                                  {progress.totalTasks > 0 && (
+                                    <div className="mt-2 px-3">
+                                      <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                                        <span>{progress.completedTasks} / {progress.totalTasks} משימות</span>
+                                        <span className="font-mono font-bold" style={{ color: 'var(--dynamic-accent-start)' }}>
+                                          {progress.progress}%
+                                        </span>
+                                      </div>
+                                      <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                        <motion.div
+                                          className="h-full rounded-full"
+                                          style={{
+                                            background: 'linear-gradient(90deg, var(--dynamic-accent-start), var(--dynamic-accent-end))',
+                                            boxShadow: '0 0 10px var(--dynamic-accent-glow)'
+                                          }}
+                                          initial={{ width: 0 }}
+                                          animate={{ width: `${progress.progress}%` }}
+                                          transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 + index * 0.05 }}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                </motion.div>
+                              );
+                            })}
                           </div>
                         </motion.section>
                       ) : (
@@ -658,39 +784,6 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
                             groupBy="type"
                           />
                         </motion.section>
-                      )}
-
-                      {personalSpaces.length > 0 ? (
-                        <motion.section
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.4 }}
-                        >
-                          <h2
-                            className="text-sm font-bold uppercase tracking-widest mb-4 px-1"
-                            style={{ color: 'var(--dynamic-accent-start)' }}
-                          >
-                            מרחבים
-                          </h2>
-                          <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
-                            {personalSpaces.map((space, index) => (
-                              <PremiumSpaceCard
-                                key={space.id}
-                                space={getSpaceData(space)}
-                                onOpen={() => setActiveView({ type: 'space', item: space })}
-                                index={index}
-                              />
-                            ))}
-                          </div>
-                        </motion.section>
-                      ) : (
-                        shouldShowSpacesEmpty && (
-                          <PremiumLibraryEmptyState
-                            type="spaces"
-                            onAction={() => openModal('manageSpaces')}
-                            actionLabel="צור מרחב חדש"
-                          />
-                        )
                       )}
                     </motion.div>
                   )}
@@ -1034,6 +1127,15 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
       {quickNoteDate && (
         <QuickNoteModal date={quickNoteDate} onClose={() => setQuickNoteDate(null)} />
       )}
+
+      {/* Add Space Modal */}
+      <AddSpaceModal
+        isOpen={isAddSpaceModalOpen}
+        onClose={() => setIsAddSpaceModalOpen(false)}
+        onAdd={async (spaceData) => {
+          await addSpace(spaceData);
+        }}
+      />
 
       {statusMessage && (
         <StatusMessage

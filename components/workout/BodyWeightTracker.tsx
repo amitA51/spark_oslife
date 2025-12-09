@@ -104,7 +104,10 @@ const BodyWeightTracker: React.FC<BodyWeightTrackerProps> = ({ onClose, onSave }
       .join(' ');
 
     // Area fill path
-    const areaPath = `${linePath} L ${pathPoints[pathPoints.length - 1].x},${height} L ${pathPoints[0].x},${height} Z`;
+    const lastPoint = pathPoints[pathPoints.length - 1];
+    const firstPoint = pathPoints[0];
+    if (!lastPoint || !firstPoint) return null;
+    const areaPath = `${linePath} L ${lastPoint.x},${height} L ${firstPoint.x},${height} Z`;
 
     return (
       <svg
@@ -209,8 +212,8 @@ const BodyWeightTracker: React.FC<BodyWeightTrackerProps> = ({ onClose, onSave }
             whileTap={{ scale: 0.98 }}
             onClick={() => setShowNumpad(!showNumpad)}
             className={`inline-flex items-baseline gap-2 px-8 py-4 rounded-2xl cursor-pointer transition-all border-2 ${showNumpad
-                ? 'bg-[var(--cosmos-accent-primary)]/10 border-[var(--cosmos-accent-primary)]'
-                : 'bg-white/5 border-transparent hover:border-white/20'
+              ? 'bg-[var(--cosmos-accent-primary)]/10 border-[var(--cosmos-accent-primary)]'
+              : 'bg-white/5 border-transparent hover:border-white/20'
               }`}
           >
             <span className="text-5xl font-black tabular-nums text-white">
@@ -249,8 +252,8 @@ const BodyWeightTracker: React.FC<BodyWeightTrackerProps> = ({ onClose, onSave }
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleNumpadInput(key)}
                     className={`h-14 min-h-[56px] rounded-xl font-bold text-xl transition-all ${key === 'delete'
-                        ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                        : 'bg-white/10 text-white border border-white/10 active:bg-white/20'
+                      ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                      : 'bg-white/10 text-white border border-white/10 active:bg-white/20'
                       }`}
                   >
                     {key === 'delete' ? '⌫' : key}
@@ -291,4 +294,4 @@ const BodyWeightTracker: React.FC<BodyWeightTrackerProps> = ({ onClose, onSave }
   );
 };
 
-export default BodyWeightTracker;
+export default React.memo(BodyWeightTracker);

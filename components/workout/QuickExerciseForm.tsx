@@ -169,4 +169,4 @@ const QuickExerciseForm: React.FC<QuickExerciseFormProps> = ({ onAdd, onClose })
   );
 };
 
-export default QuickExerciseForm;
+export default React.memo(QuickExerciseForm);

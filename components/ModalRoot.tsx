@@ -33,9 +33,7 @@ const ModalRoot: React.FC = () => {
           case 'splitViewConfig':
             return (
               <Suspense fallback={<div />} key={key}>
-                <SplitViewConfigurationModal
-                  onClose={() => closeModal(key)}
-                />
+                <SplitViewConfigurationModal />
               </Suspense>
             );
           case 'quickNote':

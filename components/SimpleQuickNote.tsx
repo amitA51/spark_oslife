@@ -37,7 +37,7 @@ const SimpleQuickNote: React.FC = () => {
 
         try {
             const lines = text.trim().split('\n');
-            const title = lines[0].slice(0, 100);
+            const title = (lines[0] ?? '').slice(0, 100);
             const content = lines.slice(1).join('\n');
 
             if (addPersonalItem) {

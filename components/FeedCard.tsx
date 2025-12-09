@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import type { FeedItem } from '../types';
 import { SparklesIcon, FeedIcon, CheckCircleIcon, BrainCircuitIcon, LinkIcon, ClockIcon, BookmarkIcon } from './icons';
 import { getTagColor } from './icons';
 import { useSettings } from '../src/contexts/SettingsContext';
-import { useHaptics } from '../hooks/useHaptics';
 
 interface FeedCardV2Props {
   item: FeedItem;
@@ -55,19 +54,14 @@ const getFaviconUrl = (link: string) => {
 const FeedCardV2: React.FC<FeedCardV2Props> = ({
   item,
   index,
-  onSelect,
-  onLongPress,
-  onContextMenu,
   isInSelectionMode,
   isSelected,
 }) => {
   const { settings } = useSettings();
   const { cardStyle } = settings.themeSettings;
   const cardRef = useRef<HTMLDivElement>(null);
-  const { triggerHaptic } = useHaptics();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // PERFORMANCE: Memoize expensive calculations
   const thumbnailUrl = useMemo(() => extractImageFromContent(item.content || '', item.link), [item.content, item.link]);
@@ -94,30 +88,6 @@ const FeedCardV2: React.FC<FeedCardV2Props> = ({
       }
     };
   }, [cardStyle]);
-
-  // Handle long press for mobile
-  const handleTouchStart = useCallback(() => {
-    longPressTimer.current = setTimeout(() => {
-      triggerHaptic('medium');
-      onLongPress(item);
-    }, 500);
-  }, [item, onLongPress, triggerHaptic]);
-
-  const handleTouchEnd = useCallback(() => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-  }, []);
-
-  // PERFORMANCE: Cleanup timer on unmount to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      if (longPressTimer.current) {
-        clearTimeout(longPressTimer.current);
-      }
-    };
-  }, []);
 
   const contentSnippet =
     item.summary_ai || item.content?.split('\n')[0]?.replace(/<[^>]*>?/gm, '') || '';
@@ -161,21 +131,11 @@ const FeedCardV2: React.FC<FeedCardV2Props> = ({
   return (
     <div
       ref={cardRef}
-      onClick={e => onSelect(item, e)}
-      onContextMenu={e => {
-        e.preventDefault();
-        isInSelectionMode ? onSelect(item, e) : onContextMenu(e, item);
-      }}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
       className={`
-        spark-card spark-card-interactive group
+        spark-card group
         ${item.is_read && !isInSelectionMode ? 'opacity-60' : ''}
         ${isSelected ? 'ring-2 ring-[var(--dynamic-accent-start)] bg-[var(--dynamic-accent-start)]/10 border-[var(--dynamic-accent-start)]/30' : ''}
       `}
-      role="button"
-      tabIndex={0}
       style={{
         animationDelay: `${index * 50}ms`,
         ['--accent-color' as any]: accentColor
@@ -320,14 +280,14 @@ const FeedCardV2: React.FC<FeedCardV2Props> = ({
             </h3>
 
             {contentSnippet && (
-              <p className="text-[13px] text-white/50 line-clamp-2 leading-relaxed font-light">
+              <p className="text-[13px] text-white/45 line-clamp-2 leading-relaxed font-normal">
                 {contentSnippet.substring(0, 150)}
               </p>
             )}
           </div>
 
           {/* Footer: Tags, Time (if image), Actions */}
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
             <div className="flex items-center gap-2 flex-wrap">
               {/* Time (shown here if image is present) */}
               {showImage && (
@@ -342,8 +302,12 @@ const FeedCardV2: React.FC<FeedCardV2Props> = ({
                 return (
                   <span
                     key={tag.id}
-                    className="text-[10px] font-bold px-2 py-1 rounded-md border border-white/5 transition-all duration-200 hover:scale-105"
-                    style={{ backgroundColor: colors.backgroundColor, color: colors.textColor }}
+                    className="text-[10px] font-bold px-2 py-1 rounded-md border transition-all duration-200 hover:scale-105"
+                    style={{
+                      backgroundColor: colors.backgroundColor,
+                      color: colors.textColor,
+                      borderColor: `${colors.textColor}20`
+                    }}
                   >
                     {tag.name}
                   </span>

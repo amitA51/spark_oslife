@@ -3,7 +3,7 @@
  * Manages webhook configurations and triggers external actions on events
  */
 
-import { LOCAL_STORAGE_KEYS as LS } from '../constants';
+import { LOCAL_STORAGE_KEYS as _LS } from '../constants';
 
 // --- Types ---
 
@@ -119,10 +119,26 @@ export const updateWebhook = (id: string, updates: Partial<Webhook>): Webhook | 
 
     if (index === -1) return null;
 
-    webhooks[index] = { ...webhooks[index], ...updates };
+    const existingWebhook = webhooks[index];
+    if (!existingWebhook) return null;
+
+    const updatedWebhook: Webhook = {
+        ...existingWebhook,
+        ...updates,
+        // Ensure required fields remain defined
+        id: existingWebhook.id,
+        name: updates.name ?? existingWebhook.name,
+        url: updates.url ?? existingWebhook.url,
+        events: updates.events ?? existingWebhook.events,
+        isActive: updates.isActive ?? existingWebhook.isActive,
+        createdAt: existingWebhook.createdAt,
+        failureCount: updates.failureCount ?? existingWebhook.failureCount,
+    };
+
+    webhooks[index] = updatedWebhook;
     saveWebhooks(webhooks);
 
-    return webhooks[index];
+    return updatedWebhook;
 };
 
 /**

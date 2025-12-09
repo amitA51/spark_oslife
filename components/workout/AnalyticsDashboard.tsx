@@ -4,8 +4,10 @@ import {
   calculateVolumeHistory,
   calculateFrequency,
   getAverageVolume,
+  calculateMuscleGroupDistribution,
   VolumeDataPoint,
   FrequencyData,
+  MuscleGroupData,
 } from '../../services/analyticsService';
 import {
   calculateStreak,
@@ -61,6 +63,7 @@ const StatCard = ({
 const AnalyticsDashboard: React.FC = () => {
   const [volumeData, setVolumeData] = useState<VolumeDataPoint[]>([]);
   const [frequencyData, setFrequencyData] = useState<FrequencyData[]>([]);
+  const [muscleGroupData, setMuscleGroupData] = useState<MuscleGroupData[]>([]);
   const [avgVolume, setAvgVolume] = useState(0);
   const [streakInfo, setStreakInfo] = useState<StreakInfo>({
     currentStreak: 0,
@@ -80,9 +83,11 @@ const AnalyticsDashboard: React.FC = () => {
       const avg = getAverageVolume(sessions, 10);
       const streak = calculateStreak(sessions);
       const achieves = getAchievements(sessions, streak);
+      const muscleGroups = calculateMuscleGroupDistribution(sessions, 30);
 
       setVolumeData(volume);
       setFrequencyData(frequency);
+      setMuscleGroupData(muscleGroups);
       setAvgVolume(avg);
       setStreakInfo(streak);
       setAchievements(achieves);
@@ -156,8 +161,8 @@ const AnalyticsDashboard: React.FC = () => {
                   transition={{ delay: 0.2 + i * 0.05 }}
                   whileHover={{ scale: 1.02, y: -2 }}
                   className={`p-3 rounded-xl border transition-all ${isUnlocked
-                      ? 'bg-gradient-to-br from-yellow-500/20 to-orange-500/10 border-yellow-500/40 shadow-[0_0_15px_rgba(234,179,8,0.2)]'
-                      : 'bg-white/5 border-white/10 hover:border-white/20'
+                    ? 'bg-gradient-to-br from-yellow-500/20 to-orange-500/10 border-yellow-500/40 shadow-[0_0_15px_rgba(234,179,8,0.2)]'
+                    : 'bg-white/5 border-white/10 hover:border-white/20'
                     }`}
                 >
                   <div className={`text-2xl mb-1 ${isUnlocked ? 'workout-fire-effect' : 'opacity-30 grayscale'}`}>
@@ -341,9 +346,84 @@ const AnalyticsDashboard: React.FC = () => {
           </div>
         </motion.div>
       )}
+
+      {/* Muscle Group Distribution */}
+      {muscleGroupData.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="workout-glass-card rounded-2xl p-5"
+        >
+          <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-pink-400 rounded-full" />
+            התפלגות קבוצות שרירים
+          </h3>
+
+          <div className="flex gap-6">
+            {/* Pie Chart */}
+            <div className="relative w-32 h-32 flex-shrink-0">
+              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                {(() => {
+                  let cumulativePercentage = 0;
+                  return muscleGroupData.map((group, i) => {
+                    const strokeDasharray = `${group.percentage * 2.51327} ${251.327 - group.percentage * 2.51327}`;
+                    const strokeDashoffset = -cumulativePercentage * 2.51327;
+                    cumulativePercentage += group.percentage;
+                    return (
+                      <motion.circle
+                        key={group.name}
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke={group.color}
+                        strokeWidth="20"
+                        strokeDasharray={strokeDasharray}
+                        strokeDashoffset={strokeDashoffset}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.4 + i * 0.1 }}
+                        className="cursor-pointer hover:brightness-125 transition-all"
+                      />
+                    );
+                  });
+                })()}
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-lg font-bold text-white">{muscleGroupData.length}</span>
+              </div>
+            </div>
+
+            {/* Legend */}
+            <div className="flex-1 space-y-2">
+              {muscleGroupData.slice(0, 5).map((group, i) => (
+                <motion.div
+                  key={group.name}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 + i * 0.05 }}
+                  className="flex items-center gap-2 group cursor-pointer"
+                >
+                  <div
+                    className="w-3 h-3 rounded-sm flex-shrink-0 group-hover:scale-110 transition-transform"
+                    style={{ backgroundColor: group.color }}
+                  />
+                  <span className="text-xs text-white/70 flex-1 truncate group-hover:text-white transition-colors">
+                    {group.name}
+                  </span>
+                  <span className="text-xs font-bold text-white/90">
+                    {group.percentage}%
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 };
 
-export default AnalyticsDashboard;
+export default React.memo(AnalyticsDashboard);
 

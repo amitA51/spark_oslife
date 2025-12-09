@@ -201,7 +201,7 @@ const TodayView: React.FC<TodayViewProps> = ({
           <div className="space-y-2">
             {overdueTasks.map((task, index) => (
               <TaskItem key={task.id} item={task} onUpdate={onUpdateItem} onDelete={onDeleteItem}
-                onSelect={onSelectItem} onContextMenu={onContextMenu} onStartFocus={onStartFocus} index={index} />
+                onSelect={onSelectItem} onContextMenu={onContextMenu} index={index} />
             ))}
           </div>
         </Section>
@@ -223,7 +223,7 @@ const TodayView: React.FC<TodayViewProps> = ({
               <motion.div key={task.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }} transition={{ delay: index * 0.03 }}>
                 <TaskItem item={task} onUpdate={onUpdateItem} onDelete={onDeleteItem}
-                  onSelect={onSelectItem} onContextMenu={onContextMenu} onStartFocus={onStartFocus} index={index} />
+                  onSelect={onSelectItem} onContextMenu={onContextMenu} index={index} />
               </motion.div>
             ))}
           </AnimatePresence>
@@ -263,7 +263,7 @@ const TodayView: React.FC<TodayViewProps> = ({
           <div className="space-y-2">
             {completedTasks.map((task, index) => (
               <TaskItem key={task.id} item={task} onUpdate={onUpdateItem} onDelete={onDeleteItem}
-                onSelect={onSelectItem} onContextMenu={onContextMenu} onStartFocus={onStartFocus} index={index} />
+                onSelect={onSelectItem} onContextMenu={onContextMenu} index={index} />
             ))}
           </div>
         </Section>

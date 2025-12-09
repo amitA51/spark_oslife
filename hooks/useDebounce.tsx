@@ -3,7 +3,7 @@
  * A comprehensive collection of timing hooks for React applications
  */
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 // =============================================================================
 // useDebounce - Debounce a value
@@ -195,6 +195,7 @@ export function useThrottle<T>(value: T, interval: number): T {
     if (timeSinceLastUpdate >= interval) {
       lastUpdated.current = now;
       setThrottledValue(value);
+      return undefined;
     } else {
       const timer = setTimeout(() => {
         lastUpdated.current = Date.now();
@@ -314,7 +315,7 @@ export function useDebounceEffect(
   deps: React.DependencyList,
   delay: number
 ): void {
-  const cleanupRef = useRef<(() => void) | void>();
+  const cleanupRef = useRef<(() => void) | void>(undefined);
 
   useEffect(() => {
     const timer = setTimeout(() => {

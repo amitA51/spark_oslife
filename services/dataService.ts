@@ -47,17 +47,19 @@ import {
   syncPersonalItem,
   deletePersonalItem as deleteCloudItem,
   subscribeToPersonalItems,
+  syncBodyWeight,
+  deleteBodyWeight as _deleteCloudBodyWeight,
+  syncWorkoutSession,
+  deleteWorkoutSession as _deleteCloudWorkoutSession,
+  syncWorkoutTemplate,
+  deleteWorkoutTemplate as deleteCloudWorkoutTemplate,
 } from './firestoreService';
 
 // --- IndexedDB Wrapper (Principle 1: Offline First) ---
 const DB_NAME = 'SparkDB';
 const DB_VERSION = 3;
-const OBJECT_STORES = [
-  ...Object.values(LS),
-  'body_weight',
-  'workout_sessions',
-  'workout_templates',
-];
+// Use only the constants from LOCAL_STORAGE_KEYS to avoid duplicate stores
+const OBJECT_STORES = Object.values(LS);
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 let dbInstance: IDBDatabase | null = null;
@@ -87,6 +89,22 @@ const withRetry = async <T>(
 
   throw lastError;
 };
+
+/**
+ * Sync operation wrapper with retry and error logging.
+ * Used for fire-and-forget cloud sync calls to add resilience.
+ */
+const syncWithRetry = (
+  operation: () => Promise<void>,
+  operationName: string
+): void => {
+  withRetry(operation, 3, 500).catch(error => {
+    console.error(`Cloud sync failed after retries (${operationName}):`, error);
+    // In a production app, we could queue this for later retry
+    // or trigger a sync status indicator in the UI
+  });
+};
+
 
 /**
  * Initializes and returns a memoized connection to the IndexedDB database.
@@ -445,7 +463,7 @@ export const addSpark = async (
   });
 
   // Cloud Sync
-  if (auth.currentUser) {
+  if (auth?.currentUser) {
     // We don't have a specific sync function for sparks yet in firestoreService,
     // but we can add it later. For now, we focus on PersonalItems.
   }
@@ -487,7 +505,7 @@ export const addPersonalItem = async (
       itemTitle: newItem.title,
     };
     logEvent({ ...event, itemTitle: event.itemTitle || 'Untitled' });
-    if (auth.currentUser) {
+    if (auth?.currentUser) {
       // Sync event log to cloud
       // We need to construct the full event object or let the service handle it.
       // For simplicity, we'll rely on the local logEvent for now,
@@ -495,9 +513,15 @@ export const addPersonalItem = async (
     }
   }
 
-  // Cloud Sync
-  if (auth.currentUser) {
-    syncPersonalItem(auth.currentUser.uid, newItem).catch(console.error);
+  // Cloud Sync with retry
+  // Cloud Sync with retry
+  const currentUser = auth?.currentUser;
+  if (currentUser) {
+    const userId = currentUser.uid;
+    syncWithRetry(
+      () => syncPersonalItem(userId, newItem),
+      `addPersonalItem:${newItem.id}`
+    );
   }
 
   return newItem;
@@ -530,9 +554,15 @@ export const updatePersonalItem = async (
     }
   }
 
-  // Cloud Sync
-  if (auth.currentUser) {
-    syncPersonalItem(auth.currentUser.uid, updatedItem).catch(console.error);
+  // Cloud Sync with retry
+  // Cloud Sync with retry
+  const currentUser = auth?.currentUser;
+  if (currentUser) {
+    const userId = currentUser.uid;
+    syncWithRetry(
+      () => syncPersonalItem(userId, updatedItem),
+      `updatePersonalItem:${updatedItem.id}`
+    );
   }
 
   return updatedItem;
@@ -542,9 +572,15 @@ export const removePersonalItem = async (id: string): Promise<void> => {
   if (!id) throw new ValidationError('Item ID is required for deletion.');
   await dbDelete(LS.PERSONAL_ITEMS, id);
 
-  // Cloud Sync
-  if (auth.currentUser) {
-    deleteCloudItem(auth.currentUser.uid, id).catch(console.error);
+  // Cloud Sync with retry
+  // Cloud Sync with retry
+  const currentUser = auth?.currentUser;
+  if (currentUser) {
+    const userId = currentUser.uid;
+    syncWithRetry(
+      () => deleteCloudItem(userId, id),
+      `removePersonalItem:${id}`
+    );
   }
 };
 
@@ -584,9 +620,15 @@ export const logFocusSession = async (
     metadata: { duration: durationInMinutes },
   });
 
-  // Cloud Sync
-  if (auth.currentUser) {
-    syncPersonalItem(auth.currentUser.uid, updatedItem).catch(console.error);
+  // Cloud Sync with retry
+  // Cloud Sync with retry
+  const currentUser = auth?.currentUser;
+  if (currentUser) {
+    const userId = currentUser.uid;
+    syncWithRetry(
+      () => syncPersonalItem(userId, updatedItem),
+      `logFocusSession:${updatedItem.id}`
+    );
   }
 
   return updatedItem;
@@ -618,13 +660,24 @@ export const getWatchlist = (): Promise<WatchlistItem[]> =>
 // --- Comfort Zone Challenge ---
 
 export const getComfortZoneChallenge = (): ComfortZoneChallenge | null => {
-  const stored = localStorage.getItem(LS.COMFORT_CHALLENGE);
-  return stored ? JSON.parse(stored) : null;
+  try {
+    const stored = localStorage.getItem(LS.COMFORT_CHALLENGE);
+    if (!stored) return null;
+    return JSON.parse(stored) as ComfortZoneChallenge;
+  } catch (error) {
+    console.warn('Failed to get ComfortZoneChallenge:', error);
+    return null;
+  }
 };
 
 export const setComfortZoneChallenge = (challenge: ComfortZoneChallenge): void => {
-  localStorage.setItem(LS.COMFORT_CHALLENGE, JSON.stringify(challenge));
+  try {
+    localStorage.setItem(LS.COMFORT_CHALLENGE, JSON.stringify(challenge));
+  } catch (error) {
+    console.error('Failed to save ComfortZoneChallenge:', error);
+  }
 };
+
 
 // --- Data Transformation & Refresh ---
 export const convertFeedItemToPersonalItem = async (item: FeedItem): Promise<PersonalItem> => {
@@ -668,6 +721,9 @@ export const exportAllData = async (password?: string): Promise<string> => {
     spaces: await dbGetAll(LS.SPACES),
     customMentors: await dbGetAll(LS.CUSTOM_MENTORS),
     customQuotes: await dbGetAll(LS.CUSTOM_QUOTES),
+    bodyWeight: await dbGetAll(LS.BODY_WEIGHT),
+    workoutSessions: await dbGetAll(LS.WORKOUT_SESSIONS),
+    workoutTemplates: await dbGetAll(LS.WORKOUT_TEMPLATES),
   };
   const exportData: ExportData = {
     settings: loadSettings(),
@@ -737,14 +793,30 @@ export const importAllData = async (jsonData: string, password?: string): Promis
     { name: LS.WATCHLIST, data: data.watchlist },
     { name: LS.SPACES, data: data.spaces },
     { name: LS.CUSTOM_MENTORS, data: data.customMentors },
+    { name: LS.BODY_WEIGHT, data: data.bodyWeight },
+    { name: LS.WORKOUT_SESSIONS, data: data.workoutSessions },
+    { name: LS.WORKOUT_TEMPLATES, data: data.workoutTemplates },
   ];
+
+  // Track import errors to report partial failures
+  const importErrors: string[] = [];
 
   for (const storeInfo of storesToImport) {
     if (storeInfo.data && storeInfo.data.length > 0) {
-      await Promise.all(storeInfo.data.map(item => dbPut(storeInfo.name, item)));
+      try {
+        await Promise.all(storeInfo.data.map(item => dbPut(storeInfo.name, item)));
+      } catch (error) {
+        importErrors.push(`${storeInfo.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
     }
   }
+
+  // If there were partial failures, throw an error with details
+  if (importErrors.length > 0) {
+    throw new Error(`PARTIAL_IMPORT_FAILURE: ${importErrors.join('; ')}`);
+  }
 };
+
 
 export const wipeAllData = async (resetSettings = true): Promise<void> => {
   await Promise.all(
@@ -995,6 +1067,16 @@ export const createWorkoutTemplate = async (
   };
 
   await dbPut(LS.WORKOUT_TEMPLATES, newTemplate);
+
+  // Cloud Sync with retry
+  if (auth?.currentUser) {
+    const userId = auth.currentUser.uid;
+    syncWithRetry(
+      () => syncWorkoutTemplate(userId, newTemplate),
+      `createWorkoutTemplate:${newTemplate.id}`
+    );
+  }
+
   return newTemplate;
 };
 
@@ -1013,6 +1095,16 @@ export const updateWorkoutTemplate = async (
 
   const updatedTemplate = { ...template, ...updates };
   await dbPut(LS.WORKOUT_TEMPLATES, updatedTemplate);
+
+  // Cloud Sync with retry
+  if (auth?.currentUser) {
+    const userId = auth.currentUser.uid;
+    syncWithRetry(
+      () => syncWorkoutTemplate(userId, updatedTemplate),
+      `updateWorkoutTemplate:${id}`
+    );
+  }
+
   return updatedTemplate;
 };
 
@@ -1021,9 +1113,18 @@ export const updateWorkoutTemplate = async (
  * @param {string} id The ID of the template to delete.
  * @returns {Promise<void>} A promise that resolves when the template is deleted.
  */
-export const deleteWorkoutTemplate = (id: string): Promise<void> => {
+export const deleteWorkoutTemplate = async (id: string): Promise<void> => {
   if (!id) throw new ValidationError('Template ID is required for deletion.');
-  return dbDelete(LS.WORKOUT_TEMPLATES, id);
+  await dbDelete(LS.WORKOUT_TEMPLATES, id);
+
+  // Cloud Sync with retry
+  if (auth?.currentUser) {
+    const userId = auth.currentUser.uid;
+    syncWithRetry(
+      () => deleteCloudWorkoutTemplate(userId, id),
+      `deleteWorkoutTemplate:${id}`
+    );
+  }
 };
 
 /**
@@ -1439,11 +1540,70 @@ export const incrementExerciseUse = async (id: string): Promise<void> => {
 // Body Weight
 export const saveBodyWeight = async (entry: BodyWeightEntry): Promise<void> => {
   await dbPut(LS.BODY_WEIGHT, entry);
+
+  // Cloud Sync with retry
+  if (auth?.currentUser) {
+    const userId = auth.currentUser.uid;
+    syncWithRetry(
+      () => syncBodyWeight(userId, entry),
+      `saveBodyWeight:${entry.id}`
+    );
+  }
+};
+
+/**
+ * Replace all personal items with cloud data
+ */
+export const replacePersonalItemsFromCloud = async (items: PersonalItem[]): Promise<void> => {
+  await dbClear(LS.PERSONAL_ITEMS);
+  await Promise.all(items.map(item => dbPut(LS.PERSONAL_ITEMS, item)));
 };
 
 export const getBodyWeightHistory = async (): Promise<BodyWeightEntry[]> => {
   const entries = await dbGetAll<BodyWeightEntry>(LS.BODY_WEIGHT);
   return entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+};
+
+/**
+ * Re-add body weight entry from cloud (no cloud sync trigger)
+ */
+export const reAddBodyWeight = (entry: BodyWeightEntry): Promise<void> =>
+  dbPut(LS.BODY_WEIGHT, entry);
+
+/**
+ * Re-add workout session from cloud (no cloud sync trigger)
+ */
+export const reAddWorkoutSession = (session: WorkoutSession): Promise<void> =>
+  dbPut(LS.WORKOUT_SESSIONS, session);
+
+/**
+ * Re-add workout template from cloud (no cloud sync trigger)
+ */
+export const reAddWorkoutTemplate = (template: WorkoutTemplate): Promise<void> =>
+  dbPut(LS.WORKOUT_TEMPLATES, template);
+
+/**
+ * Replace all body weight entries with cloud data
+ */
+export const replaceBodyWeightFromCloud = async (entries: BodyWeightEntry[]): Promise<void> => {
+  await dbClear(LS.BODY_WEIGHT);
+  await Promise.all(entries.map(entry => dbPut(LS.BODY_WEIGHT, entry)));
+};
+
+/**
+ * Replace all workout sessions with cloud data
+ */
+export const replaceWorkoutSessionsFromCloud = async (sessions: WorkoutSession[]): Promise<void> => {
+  await dbClear(LS.WORKOUT_SESSIONS);
+  await Promise.all(sessions.map(session => dbPut(LS.WORKOUT_SESSIONS, session)));
+};
+
+/**
+ * Replace all workout templates with cloud data
+ */
+export const replaceWorkoutTemplatesFromCloud = async (templates: WorkoutTemplate[]): Promise<void> => {
+  await dbClear(LS.WORKOUT_TEMPLATES);
+  await Promise.all(templates.map(template => dbPut(LS.WORKOUT_TEMPLATES, template)));
 };
 
 export const getLatestBodyWeight = async (): Promise<number | null> => {
@@ -1455,9 +1615,13 @@ export const getLatestBodyWeight = async (): Promise<number | null> => {
 export const saveWorkoutSession = async (session: WorkoutSession): Promise<void> => {
   await dbPut(LS.WORKOUT_SESSIONS, session);
 
-  // Cloud Sync
-  if (auth.currentUser) {
-    // Implement cloud sync for sessions later
+  // Cloud Sync with retry
+  if (auth?.currentUser) {
+    const userId = auth.currentUser.uid;
+    syncWithRetry(
+      () => syncWorkoutSession(userId, session),
+      `saveWorkoutSession:${session.id}`
+    );
   }
 };
 

@@ -16,7 +16,7 @@ const PomodoroMiniWidget: React.FC<PomodoroMiniWidgetProps> = ({ onSessionComple
     // Use enhanced haptics
     const { hapticTap, hapticSuccess, triggerEffect } = useHaptics();
     // Use enhanced sounds
-    const { playSuccess, playComplete, playTick } = useSound();
+    const { playComplete, playTick } = useSound();
 
     const pomodoroSettings = settings.pomodoroSettings;
 

@@ -53,9 +53,10 @@ interface GeneralSectionProps {
 const GeneralSection: React.FC<GeneralSectionProps> = ({ setStatusMessage }) => {
   const { settings, updateSettings } = useSettings();
 
-  const handleSettingChange = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
-    updateSettings({ [key]: value } as any);
+  const handleSettingChange = <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) => {
+    updateSettings({ [key]: value } as Pick<typeof settings, K>);
   };
+
 
   return (
     <SettingsSection title="כללי וטיימר" id="general">
@@ -90,7 +91,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({ setStatusMessage }) => 
         >
           <SegmentedControl
             value={settings.uiDensity}
-            onChange={v => handleSettingChange('uiDensity', v)}
+            onChange={v => handleSettingChange('uiDensity', v as 'compact' | 'comfortable' | 'spacious')}
             options={[
               { label: 'דחוס', value: 'compact' },
               { label: 'רגיל', value: 'comfortable' },
@@ -104,12 +105,27 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({ setStatusMessage }) => 
         >
           <SegmentedControl
             value={settings.animationIntensity}
-            onChange={v => handleSettingChange('animationIntensity', v)}
+            onChange={v => handleSettingChange('animationIntensity', v as 'off' | 'subtle' | 'default' | 'full')}
             options={[
               { label: 'כבוי', value: 'off' },
               { label: 'עדין', value: 'subtle' },
               { label: 'רגיל', value: 'default' },
               { label: 'מלא', value: 'full' },
+            ]}
+          />
+        </SettingsRow>
+        <SettingsRow
+          title="מהירות Tooltips"
+          description="כמה מהר יופיעו התיאורים הקופצים."
+        >
+          <SegmentedControl
+            value={settings.tooltipDelay ?? 'normal'}
+            onChange={v => handleSettingChange('tooltipDelay', v as 'instant' | 'fast' | 'normal' | 'slow')}
+            options={[
+              { label: 'מידי', value: 'instant' },
+              { label: 'מהיר', value: 'fast' },
+              { label: 'רגיל', value: 'normal' },
+              { label: 'איטי', value: 'slow' },
             ]}
           />
         </SettingsRow>
@@ -161,7 +177,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({ setStatusMessage }) => 
             value={settings.visualSettings?.spinnerVariant ?? 'default'}
             onChange={v => handleSettingChange('visualSettings', {
               ...settings.visualSettings,
-              spinnerVariant: v
+              spinnerVariant: v as 'default' | 'dots' | 'pulse' | 'orbit'
             })}
             options={[
               { label: 'רגיל', value: 'default' },
@@ -195,7 +211,7 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({ setStatusMessage }) => 
         <SettingsRow title="תצוגת פיד" description="בחר כיצד להציג את הפריטים בפיד.">
           <SegmentedControl
             value={settings.feedViewMode}
-            onChange={v => handleSettingChange('feedViewMode', v)}
+            onChange={v => handleSettingChange('feedViewMode', v as 'list' | 'visual')}
             options={[
               { label: 'רשימה', value: 'list' },
               { label: 'ויזואלי', value: 'visual' },

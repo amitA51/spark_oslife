@@ -99,8 +99,8 @@ const SetActions: React.FC<SetActionsProps> = ({
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setShowNotes(!showNotes)}
                     className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all ${currentSet.notes
-                            ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                            : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                        : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
                         }`}
                 >
                     <EditIcon className="w-4 h-4" />
@@ -115,8 +115,8 @@ const SetActions: React.FC<SetActionsProps> = ({
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setShowRPE(!showRPE)}
                     className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all ${currentSet.rpe
-                            ? rpeColors[currentSet.rpe] || 'bg-white/5 border-white/10'
-                            : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                        ? rpeColors[currentSet.rpe] || 'bg-white/5 border-white/10'
+                        : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
                         }`}
                 >
                     <span className="text-lg">💪</span>
@@ -218,8 +218,8 @@ const SetActions: React.FC<SetActionsProps> = ({
                                             setShowRPE(false);
                                         }}
                                         className={`py-3 rounded-xl font-bold text-lg border transition-all ${currentSet.rpe === rpe
-                                                ? rpeColors[rpe]
-                                                : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
+                                            ? rpeColors[rpe]
+                                            : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10'
                                             }`}
                                     >
                                         {rpe}
@@ -251,4 +251,4 @@ const SetActions: React.FC<SetActionsProps> = ({
     );
 };
 
-export default SetActions;
+export default React.memo(SetActions);

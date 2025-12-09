@@ -18,6 +18,21 @@ export type Screen =
 export type ItemType = (typeof ITEM_TYPES)[number];
 export type PersonalItemType = (typeof PERSONAL_ITEM_TYPES)[number];
 
+// Split View configuration
+export interface SplitViewConfig {
+  isActive: boolean;
+  left: Screen | 'dashboard';
+  right: Screen | 'feed';
+}
+
+// User type for authentication
+export interface User {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+}
+
 export interface Tag {
   id: string;
   name: string;
@@ -372,7 +387,9 @@ export type AppFont =
   | 'rubik'
   | 'alef'
   | 'poppins'
-  | 'marcelo';
+  | 'marcelo'
+  | 'satoshi'
+  | 'clash-display';
 export type CardStyle = 'glass' | 'flat' | 'bordered';
 export type BorderRadius = 'none' | 'sm' | 'md' | 'lg' | 'xl';
 export type HomeScreenComponentId =
@@ -519,6 +536,12 @@ export interface AppSettings {
 
   // Visual Settings for enhanced components
   visualSettings: VisualSettings;
+
+  // Tooltip Settings
+  tooltipDelay: 'instant' | 'fast' | 'normal' | 'slow'; // Controls tooltip appearance speed
+
+  // Add Screen Settings
+  hideQuickTemplates?: boolean; // Hide quick templates section on add screen (default: false)
 }
 
 
@@ -548,6 +571,10 @@ export interface AppData {
   spaces: Space[];
   customMentors: Mentor[];
   customQuotes: Quote[];
+  // New Workout Data
+  bodyWeight: BodyWeightEntry[];
+  workoutSessions: WorkoutSession[];
+  workoutTemplates: WorkoutTemplate[];
 }
 
 export interface ExportData {

@@ -44,6 +44,7 @@ const Section: React.FC<SectionProps> = React.memo(
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
+                  filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3))',
                 }}
               >
                 {title}
@@ -58,12 +59,12 @@ const Section: React.FC<SectionProps> = React.memo(
             </div>
             {count > 0 && (
               <span
-                className="text-[10px] font-bold px-2.5 py-1 rounded-full border"
+                className="text-[10px] font-bold px-2.5 py-1 rounded-full"
                 style={{
                   background: 'linear-gradient(135deg, var(--dynamic-accent-start)/10, var(--dynamic-accent-end)/5)',
-                  borderColor: 'var(--dynamic-accent-start)',
+                  border: '1px solid var(--dynamic-accent-start)',
                   color: 'var(--dynamic-accent-start)',
-                  boxShadow: '0 2px 8px var(--dynamic-accent-glow)',
+                  boxShadow: '0 2px 8px var(--dynamic-accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
                 }}
               >
                 {count}
@@ -102,7 +103,7 @@ const Section: React.FC<SectionProps> = React.memo(
           className={`space-y-3 transition-all duration-500 ease-spring-soft overflow-hidden ${isExpanded ? 'opacity-100 max-h-[2000px]' : 'opacity-0 max-h-0'}`}
         >
           {count === 0 && emptyMessage ? (
-            <div className="text-center py-8 rounded-2xl bg-white/5 border border-white/5 border-dashed">
+            <div className="text-center py-8 rounded-xl bg-cosmos-depth/40 backdrop-blur-sm border border-white/5 border-dashed">
               <p className="text-sm text-gray-500 italic">
                 {emptyMessage}
               </p>

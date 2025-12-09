@@ -99,7 +99,8 @@ const HabitConsistencyChart: React.FC<HabitConsistencyChartProps> = ({
   const currentStreak = useMemo(() => {
     let streak = 0;
     for (let i = data.length - 1; i >= 0; i--) {
-      if (data[i] && data[i].percentage > 0) {
+      const dayData = data[i];
+      if (dayData && dayData.percentage > 0) {
         streak++;
       } else {
         break;

@@ -1,4 +1,4 @@
-import type { AppSettings, HomeScreenComponent, ThemeSettings, AddableType, VisualSettings } from '../types';
+import type { AppSettings, HomeScreenComponent, ThemeSettings, AddableType } from '../types';
 import { LOCAL_STORAGE_KEYS as LS } from '../constants';
 
 // Updated Themes with Premium, Subtle, and Delicate Colors
@@ -54,18 +54,13 @@ const defaultThemes: Record<string, ThemeSettings> = {
 };
 
 const defaultAddScreenLayout: AddableType[] = [
-  'spark',
-  'task',
   'note',
-  'link',
-  'idea',
+  'workout',
+  'roadmap',
   'learning',
+  'idea',
   'book',
   'journal',
-  'workout',
-  'goal',
-  'roadmap',
-  'ticker',
 ];
 
 const defaultSettings: AppSettings = {
@@ -174,6 +169,9 @@ const defaultSettings: AppSettings = {
     compactTooltips: false,
     spinnerVariant: 'default',
   },
+
+  // Tooltip Settings
+  tooltipDelay: 'normal',
 };
 
 export { defaultSettings };
@@ -201,11 +199,6 @@ const isLocalStorageAvailable = (): boolean => {
   } catch {
     return false;
   }
-};
-
-// Validate hex color format
-const isValidHexColor = (color: string): boolean => {
-  return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color);
 };
 
 export const loadSettings = (): AppSettings => {

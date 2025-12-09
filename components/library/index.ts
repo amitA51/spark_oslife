@@ -4,3 +4,4 @@ export { default as PremiumProjectCard } from './PremiumProjectCard';
 export { default as PremiumSpaceCard } from './PremiumSpaceCard';
 export { default as PremiumQuickActionsFAB } from './PremiumQuickActionsFAB';
 export { default as PremiumLibraryEmptyState } from './PremiumLibraryEmptyState';
+export { default as AddSpaceModal } from './AddSpaceModal';

@@ -18,6 +18,7 @@ interface WorkoutStartModalProps {
     onStartFromTemplate: (template: WorkoutTemplate) => void;
     onStartEmpty: () => void;
     onRepeatLastWorkout: (session: WorkoutSession) => void;
+    onOpenHistory?: () => void;
 }
 
 /**
@@ -30,6 +31,7 @@ const WorkoutStartModal: React.FC<WorkoutStartModalProps> = ({
     onStartFromTemplate,
     onStartEmpty,
     onRepeatLastWorkout,
+    onOpenHistory,
 }) => {
     const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
     const [lastSession, setLastSession] = useState<WorkoutSession | null>(null);
@@ -135,14 +137,28 @@ const WorkoutStartModal: React.FC<WorkoutStartModalProps> = ({
                                     <p className="text-sm text-white/50">בחר איך להתחיל</p>
                                 </div>
                             </div>
-                            <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={onClose}
-                                className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
-                            >
-                                <CloseIcon className="w-5 h-5 text-white/70" />
-                            </motion.button>
+                            <div className="flex items-center gap-2">
+                                {/* History Button */}
+                                {onOpenHistory && (
+                                    <motion.button
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        onClick={onOpenHistory}
+                                        className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                                        title="היסטוריית אימונים"
+                                    >
+                                        <ClockIcon className="w-5 h-5 text-white/70" />
+                                    </motion.button>
+                                )}
+                                <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={onClose}
+                                    className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                                >
+                                    <CloseIcon className="w-5 h-5 text-white/70" />
+                                </motion.button>
+                            </div>
                         </div>
 
                         {/* Tabs */}
@@ -359,4 +375,4 @@ const WorkoutStartModal: React.FC<WorkoutStartModalProps> = ({
     );
 };
 
-export default WorkoutStartModal;
+export default React.memo(WorkoutStartModal);

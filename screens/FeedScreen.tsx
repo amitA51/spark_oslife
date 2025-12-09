@@ -30,7 +30,6 @@ import Skeleton from '../components/Skeleton';
 import { Virtuoso } from 'react-virtuoso';
 import { rafThrottle } from '../utils/performance';
 import PremiumHeader from '../components/PremiumHeader';
-import FeedStoriesWidget from '../components/feed/FeedStoriesWidget';
 import TodayHighlightsWidget from '../components/feed/TodayHighlightsWidget';
 
 // --- Premium Batch Action Bar Component ---
@@ -437,32 +436,48 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ setActiveScreen }) => {
     handleBatchCancel();
   }, [selectedIds, feedItems, removeFeedItem, triggerHaptic, handleBatchCancel]);
 
+  // PERF: Memoize feedIds lookup map separately - avoids recreating Set on every filter change
+  const feedIdsBySpace = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    rssFeeds.forEach(f => {
+      if (f.spaceId) {
+        if (!map.has(f.spaceId)) map.set(f.spaceId, new Set());
+        map.get(f.spaceId)!.add(f.id);
+      }
+    });
+    return map;
+  }, [rssFeeds]);
+
   const filteredItems = useMemo(() => {
     let items = feedItems;
     if (filter === 'sparks') {
       items = items.filter(item => item.type === 'spark');
     } else if (filter !== 'all') {
-      const feedIdsInSpace = new Set(rssFeeds.filter(f => f.spaceId === filter).map(f => f.id));
+      const feedIdsInSpace = feedIdsBySpace.get(filter) || new Set();
       items = items.filter(
         item => item.type === 'rss' && item.source && feedIdsInSpace.has(item.source)
       );
     }
 
     return items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [feedItems, filter, rssFeeds]);
+  }, [feedItems, filter, feedIdsBySpace]);
 
-  const handleMarkAllRead = () => {
+  const handleMarkAllRead = useCallback(async () => {
     const unreadInFilter = filteredItems.filter(item => !item.is_read);
     if (unreadInFilter.length === 0) {
-      showStatus('success', 'אין פריטים חדשים לסמן.');
+      showStatus('success', 'אין פריטים חדשים לסמון.');
       return;
     }
 
-    unreadInFilter.forEach(item => {
-      handleUpdateItem(item.id, { is_read: true });
-    });
-    showStatus('success', `${unreadInFilter.length} פריטים סומנו כנקראו.`);
-  };
+    try {
+      // Batch update all items in parallel instead of N individual updates
+      await Promise.all(unreadInFilter.map(item => updateFeedItem(item.id, { is_read: true })));
+      showStatus('success', `${unreadInFilter.length} פריטים סומנו כנקראו.`);
+    } catch (error) {
+      console.error('Batch mark read failed:', error);
+      showStatus('error', 'שגיאה בעדכון הפריטים.');
+    }
+  }, [filteredItems, updateFeedItem, showStatus]);
 
   return (
     <div className={`screen-shell ${selectionMode ? 'selection-mode' : ''}`}>
@@ -539,12 +554,6 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ setActiveScreen }) => {
           {/* Premium Widgets Section */}
           {filter === 'all' && !isLoading && feedItems.length > 0 && (
             <div className="mb-6">
-              {/* Sparks Stories Carousel */}
-              <FeedStoriesWidget
-                items={feedItems}
-                onSelectItem={(item) => setSelectedItem(item)}
-              />
-
               {/* Today's Highlights */}
               <TodayHighlightsWidget
                 items={feedItems}

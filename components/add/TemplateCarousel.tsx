@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { AddableType } from '../../types';
 import { SparklesIcon } from '../icons';
 import { useHaptics } from '../../hooks/useHaptics';
+import { todayKey } from '../../utils/dateUtils';
 
 interface TemplateCarouselProps {
   templates?: TemplatePreset[];
@@ -31,7 +32,7 @@ const defaultTemplates: TemplatePreset[] = [
     icon: '☀️',
     color: 'from-amber-500 to-orange-500',
     prefillData: {
-      dueDate: new Date().toISOString().split('T')[0],
+      dueDate: todayKey(),
       priority: 'high',
     },
   },
@@ -161,9 +162,8 @@ const TemplateCarousel: React.FC<TemplateCarouselProps> = ({
 
       <div
         ref={scrollRef}
-        className={`flex gap-4 overflow-x-auto px-4 pb-4 snap-x snap-mandatory scrollbar-hide ${
-          isDragging ? 'cursor-grabbing' : 'cursor-grab'
-        }`}
+        className={`flex gap-4 overflow-x-auto px-4 pb-4 snap-x snap-mandatory scrollbar-hide ${isDragging ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}

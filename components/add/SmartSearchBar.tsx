@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AddableType } from '../../types';
 import { SparklesIcon, MicrophoneIcon, CloseIcon } from '../icons';
 import { useHaptics } from '../../hooks/useHaptics';
+import { toDateKey, todayKey } from '../../utils/dateUtils';
 
 interface SmartSearchBarProps {
   onCreateItem: (type: AddableType, data?: any) => void;
@@ -49,19 +50,19 @@ const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
     const tomorrow = lowerText.includes('tomorrow');
     const today = lowerText.includes('today');
     const nextWeek = lowerText.includes('next week');
-    
+
     let dueDate: string | undefined;
     const now = new Date();
     if (tomorrow) {
       const tomorrowDate = new Date(now);
       tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-      dueDate = tomorrowDate.toISOString().split('T')[0];
+      dueDate = toDateKey(tomorrowDate);
     } else if (today) {
-      dueDate = now.toISOString().split('T')[0];
+      dueDate = todayKey();
     } else if (nextWeek) {
       const nextWeekDate = new Date(now);
       nextWeekDate.setDate(nextWeekDate.getDate() + 7);
-      dueDate = nextWeekDate.toISOString().split('T')[0];
+      dueDate = toDateKey(nextWeekDate);
     }
 
     const isImportant = lowerText.includes('important') || lowerText.includes('urgent');
@@ -208,21 +209,18 @@ const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
   return (
     <div className="relative w-full max-w-2xl mx-auto px-4 mb-6">
       <div
-        className={`relative transition-all duration-300 ease-out-expo ${
-          isExpanded ? 'scale-100' : 'scale-95'
-        }`}
+        className={`relative transition-all duration-300 ease-out-expo ${isExpanded ? 'scale-100' : 'scale-95'
+          }`}
       >
         <div
-          className={`relative overflow-hidden rounded-2xl backdrop-blur-xl transition-all duration-300 ${
-            isExpanded
-              ? 'bg-white/10 border-2 border-cyan-500/30 shadow-[0_0_30px_rgba(0,240,255,0.2)]'
-              : 'bg-white/5 border border-white/10 shadow-lg'
-          }`}
+          className={`relative overflow-hidden rounded-2xl backdrop-blur-xl transition-all duration-300 ${isExpanded
+            ? 'bg-white/10 border-2 border-cyan-500/30 shadow-[0_0_30px_rgba(0,240,255,0.2)]'
+            : 'bg-white/5 border border-white/10 shadow-lg'
+            }`}
         >
           <div
-            className={`absolute inset-0 bg-gradient-to-r from-cyan-500/20 via-violet-500/20 to-cyan-500/20 opacity-0 transition-opacity duration-300 ${
-              isExpanded ? 'opacity-100 animate-gradient-flow' : ''
-            }`}
+            className={`absolute inset-0 bg-gradient-to-r from-cyan-500/20 via-violet-500/20 to-cyan-500/20 opacity-0 transition-opacity duration-300 ${isExpanded ? 'opacity-100 animate-gradient-flow' : ''
+              }`}
             style={{
               backgroundSize: '200% 200%',
             }}
@@ -230,16 +228,14 @@ const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
 
           <div className="relative flex items-center gap-3 p-4">
             <div
-              className={`flex-shrink-0 transition-all duration-300 ${
-                isAnalyzing ? 'animate-pulse-glow' : ''
-              }`}
+              className={`flex-shrink-0 transition-all duration-300 ${isAnalyzing ? 'animate-pulse-glow' : ''
+                }`}
             >
               <SparklesIcon
-                className={`w-6 h-6 transition-all duration-300 ${
-                  isExpanded
-                    ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]'
-                    : 'text-white/40'
-                }`}
+                className={`w-6 h-6 transition-all duration-300 ${isExpanded
+                  ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(0,240,255,0.6)]'
+                  : 'text-white/40'
+                  }`}
               />
             </div>
 
@@ -292,11 +288,10 @@ const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
                   <button
                     key={index}
                     onClick={() => handleSelectSuggestion(suggestion)}
-                    className={`w-full text-right p-3 rounded-xl transition-all duration-200 group ${
-                      index === selectedIndex
-                        ? 'bg-white/15 scale-[1.02]'
-                        : 'bg-white/5 hover:bg-white/10'
-                    }`}
+                    className={`w-full text-right p-3 rounded-xl transition-all duration-200 group ${index === selectedIndex
+                      ? 'bg-white/15 scale-[1.02]'
+                      : 'bg-white/5 hover:bg-white/10'
+                      }`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div
@@ -326,11 +321,10 @@ const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
                         {Array.from({ length: 3 }).map((_, i) => (
                           <div
                             key={i}
-                            className={`w-1 h-1 rounded-full transition-all ${
-                              i < Math.floor(suggestion.confidence * 3)
-                                ? 'bg-cyan-400 shadow-[0_0_4px_rgba(0,240,255,0.6)]'
-                                : 'bg-white/20'
-                            }`}
+                            className={`w-1 h-1 rounded-full transition-all ${i < Math.floor(suggestion.confidence * 3)
+                              ? 'bg-cyan-400 shadow-[0_0_4px_rgba(0,240,255,0.6)]'
+                              : 'bg-white/20'
+                              }`}
                           />
                         ))}
                       </div>
@@ -351,13 +345,7 @@ const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
         </div>
       </div>
 
-      {!isExpanded && (
-        <div className="text-center mt-3 animate-fade-in">
-          <p className="text-xs text-white/40">
-            נסה: "תזכיר לי להתקשר למנהל מחר ב-15:00 חשוב"
-          </p>
-        </div>
-      )}
+      {/* Removed example hint for cleaner look */}
     </div>
   );
 };

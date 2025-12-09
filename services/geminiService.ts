@@ -1340,8 +1340,8 @@ Return a JSON object with a key "phases", which is an array of phase objects. Ea
     return result.phases.map(phase => ({
       ...phase,
       // FIX: Add missing properties to satisfy the Omit<RoadmapPhase, ...> type.
-      startDate: new Date().toISOString().split('T')[0] || '',
-      endDate: new Date().toISOString().split('T')[0] || '',
+      startDate: todayKey(),
+      endDate: todayKey(),
       attachments: [],
       status: 'pending',
       dependencies: [],
@@ -1460,7 +1460,7 @@ export const generateAiFeedItems = async (
   existingTitles: string[] = []
 ): Promise<AiGeneratedFeedItem[]> => {
   if (!ai) throw new Error('API Key not configured.');
-  // const settings = loadSettings(); // Unused
+  const settings = loadSettings();
 
   const { itemsPerRefresh: count, topics, customPrompt } = aiFeedSettings;
   const topicsString =
@@ -1478,6 +1478,8 @@ export const generateAiFeedItems = async (
     'השפעה כלכלית נסתרת',
   ];
   const randomPerspective = perspectives[Math.floor(Math.random() * perspectives.length)];
+
+  console.log(`[AI Feed] Generating ${count} sparks on topics: ${topicsString} (perspective: ${randomPerspective})`);
 
   const prompt = `
     אתה עוזר שמייצר פיד ידע אישי בעברית.
@@ -1504,54 +1506,59 @@ export const generateAiFeedItems = async (
     `;
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        temperature: 0.85, // Higher temperature for more creativity
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            items: {
-              type: Type.ARRAY,
+    const items = await withRateLimit(async () => {
+      const response = await ai!.models.generateContent({
+        model: settings.aiModel,
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          temperature: 0.85,
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
               items: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  summary_he: { type: Type.STRING },
-                  insights: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  topics: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  tags: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  level: { type: Type.STRING, enum: ['beginner', 'intermediate', 'advanced'] },
-                  estimated_read_time_min: { type: Type.NUMBER },
-                  digest: { type: Type.STRING },
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    title: { type: Type.STRING },
+                    summary_he: { type: Type.STRING },
+                    insights: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    topics: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    level: { type: Type.STRING, enum: ['beginner', 'intermediate', 'advanced'] },
+                    estimated_read_time_min: { type: Type.NUMBER },
+                    digest: { type: Type.STRING },
+                  },
+                  required: [
+                    'title',
+                    'summary_he',
+                    'insights',
+                    'topics',
+                    'tags',
+                    'level',
+                    'estimated_read_time_min',
+                    'digest',
+                  ],
                 },
-                required: [
-                  'title',
-                  'summary_he',
-                  'insights',
-                  'topics',
-                  'tags',
-                  'level',
-                  'estimated_read_time_min',
-                  'digest',
-                ],
               },
             },
+            required: ['items'],
           },
-          required: ['items'],
         },
-      },
+      });
+      const text = response.text;
+      if (!text) {
+        throw new Error('AI response was empty.');
+      }
+      const result = parseAiJson<AiFeedGenerationResponse>(text);
+      return result.items || [];
     });
-    const text = response.text;
-    if (!text) {
-      throw new Error('AI response was empty.');
-    }
-    const result = parseAiJson<AiFeedGenerationResponse>(text);
-    return result.items || [];
+
+    console.log(`[AI Feed] Successfully generated ${items.length} sparks`);
+    return items;
   } catch (error) {
-    console.error('Error generating AI feed items:', error);
+    console.error('[AI Feed] Error generating AI feed items:', error);
     return [];
   }
 };

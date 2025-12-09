@@ -1,10 +1,18 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+// ExerciseSelector - ULTRA PREMIUM REDESIGN
+// Full-screen bottom sheet with Deep Cosmos aesthetic, mesh gradients, and premium animations
+
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { PersonalExercise, Exercise, WorkoutGoal } from '../../types';
 import * as dataService from '../../services/dataService';
-import { SearchIcon, AddIcon, StarIcon } from '../icons';
+import { SearchIcon, AddIcon, StarIcon, CloseIcon, DumbbellIcon, FlameIcon, TargetIcon, TrophyIcon } from '../icons';
 import { getWorkoutSessions } from '../../services/dataService';
 import { calculatePRsFromHistory, PersonalRecord } from '../../services/prService';
+import './workout-premium.css';
+
+// ============================================================
+// TYPES
+// ============================================================
 
 interface ExerciseSelectorProps {
   onSelect: (exercise: Exercise) => void;
@@ -13,15 +21,358 @@ interface ExerciseSelectorProps {
   goal?: WorkoutGoal;
 }
 
+interface ExerciseStats {
+  last?: { weight: number; reps: number };
+  pr?: PersonalRecord;
+}
+
+// ============================================================
+// HAPTIC HELPER
+// ============================================================
+
+const triggerHaptic = (pattern: number[] = [10]) => {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(pattern);
+  }
+};
+
+// ============================================================
+// UNIQUE ID GENERATOR
+// ============================================================
+
 const makeExerciseId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? `ex-${crypto.randomUUID()}`
     : `ex-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-/**
- * ExerciseSelector - Mobile-first redesign
- * Full-screen bottom sheet with large touch targets and simplified UX
- */
+// ============================================================
+// PREMIUM EXERCISE CARD
+// ============================================================
+
+interface ExerciseCardProps {
+  exercise: PersonalExercise;
+  stats?: ExerciseStats;
+  isSelected: boolean;
+  onSelect: () => void;
+  index: number;
+}
+
+const ExerciseCard = motion(({ exercise, stats, isSelected, onSelect, index }: ExerciseCardProps) => {
+  // Get muscle group icon as SVG
+  const getMuscleIcon = (muscleGroup: string = '') => {
+    const iconClass = "w-6 h-6";
+    switch (muscleGroup.toLowerCase()) {
+      case 'chest':
+      case 'back':
+      case 'shoulders':
+      case 'arms':
+        return <DumbbellIcon className={iconClass} />;
+      case 'legs':
+        return <DumbbellIcon className={iconClass} />;
+      case 'core':
+        return <TargetIcon className={iconClass} />;
+      case 'cardio':
+        return <FlameIcon className={iconClass} />;
+      default:
+        return <DumbbellIcon className={iconClass} />;
+    }
+  };
+
+  return (
+    <motion.button
+      type="button"
+      onClick={() => {
+        triggerHaptic([15, 30, 15]);
+        onSelect();
+      }}
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{
+        delay: index * 0.03,
+        type: 'spring',
+        stiffness: 400,
+        damping: 30
+      }}
+      whileTap={{ scale: 0.97 }}
+      className={`
+        w-full text-right p-4 rounded-3xl
+        transition-all duration-300 ease-out
+        border backdrop-blur-xl
+        min-h-[88px]
+        ${isSelected
+          ? 'bg-gradient-to-r from-[var(--cosmos-accent-primary)]/25 to-[var(--cosmos-accent-cyan)]/15 border-[var(--cosmos-accent-primary)]/60 shadow-[0_0_40px_rgba(99,102,241,0.3),inset_0_0_30px_rgba(99,102,241,0.1)]'
+          : 'bg-gradient-to-br from-white/[0.07] to-white/[0.02] border-white/[0.08] hover:border-white/20 hover:bg-white/[0.1]'
+        }
+      `}
+      style={{
+        boxShadow: isSelected
+          ? '0 8px 32px rgba(99, 102, 241, 0.2), 0 0 1px rgba(255,255,255,0.1)'
+          : '0 4px 24px rgba(0,0,0,0.2)'
+      }}
+    >
+      <div className="flex items-center gap-4">
+        {/* Icon */}
+        <div className={`
+          w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0
+          ${isSelected
+            ? 'bg-gradient-to-br from-[var(--cosmos-accent-primary)] to-[var(--cosmos-accent-cyan)] shadow-[0_0_25px_rgba(99,102,241,0.5)]'
+            : 'bg-gradient-to-br from-white/10 to-white/5 border border-white/10'
+          }
+        `}>
+          {getMuscleIcon(exercise.muscleGroup)}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className={`
+              font-bold text-[15px] truncate
+              ${isSelected ? 'text-white' : 'text-white/90'}
+            `}>
+              {exercise.name}
+            </h3>
+            {exercise.isFavorite && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 500 }}
+              >
+                <StarIcon className="w-4 h-4 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.6)]" filled />
+              </motion.div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 text-[11px]">
+            {exercise.muscleGroup && (
+              <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/50 font-medium">
+                {exercise.muscleGroup}
+              </span>
+            )}
+            {stats?.last && (
+              <span className="text-white/40 flex items-center gap-1">
+                <FlameIcon className="w-3 h-3" />
+                {stats.last.weight}kg × {stats.last.reps}
+              </span>
+            )}
+            {stats?.pr && (
+              <span className="text-amber-400/80 font-semibold flex items-center gap-1">
+                🏆 {stats.pr.maxWeight}kg
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Selection Indicator */}
+        <motion.div
+          className={`
+            w-11 h-11 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0
+            transition-all duration-300
+            ${isSelected
+              ? 'bg-gradient-to-br from-[var(--cosmos-accent-primary)] to-[var(--cosmos-accent-cyan)] text-white shadow-[0_0_20px_rgba(99,102,241,0.5)]'
+              : 'bg-white/5 border-2 border-dashed border-white/20 text-white/40'
+            }
+          `}
+          animate={isSelected ? { rotate: [0, 10, -10, 0] } : {}}
+          transition={{ duration: 0.4 }}
+        >
+          {isSelected ? '✓' : '+'}
+        </motion.div>
+      </div>
+    </motion.button>
+  );
+});
+
+ExerciseCard.displayName = 'ExerciseCard';
+
+// ============================================================
+// CATEGORY PILL
+// ============================================================
+
+interface CategoryPillProps {
+  label: string;
+  emoji?: string;
+  isActive: boolean;
+  onClick: () => void;
+}
+
+const CategoryPill = ({ label, emoji, isActive, onClick }: CategoryPillProps) => (
+  <motion.button
+    type="button"
+    onClick={() => {
+      triggerHaptic();
+      onClick();
+    }}
+    whileTap={{ scale: 0.93 }}
+    className={`
+      relative flex-shrink-0 flex items-center gap-2 
+      px-5 py-3 rounded-2xl
+      font-semibold text-sm
+      transition-all duration-300 ease-out
+      min-h-[52px]
+      ${isActive
+        ? 'text-white'
+        : 'text-white/60 bg-white/5 border border-white/10 hover:bg-white/10 active:bg-white/15'
+      }
+    `}
+    style={isActive ? {
+      background: 'linear-gradient(135deg, var(--cosmos-accent-primary) 0%, var(--cosmos-accent-cyan) 100%)',
+      boxShadow: '0 0 30px rgba(99, 102, 241, 0.4), 0 4px 16px rgba(0,0,0,0.3)'
+    } : {}}
+  >
+    {emoji && <span className="text-lg">{emoji}</span>}
+    <span>{label}</span>
+
+    {isActive && (
+      <motion.div
+        layoutId="activePill"
+        className="absolute inset-0 rounded-2xl -z-10"
+        style={{
+          background: 'linear-gradient(135deg, var(--cosmos-accent-primary) 0%, var(--cosmos-accent-cyan) 100%)',
+        }}
+        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      />
+    )}
+  </motion.button>
+);
+
+// ============================================================
+// QUICK CREATE PANEL
+// ============================================================
+
+interface QuickCreatePanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreate: (name: string, muscleGroup: string) => void;
+  isCreating: boolean;
+  muscleGroups: string[];
+}
+
+const QuickCreatePanel = ({ isOpen, onClose, onCreate, isCreating, muscleGroups }: QuickCreatePanelProps) => {
+  const [name, setName] = useState('');
+  const [muscle, setMuscle] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    } else {
+      setName('');
+      setMuscle('');
+    }
+  }, [isOpen]);
+
+  const handleSubmit = () => {
+    if (name.trim()) {
+      onCreate(name.trim(), muscle);
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0, y: 50, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 30, scale: 0.95 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          className="rounded-3xl overflow-hidden mb-4"
+          style={{
+            background: 'linear-gradient(145deg, rgba(99, 102, 241, 0.15) 0%, rgba(6, 182, 212, 0.1) 100%)',
+            border: '1px solid rgba(99, 102, 241, 0.3)',
+            boxShadow: '0 20px 60px rgba(99, 102, 241, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
+          }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--cosmos-accent-primary)] to-[var(--cosmos-accent-cyan)] flex items-center justify-center shadow-[0_0_20px_rgba(99,102,241,0.4)]">
+                <AddIcon className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-[15px]">תרגיל חדש</h3>
+                <p className="text-[11px] text-white/50">צור והוסף לאימון במכה אחת</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <CloseIcon className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Form */}
+          <div className="p-5 space-y-4">
+            <div>
+              <input
+                ref={inputRef}
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="שם התרגיל"
+                className="w-full h-14 px-5 rounded-2xl bg-black/40 border border-white/15 text-white placeholder:text-white/30 outline-none focus:border-[var(--cosmos-accent-primary)] focus:bg-black/60 transition-all text-[15px] font-medium"
+                onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+              />
+            </div>
+
+            <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+              {muscleGroups.filter(g => g !== 'all').map(group => (
+                <button
+                  key={group}
+                  type="button"
+                  onClick={() => setMuscle(muscle === group ? '' : group)}
+                  className={`
+                    flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-medium transition-all
+                    ${muscle === group
+                      ? 'bg-[var(--cosmos-accent-primary)] text-white'
+                      : 'bg-white/5 text-white/60 border border-white/10'
+                    }
+                  `}
+                >
+                  {group}
+                </button>
+              ))}
+            </div>
+
+            <motion.button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!name.trim() || isCreating}
+              whileTap={{ scale: 0.97 }}
+              className="w-full h-14 rounded-2xl font-bold text-base transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              style={{
+                background: 'linear-gradient(135deg, var(--cosmos-accent-primary) 0%, var(--cosmos-accent-cyan) 100%)',
+                boxShadow: '0 0 30px rgba(99, 102, 241, 0.4)'
+              }}
+            >
+              {isCreating ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                  />
+                  <span className="text-white">יוצר...</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-xl">✨</span>
+                  <span className="text-white">צור והוסף לאימון</span>
+                </>
+              )}
+            </motion.button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
+
 const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   onSelect,
   onClose,
@@ -30,33 +381,33 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
 }) => {
   const [exercises, setExercises] = useState<PersonalExercise[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>('all');
   const [selectedPreset, setSelectedPreset] = useState<'all' | 'push' | 'pull' | 'legs' | 'full'>('all');
   const [selectedExercises, setSelectedExercises] = useState<Set<string>>(new Set());
-  const [exerciseStats, setExerciseStats] = useState<
-    Record<string, { last?: { weight: number; reps: number }; pr?: PersonalRecord }>
-  >({});
-  const [quickName, setQuickName] = useState('');
-  const [quickMuscle, setQuickMuscle] = useState('');
-  const [isCreatingQuick, setIsCreatingQuick] = useState(false);
+  const [exerciseStats, setExerciseStats] = useState<Record<string, ExerciseStats>>({});
   const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const y = useMotionValue(0);
+  const backdropOpacity = useTransform(y, [0, 300], [1, 0]);
+  const sheetScale = useTransform(y, [0, 300], [1, 0.95]);
 
   useEffect(() => {
-    loadExercises();
-    loadStats();
+    loadData();
   }, []);
 
-  const loadExercises = async () => {
-    const data = await dataService.getPersonalExercises();
-    setExercises(data);
-  };
-
-  const loadStats = async () => {
+  const loadData = async () => {
+    setIsLoading(true);
     try {
-      const sessions = await getWorkoutSessions(80);
-      const prMap = calculatePRsFromHistory(sessions);
+      const [data, sessions] = await Promise.all([
+        dataService.getPersonalExercises(),
+        getWorkoutSessions(80)
+      ]);
+      setExercises(data);
 
+      const prMap = calculatePRsFromHistory(sessions);
       const lastMap = new Map<string, { weight: number; reps: number }>();
+
       sessions.forEach(session => {
         session.exercises?.forEach(ex => {
           ex.sets?.forEach(set => {
@@ -67,7 +418,7 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
         });
       });
 
-      const combined: Record<string, { last?: { weight: number; reps: number }; pr?: PersonalRecord }> = {};
+      const combined: Record<string, ExerciseStats> = {};
       lastMap.forEach((val, name) => {
         combined[name] = { ...(combined[name] || {}), last: val };
       });
@@ -77,12 +428,13 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
 
       setExerciseStats(combined);
     } catch (e) {
-      console.error('Failed to load exercise stats for selector', e);
+      console.error('Failed to load exercises', e);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleSingleSelect = async (personalExercise: PersonalExercise) => {
-    // Don't allow adding exercises without names
+  const handleSelect = useCallback(async (personalExercise: PersonalExercise) => {
     if (!personalExercise.name?.trim()) return;
 
     const exercise: Exercise = {
@@ -99,391 +451,375 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
     onSelect(exercise);
 
     setSelectedExercises(prev => {
-      if (prev.has(personalExercise.id)) return prev;
       const next = new Set(prev);
       next.add(personalExercise.id);
       return next;
     });
-  };
+  }, [onSelect]);
 
-  const handleQuickCreate = async () => {
-    const name = quickName.trim();
-    if (!name) return;
-
-    setIsCreatingQuick(true);
+  const handleQuickCreate = useCallback(async (name: string, muscleGroup: string) => {
+    setIsCreating(true);
     try {
       const created = await dataService.createPersonalExercise({
         name,
-        muscleGroup: quickMuscle || undefined,
+        muscleGroup: muscleGroup || undefined,
         defaultRestTime: 90,
         defaultSets: 4,
       });
       setExercises(prev => [created, ...prev]);
-      setQuickName('');
-      setQuickMuscle('');
       setShowQuickCreate(false);
-      await handleSingleSelect(created);
+      await handleSelect(created);
     } catch (e) {
-      console.error('Quick exercise create failed', e);
+      console.error('Quick create failed', e);
     } finally {
-      setIsCreatingQuick(false);
+      setIsCreating(false);
     }
-  };
+  }, [handleSelect]);
 
-  const presetMatches = (ex: PersonalExercise): boolean => {
+  const presetMatches = useCallback((ex: PersonalExercise): boolean => {
     if (selectedPreset === 'all') return true;
     const mg = (ex.muscleGroup || '').toLowerCase();
     switch (selectedPreset) {
-      case 'push':
-        return ['chest', 'shoulders', 'arms', 'triceps'].some(k => mg.includes(k));
-      case 'pull':
-        return ['back', 'arms', 'biceps'].some(k => mg.includes(k));
-      case 'legs':
-        return ['legs', 'quads', 'hamstrings', 'glutes'].some(k => mg.includes(k));
-      case 'full':
-        return true;
-      default:
-        return true;
+      case 'push': return ['chest', 'shoulders', 'arms', 'triceps'].some(k => mg.includes(k));
+      case 'pull': return ['back', 'arms', 'biceps'].some(k => mg.includes(k));
+      case 'legs': return ['legs', 'quads', 'hamstrings', 'glutes'].some(k => mg.includes(k));
+      default: return true;
     }
-  };
+  }, [selectedPreset]);
 
   const filteredExercises = useMemo(() => {
     return exercises.filter(ex => {
-      // Filter out exercises without valid names
       if (!ex.name?.trim()) return false;
       const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesMuscleGroup = selectedMuscleGroup === 'all' || ex.muscleGroup === selectedMuscleGroup;
       const matchesPreset = presetMatches(ex);
-      return matchesSearch && matchesMuscleGroup && matchesPreset;
+      return matchesSearch && matchesPreset;
     });
-  }, [exercises, searchQuery, selectedMuscleGroup, selectedPreset]);
+  }, [exercises, searchQuery, presetMatches]);
 
-  const scoredExercises = useMemo(() => {
+  const sortedExercises = useMemo(() => {
     return filteredExercises.slice().sort((a, b) => {
-      // Favorites first
       if (a.isFavorite && !b.isFavorite) return -1;
       if (!a.isFavorite && b.isFavorite) return 1;
-
-      // Then by use count
       const ua = a.useCount || 0;
       const ub = b.useCount || 0;
       if (ua !== ub) return ub - ua;
-
       return a.name.localeCompare(b.name);
     });
   }, [filteredExercises]);
 
+  // Recent exercises (top 5 most used, only when not searching)
+  const recentExercises = useMemo(() => {
+    if (searchQuery) return [];
+    return exercises
+      .filter(ex => (ex.useCount || 0) > 0)
+      .sort((a, b) => (b.useCount || 0) - (a.useCount || 0))
+      .slice(0, 5);
+  }, [exercises, searchQuery]);
+
+  // Favorite exercises (only when not searching)
+  const favoriteExercises = useMemo(() => {
+    if (searchQuery) return [];
+    return exercises.filter(ex => ex.isFavorite);
+  }, [exercises, searchQuery]);
+
   const muscleGroups = useMemo(() => {
-    return ['all', ...Array.from(new Set(exercises.map(ex => ex.muscleGroup).filter(Boolean)))];
+    const groups = exercises.map(ex => ex.muscleGroup).filter((g): g is string => !!g);
+    return ['all', ...Array.from(new Set(groups))];
   }, [exercises]);
 
-  const favoriteExercises = useMemo(() => scoredExercises.filter(ex => ex.isFavorite), [scoredExercises]);
-  const recentExercises = useMemo(() => scoredExercises.filter(ex => (ex.useCount || 0) > 0).slice(0, 8), [scoredExercises]);
-
-  // Muscle group display names in Hebrew
-  const muscleGroupLabels: Record<string, string> = {
-    'all': 'הכל',
-    'Chest': 'חזה',
-    'Back': 'גב',
-    'Shoulders': 'כתפיים',
-    'Arms': 'ידיים',
-    'Legs': 'רגליים',
-    'Core': 'בטן',
-    'Cardio': 'אירובי',
-  };
-
   const presets = [
-    { id: 'all', label: 'הכל', emoji: '💪' },
-    { id: 'push', label: 'דחיפה', emoji: '🏋️' },
-    { id: 'pull', label: 'משיכה', emoji: '🧲' },
-    { id: 'legs', label: 'רגליים', emoji: '🦵' },
-    { id: 'full', label: 'גוף מלא', emoji: '⚡' },
+    { id: 'all', label: 'הכל' },
+    { id: 'push', label: 'דחיפה' },
+    { id: 'pull', label: 'משיכה' },
+    { id: 'legs', label: 'רגליים' },
+    { id: 'full', label: 'גוף מלא' },
   ];
+
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
+    if (info.offset.y > 150) {
+      onClose();
+    }
+  };
 
   return (
     <motion.div
-      className="fixed inset-0 z-[11000] bg-black/95 backdrop-blur-xl flex flex-col"
-      initial={{ opacity: 0, y: '100%' }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: '100%' }}
-      transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+      className="fixed inset-0 z-[11000] flex flex-col"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
     >
-      {/* Header - Sticky, compact */}
-      <div className="flex-shrink-0 safe-area-top">
-        <div className="flex justify-between items-center px-4 py-3 border-b border-white/10">
-          <button
-            onClick={onClose}
-            className="flex items-center gap-2 px-3 py-2 -ml-2 text-white/70 hover:text-white transition-colors min-h-[44px]"
-          >
-            <span className="text-lg">→</span>
-            <span className="text-sm font-medium">חזור</span>
-          </button>
-          <h2 className="text-lg font-bold text-white">בחירת תרגילים</h2>
-          <div className="w-20" /> {/* Spacer for centering */}
+      {/* Backdrop */}
+      <motion.div
+        className="absolute inset-0 bg-black/90 backdrop-blur-2xl"
+        style={{ opacity: backdropOpacity }}
+        onClick={onClose}
+      />
+
+      {/* Mesh gradient background */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-[40%] -right-[30%] w-[80%] h-[80%] rounded-full bg-[var(--cosmos-accent-primary)]/20 blur-[120px]" />
+        <div className="absolute -bottom-[20%] -left-[30%] w-[70%] h-[70%] rounded-full bg-[var(--cosmos-accent-cyan)]/15 blur-[100px]" />
+      </div>
+
+      {/* Sheet */}
+      <motion.div
+        className="relative flex-1 flex flex-col mt-8 rounded-t-[32px] overflow-hidden"
+        style={{
+          scale: sheetScale,
+          y,
+          background: 'linear-gradient(180deg, rgba(15,15,25,0.98) 0%, rgba(10,10,18,0.99) 100%)',
+          boxShadow: '0 -20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)'
+        }}
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.5 }}
+        onDragEnd={handleDragEnd}
+      >
+        {/* Drag Handle */}
+        <div className="flex justify-center py-3">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
         </div>
 
-        {/* Search Bar */}
-        <div className="px-4 py-3 bg-black/50">
-          <div className="relative">
-            <SearchIcon className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+        {/* Header */}
+        <div className="px-5 pb-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-2xl font-black text-white tracking-tight">בחר תרגילים</h1>
+              <p className="text-sm text-white/40 mt-0.5">
+                {selectedExercises.size > 0
+                  ? `${selectedExercises.size} תרגילים נבחרו`
+                  : 'לחץ להוספה לאימון'
+                }
+              </p>
+            </div>
+            <motion.button
+              type="button"
+              onClick={onClose}
+              whileTap={{ scale: 0.9 }}
+              className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all"
+            >
+              <CloseIcon className="w-6 h-6" />
+            </motion.button>
+          </div>
+
+          {/* Search */}
+          <div className="relative mb-4">
+            <SearchIcon className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="חיפוש תרגיל..."
-              className="w-full h-12 pr-12 pl-4 rounded-2xl bg-white/10 border border-white/10 text-white placeholder:text-white/40 outline-none focus:border-[var(--aw-accent)] transition-colors text-base"
+              className="w-full h-14 pr-14 pl-5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 outline-none focus:border-[var(--cosmos-accent-primary)]/50 focus:bg-white/8 transition-all text-[15px]"
             />
           </div>
-        </div>
 
-        {/* Preset Filters - Large touch targets */}
-        <div className="px-4 pb-3 bg-black/50 border-b border-white/10">
-          <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+          {/* Presets */}
+          <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar -mx-1 px-1">
             {presets.map(preset => (
-              <button
+              <CategoryPill
                 key={preset.id}
+                label={preset.label}
+                emoji={preset.emoji}
+                isActive={selectedPreset === preset.id}
                 onClick={() => setSelectedPreset(preset.id as typeof selectedPreset)}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-full text-sm font-semibold transition-all whitespace-nowrap ${selectedPreset === preset.id
-                  ? 'bg-[var(--aw-accent)] text-black shadow-[0_0_15px_rgba(34,211,238,0.4)]'
-                  : 'bg-white/10 text-white/70 border border-white/10 active:scale-95'
-                  }`}
-              >
-                <span>{preset.emoji}</span>
-                <span>{preset.label}</span>
-              </button>
+              />
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto overscroll-contain">
-        {/* Quick Actions */}
-        <div className="px-4 py-4 space-y-3">
-          {/* Quick Create Toggle */}
-          <motion.button
-            onClick={() => setShowQuickCreate(!showQuickCreate)}
-            className={`w-full min-h-[56px] px-4 py-3 rounded-2xl border-2 border-dashed transition-all flex items-center justify-center gap-3 ${showQuickCreate
-              ? 'border-[var(--aw-accent)] bg-[var(--aw-accent)]/10 text-[var(--aw-accent)]'
-              : 'border-white/20 text-white/60 hover:border-[var(--aw-accent)]/50'
-              }`}
-            whileTap={{ scale: 0.98 }}
-          >
-            <AddIcon className="w-6 h-6" />
-            <span className="font-bold text-base">יצירת תרגיל חדש</span>
-          </motion.button>
-
-          {/* Quick Create Form */}
-          <AnimatePresence>
-            {showQuickCreate && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 pb-[120px]">
+          {/* Quick Create */}
+          <div className="mb-4">
+            {!showQuickCreate ? (
+              <motion.button
+                type="button"
+                onClick={() => {
+                  triggerHaptic([15, 50, 15]);
+                  setShowQuickCreate(true);
+                }}
+                whileTap={{ scale: 0.97 }}
+                className="w-full h-16 rounded-2xl border-2 border-dashed border-white/20 flex items-center justify-center gap-3 text-white/50 hover:text-white hover:border-[var(--cosmos-accent-primary)]/40 hover:bg-[var(--cosmos-accent-primary)]/5 transition-all"
               >
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                  <input
-                    type="text"
-                    value={quickName}
-                    onChange={e => setQuickName(e.target.value)}
-                    placeholder="שם התרגיל (חובה)"
-                    autoFocus
-                    className="w-full h-12 px-4 rounded-xl bg-black/40 border border-white/15 text-white placeholder:text-white/40 outline-none focus:border-[var(--aw-accent)] transition-colors"
-                  />
-                  <select
-                    value={quickMuscle}
-                    onChange={e => setQuickMuscle(e.target.value)}
-                    className="w-full h-12 px-4 rounded-xl bg-black/40 border border-white/15 text-white outline-none appearance-none"
-                  >
-                    <option value="" className="text-black">בחר קבוצת שרירים (אופציונלי)</option>
-                    {muscleGroups.filter(g => g !== 'all').map(g => (
-                      <option key={g} value={g} className="text-black">
-                        {muscleGroupLabels[g || ''] || g}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={handleQuickCreate}
-                    disabled={!quickName.trim() || isCreatingQuick}
-                    className="w-full h-12 rounded-xl bg-[var(--aw-accent)] text-black font-bold text-base shadow-[0_0_20px_rgba(34,211,238,0.3)] disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
-                  >
-                    {isCreatingQuick ? 'יוצר...' : '✓ צור והוסף לאימון'}
-                  </button>
-                </div>
-              </motion.div>
+                <AddIcon className="w-6 h-6" />
+                <span className="font-bold text-[15px]">יצירת תרגיל חדש</span>
+              </motion.button>
+            ) : (
+              <QuickCreatePanel
+                isOpen={showQuickCreate}
+                onClose={() => setShowQuickCreate(false)}
+                onCreate={handleQuickCreate}
+                isCreating={isCreating}
+                muscleGroups={muscleGroups}
+              />
             )}
-          </AnimatePresence>
-        </div>
-
-        {/* Favorites Section */}
-        {favoriteExercises.length > 0 && (
-          <div className="px-4 pb-4">
-            <div className="flex items-center gap-2 mb-3">
-              <StarIcon className="w-4 h-4 text-yellow-400" filled />
-              <span className="text-sm font-semibold text-yellow-400">מועדפים</span>
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
-              {favoriteExercises.map(ex => (
-                <motion.button
-                  key={`fav-${ex.id}`}
-                  onClick={() => handleSingleSelect(ex)}
-                  whileTap={{ scale: 0.95 }}
-                  className={`flex-shrink-0 px-4 py-3 min-h-[52px] rounded-2xl border transition-all ${selectedExercises.has(ex.id)
-                    ? 'bg-[var(--aw-accent)]/20 border-[var(--aw-accent)]'
-                    : 'bg-yellow-400/10 border-yellow-400/30 active:bg-yellow-400/20'
-                    }`}
-                >
-                  <span className="font-semibold text-white whitespace-nowrap">{ex.name}</span>
-                </motion.button>
-              ))}
-            </div>
           </div>
-        )}
 
-        {/* Recent Section */}
-        {recentExercises.length > 0 && !searchQuery && (
-          <div className="px-4 pb-4">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-lg">🔥</span>
-              <span className="text-sm font-semibold text-white/70">לאחרונה בשימוש</span>
+          {/* Loading */}
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                className="w-12 h-12 rounded-full border-3 border-white/10 border-t-[var(--cosmos-accent-primary)]"
+              />
+              <p className="text-white/40 mt-4">טוען תרגילים...</p>
             </div>
-            <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
-              {recentExercises.map(ex => (
-                <motion.button
-                  key={`recent-${ex.id}`}
-                  onClick={() => handleSingleSelect(ex)}
-                  whileTap={{ scale: 0.95 }}
-                  className={`flex-shrink-0 px-4 py-3 min-h-[52px] rounded-2xl border transition-all ${selectedExercises.has(ex.id)
-                    ? 'bg-[var(--aw-accent)]/20 border-[var(--aw-accent)]'
-                    : 'bg-white/5 border-white/10 active:bg-white/10'
-                    }`}
-                >
-                  <span className="font-semibold text-white whitespace-nowrap">{ex.name}</span>
-                </motion.button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Muscle Group Filter */}
-        {muscleGroups.length > 2 && (
-          <div className="px-4 pb-3">
-            <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
-              {muscleGroups.map(group => (
-                <button
-                  key={group}
-                  onClick={() => setSelectedMuscleGroup(group || 'all')}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${selectedMuscleGroup === group
-                    ? 'bg-white text-black'
-                    : 'bg-white/5 text-white/60 border border-white/10'
-                    }`}
-                >
-                  {muscleGroupLabels[group || ''] || group}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Exercise List */}
-        <div className="px-4 pb-4">
-          {scoredExercises.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
-                <SearchIcon className="w-8 h-8 text-white/20" />
+          ) : sortedExercises.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex flex-col items-center justify-center py-16 text-center"
+            >
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 flex items-center justify-center mb-6">
+                <DumbbellIcon className="w-10 h-10 text-white/20" />
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">לא נמצאו תרגילים</h3>
-              <p className="text-white/40 mb-6 text-sm">
-                {searchQuery ? 'נסה מילות חיפוש אחרות' : 'צור את התרגיל הראשון שלך'}
+              <h3 className="text-xl font-bold text-white mb-2">
+                {searchQuery ? 'לא נמצאו תוצאות' : 'עוד אין תרגילים'}
+              </h3>
+              <p className="text-white/40 text-sm mb-6 max-w-[240px]">
+                {searchQuery ? 'נסה מילות חיפוש אחרות או צור תרגיל חדש' : 'צור את התרגיל הראשון שלך'}
               </p>
-              <button
+              <motion.button
+                type="button"
                 onClick={() => setShowQuickCreate(true)}
-                className="px-6 py-3 rounded-xl bg-[var(--aw-accent)] text-black font-bold"
+                whileTap={{ scale: 0.95 }}
+                className="px-6 py-3 rounded-2xl font-bold text-white"
+                style={{
+                  background: 'linear-gradient(135deg, var(--cosmos-accent-primary) 0%, var(--cosmos-accent-cyan) 100%)',
+                  boxShadow: '0 0 30px rgba(99, 102, 241, 0.4)'
+                }}
               >
                 + צור תרגיל חדש
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           ) : (
-            <div className="space-y-2">
-              {scoredExercises.map(exercise => {
-                const isSelected = selectedExercises.has(exercise.id);
-                const stats = exerciseStats[exercise.name];
+            <div className="space-y-5">
+              {/* Favorites Section */}
+              {favoriteExercises.length > 0 && selectedPreset === 'all' && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <StarIcon className="w-4 h-4 text-amber-400" />
+                    <h3 className="text-sm font-bold text-amber-400">מועדפים</h3>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+                    {favoriteExercises.map((exercise, index) => (
+                      <motion.button
+                        key={exercise.id}
+                        type="button"
+                        onClick={() => handleSelect(exercise)}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="flex-shrink-0 px-4 py-3 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 border border-amber-500/30 text-white font-medium text-sm min-w-[120px]"
+                      >
+                        <div className="flex items-center gap-2">
+                          <StarIcon className="w-3 h-3 text-amber-400" />
+                          <span className="truncate">{exercise.name}</span>
+                        </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-                return (
-                  <motion.div
-                    key={exercise.id}
-                    onClick={() => handleSingleSelect(exercise)}
-                    whileTap={{ scale: 0.98 }}
-                    className={`w-full p-4 rounded-2xl transition-all flex items-center gap-4 border cursor-pointer min-h-[72px] ${isSelected
-                      ? 'bg-[var(--aw-accent)]/15 border-[var(--aw-accent)] shadow-[0_0_15px_rgba(34,211,238,0.2)]'
-                      : 'bg-white/5 border-transparent active:bg-white/10'
-                      }`}
-                  >
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`font-bold text-base truncate ${isSelected ? 'text-[var(--aw-accent)]' : 'text-white'
-                          }`}>
-                          {exercise.name}
-                        </span>
-                        {exercise.isFavorite && (
-                          <StarIcon className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" filled />
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2 text-xs text-white/50">
-                        {exercise.muscleGroup && (
-                          <span className="px-2 py-0.5 bg-white/10 rounded-full">
-                            {muscleGroupLabels[exercise.muscleGroup] || exercise.muscleGroup}
+              {/* Recent Section */}
+              {recentExercises.length > 0 && selectedPreset === 'all' && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <FlameIcon className="w-4 h-4 text-cyan-400" />
+                    <h3 className="text-sm font-bold text-cyan-400">אחרונים</h3>
+                  </div>
+                  <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+                    {recentExercises.map((exercise, index) => (
+                      <motion.button
+                        key={exercise.id}
+                        type="button"
+                        onClick={() => handleSelect(exercise)}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="flex-shrink-0 px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white font-medium text-sm hover:bg-white/10 transition-all min-w-[120px]"
+                      >
+                        <span className="truncate">{exercise.name}</span>
+                        {exerciseStats[exercise.name]?.last && (
+                          <span className="text-[10px] text-white/40 block mt-1">
+                            {exerciseStats[exercise.name]?.last?.weight}kg × {exerciseStats[exercise.name]?.last?.reps}
                           </span>
                         )}
-                        {stats?.last && (
-                          <span>
-                            אחרון: {stats.last.weight}kg × {stats.last.reps}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-                    {/* Add Indicator */}
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isSelected
-                      ? 'bg-[var(--aw-accent)] text-black'
-                      : 'bg-white/10 text-white/60'
-                      }`}>
-                      {isSelected ? '✓' : '+'}
-                    </div>
-                  </motion.div>
-                );
-              })}
+              {/* All Exercises */}
+              <div>
+                {(recentExercises.length > 0 || favoriteExercises.length > 0) && selectedPreset === 'all' && !searchQuery && (
+                  <h3 className="text-sm font-bold text-white/60 mb-3">כל התרגילים</h3>
+                )}
+                <div className="space-y-3">
+                  {sortedExercises.map((exercise, index) => (
+                    <ExerciseCard
+                      key={exercise.id}
+                      exercise={exercise}
+                      stats={exerciseStats[exercise.name]}
+                      isSelected={selectedExercises.has(exercise.id)}
+                      onSelect={() => handleSelect(exercise)}
+                      index={index}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
-      </div>
 
-      {/* Footer - Fixed */}
-      <div className="flex-shrink-0 p-4 border-t border-white/10 bg-black/80 backdrop-blur-xl safe-area-bottom">
-        {selectedExercises.size > 0 && (
-          <div className="text-center text-sm text-white/60 mb-3">
-            נבחרו {selectedExercises.size} תרגילים
-          </div>
-        )}
-        <motion.button
-          onClick={onClose}
-          whileTap={{ scale: 0.98 }}
-          className="w-full h-14 rounded-2xl bg-[var(--aw-accent)] text-black font-bold text-lg shadow-[0_0_25px_rgba(34,211,238,0.4)] transition-all"
+        {/* Footer */}
+        <div
+          className="absolute bottom-0 left-0 right-0 p-5 pt-4"
+          style={{
+            background: 'linear-gradient(to top, rgba(10,10,18,1) 0%, rgba(10,10,18,0.95) 60%, transparent 100%)'
+          }}
         >
-          {selectedExercises.size > 0 ? '✓ סיום והמשך לאימון' : 'חזרה לאימון'}
-        </motion.button>
-      </div>
+          <div className="safe-area-bottom">
+            <motion.button
+              type="button"
+              onClick={onClose}
+              whileTap={{ scale: 0.97 }}
+              className="w-full h-16 rounded-3xl font-bold text-lg transition-all flex items-center justify-center gap-3"
+              style={{
+                background: selectedExercises.size > 0
+                  ? 'linear-gradient(135deg, var(--cosmos-accent-primary) 0%, var(--cosmos-accent-cyan) 100%)'
+                  : 'rgba(255,255,255,0.1)',
+                boxShadow: selectedExercises.size > 0
+                  ? '0 0 40px rgba(99, 102, 241, 0.5), 0 8px 32px rgba(0,0,0,0.3)'
+                  : 'none',
+                color: selectedExercises.size > 0 ? 'white' : 'rgba(255,255,255,0.6)'
+              }}
+            >
+              {selectedExercises.size > 0 ? (
+                <>
+                  <span className="text-xl">💪</span>
+                  <span>סיום ({selectedExercises.size} תרגילים)</span>
+                </>
+              ) : (
+                <span>חזרה לאימון</span>
+              )}
+            </motion.button>
+          </div>
+        </div>
 
-      {/* Custom scrollbar hiding */}
-      <style>{`
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .safe-area-top { padding-top: env(safe-area-inset-top, 0); }
-        .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
-      `}</style>
+        {/* Scrollbar and safe area styles */}
+        <style>{`
+          .hide-scrollbar::-webkit-scrollbar { display: none; }
+          .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+          .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
+        `}</style>
+      </motion.div>
     </motion.div>
   );
 };

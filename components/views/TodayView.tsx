@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { PersonalItem } from '../../types';
 import { CalendarIcon, ClockIcon, AlertIcon } from '../icons';
 import TaskItem from '../TaskItem';
+import { toDateKey } from '../../utils/dateUtils';
 
 interface TodayViewProps {
   tasks: PersonalItem[];
@@ -21,7 +22,7 @@ const TodayView: React.FC<TodayViewProps> = ({
   const { overdueTasks, morningTasks, afternoonTasks, eveningTasks, noTimeTasks } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = toDateKey(today);
 
     const categorized = {
       overdueTasks: [] as PersonalItem[],

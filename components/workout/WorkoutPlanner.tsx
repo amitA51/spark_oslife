@@ -42,11 +42,12 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ onClose, onStartWorkout
         return Array.from({ length: 7 }, (_, i) => {
             const date = new Date(startOfWeek);
             date.setDate(startOfWeek.getDate() + i);
+            const dateStr = date.toISOString().split('T')[0] ?? '';
             return {
-                date: date.toISOString().split('T')[0],
+                date: dateStr,
                 dayNum: date.getDate(),
-                dayName: WEEKDAYS_HE[i],
-                dayFull: WEEKDAYS_FULL[i],
+                dayName: WEEKDAYS_HE[i] ?? '',
+                dayFull: WEEKDAYS_FULL[i] ?? '',
                 isToday: date.toDateString() === today.toDateString(),
                 isPast: date < new Date(today.setHours(0, 0, 0, 0)),
             };
@@ -112,9 +113,15 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ onClose, onStartWorkout
         );
     }, [schedule, saveSchedule]);
 
-    // Get workouts for a date
-    const getWorkoutsForDate = useCallback((date: string) => {
-        return schedule.filter(w => w.date === date);
+    // Pre-compute workouts by date Map for O(1) lookup instead of filtering on every render
+    const workoutsByDate = useMemo(() => {
+        const map = new Map<string, ScheduledWorkout[]>();
+        for (const w of schedule) {
+            const list = map.get(w.date) || [];
+            list.push(w);
+            map.set(w.date, list);
+        }
+        return map;
     }, [schedule]);
 
     // Stats
@@ -172,26 +179,25 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ onClose, onStartWorkout
             {/* Week Calendar */}
             <div className="flex-shrink-0 p-4">
                 <div className="grid grid-cols-7 gap-2">
-                    {weekDates.map((day, i) => {
-                        const workouts = getWorkoutsForDate(day.date);
+                    {weekDates.map((day) => {
+                        const workouts = workoutsByDate.get(day.date) || [];
                         const hasWorkout = workouts.length > 0;
                         const isCompleted = workouts.some(w => w.completed);
 
                         return (
-                            <motion.button
+                            <button
                                 key={day.date}
-                                whileTap={{ scale: 0.95 }}
                                 onClick={() => {
                                     setSelectedDate(day.date);
                                     if (workouts.length === 0) {
                                         setShowTemplateSelector(true);
                                     }
                                 }}
-                                className={`relative flex flex-col items-center py-3 rounded-xl transition-all ${day.isToday
-                                        ? 'bg-[var(--cosmos-accent-primary)] text-black'
-                                        : selectedDate === day.date
-                                            ? 'bg-white/20 text-white'
-                                            : 'bg-white/5 text-white/70'
+                                className={`relative flex flex-col items-center py-3 rounded-xl transition-transform active:scale-95 ${day.isToday
+                                    ? 'bg-[var(--cosmos-accent-primary)] text-black'
+                                    : selectedDate === day.date
+                                        ? 'bg-white/20 text-white'
+                                        : 'bg-white/5 text-white/70'
                                     }`}
                             >
                                 <span className="text-xs font-medium mb-1">{day.dayName}</span>
@@ -202,7 +208,7 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ onClose, onStartWorkout
                                     <div className={`absolute -bottom-1 w-2 h-2 rounded-full ${isCompleted ? 'bg-green-400' : 'bg-[var(--cosmos-accent-cyan)]'
                                         }`} />
                                 )}
-                            </motion.button>
+                            </button>
                         );
                     })}
                 </div>
@@ -226,7 +232,7 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ onClose, onStartWorkout
                         </div>
 
                         {/* Scheduled Workouts */}
-                        {getWorkoutsForDate(selectedDate).length === 0 ? (
+                        {(workoutsByDate.get(selectedDate) || []).length === 0 ? (
                             <div className="text-center py-8 text-white/40">
                                 <p className="text-4xl mb-2">📅</p>
                                 <p>אין אימונים מתוכננים</p>
@@ -239,14 +245,12 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ onClose, onStartWorkout
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                {getWorkoutsForDate(selectedDate).map(workout => (
-                                    <motion.div
+                                {(workoutsByDate.get(selectedDate) || []).map(workout => (
+                                    <div
                                         key={workout.id}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
                                         className={`p-4 rounded-xl border transition-all ${workout.completed
-                                                ? 'bg-green-500/10 border-green-500/30'
-                                                : 'bg-white/5 border-white/10'
+                                            ? 'bg-green-500/10 border-green-500/30'
+                                            : 'bg-white/5 border-white/10'
                                             }`}
                                     >
                                         <div className="flex items-center justify-between">
@@ -254,8 +258,8 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ onClose, onStartWorkout
                                                 <button
                                                     onClick={() => toggleComplete(workout.id)}
                                                     className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${workout.completed
-                                                            ? 'bg-green-500 border-green-500 text-white'
-                                                            : 'border-white/30'
+                                                        ? 'bg-green-500 border-green-500 text-white'
+                                                        : 'border-white/30'
                                                         }`}
                                                 >
                                                     {workout.completed && '✓'}
@@ -286,7 +290,7 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ onClose, onStartWorkout
                                                 </button>
                                             </div>
                                         </div>
-                                    </motion.div>
+                                    </div>
                                 ))}
                             </div>
                         )}
@@ -326,18 +330,17 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ onClose, onStartWorkout
                                     <p className="text-white/40 text-center py-4">אין תבניות זמינות</p>
                                 ) : (
                                     templates.map(template => (
-                                        <motion.button
+                                        <button
                                             key={template.id}
-                                            whileTap={{ scale: 0.98 }}
                                             onClick={() => addWorkout(selectedDate, template)}
-                                            className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-right hover:bg-white/10 transition-all"
+                                            className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-right hover:bg-white/10 transition-all active:scale-[0.98]"
                                         >
                                             <div className="font-semibold text-white">{template.name}</div>
                                             <div className="text-xs text-white/50 mt-1">
                                                 {template.exercises?.length || 0} תרגילים
                                                 {template.isBuiltin && ' • מובנה'}
                                             </div>
-                                        </motion.button>
+                                        </button>
                                     ))
                                 )}
                             </div>
@@ -363,4 +366,4 @@ const WorkoutPlanner: React.FC<WorkoutPlannerProps> = ({ onClose, onStartWorkout
     );
 };
 
-export default WorkoutPlanner;
+export default React.memo(WorkoutPlanner);

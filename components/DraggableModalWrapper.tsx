@@ -152,7 +152,7 @@ const DraggableModalWrapper: React.FC<DraggableModalWrapperProps> = ({
     >
       {/* Backdrop - clickable to close */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm pointer-events-auto animate-in fade-in-0 duration-200"
+        className="absolute inset-0 bg-black/80 backdrop-blur-md pointer-events-auto animate-in fade-in-0 duration-200"
         onClick={onClose}
       />
 
@@ -163,7 +163,7 @@ const DraggableModalWrapper: React.FC<DraggableModalWrapperProps> = ({
           pointer-events-auto
           ${className}
           ${isDragging ? 'cursor-grabbing scale-[1.01]' : ''}
-          ${isMobile ? 'w-full h-full' : ''}
+          ${isMobile ? 'w-full h-full max-h-[100dvh]' : ''}
           transition-[transform,opacity]
           duration-150
           ease-out

@@ -321,13 +321,17 @@ const PersonalItemDetailModal: React.FC<PersonalItemDetailModalProps> = ({
   const modalBgClass =
     settings.themeSettings.cardStyle === 'glass' ? 'glass-modal-bg' : 'bg-[var(--bg-secondary)]';
 
+  // Full-screen types that need more space for content
+  const isFullScreenType = ['workout', 'learning', 'book', 'roadmap', 'habit'].includes(item.type);
+  const heightClass = isFullScreenType ? 'max-h-[95dvh] min-h-[85dvh]' : 'max-h-[90vh]';
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-75 flex items-end justify-center z-50"
       onClick={() => handleClose()}
     >
       <div
-        className={`${modalBgClass} w-full max-w-2xl max-h-[90vh] responsive-modal rounded-t-3xl shadow-lg flex flex-col border-t border-[var(--border-primary)] ${isClosing ? 'animate-modal-exit' : 'animate-modal-enter'}`}
+        className={`${modalBgClass} w-full max-w-2xl ${heightClass} rounded-t-3xl shadow-lg flex flex-col border-t border-[var(--border-primary)] ${isClosing ? 'animate-modal-exit' : 'animate-modal-enter'}`}
         onClick={e => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

@@ -41,8 +41,8 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({ setStatusMess
   // Google connection status based on Firebase Auth + API access
   const isGoogleConnected = isAuthenticated && hasGoogleApiAccess();
 
-  const handleSettingChange = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
-    updateSettings({ [key]: value } as any);
+  const handleSettingChange = <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) => {
+    updateSettings({ [key]: value } as Pick<typeof settings, K>);
   };
 
   const handleConnectGoogle = async () => {
@@ -264,7 +264,7 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({ setStatusMess
               >
                 <SegmentedControl
                   value={settings.taskReminderTime}
-                  onChange={val => handleSettingChange('taskReminderTime', val)}
+                  onChange={val => handleSettingChange('taskReminderTime', parseInt(val, 10) as 5 | 15 | 30 | 60)}
                   options={[
                     { label: '5 דק׳', value: '5' },
                     { label: '15 דק׳', value: '15' },

@@ -1,7 +1,19 @@
-end: { dateTime: string };
+import React, { useState, useEffect } from 'react';
+import { GoogleCalendarEvent } from '../types';
+import { CloseIcon, CalendarIcon, ClockIcon } from './icons';
+import { toDateKey } from '../utils/dateUtils';
+
+interface CalendarEventModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (event: {
+    summary: string;
+    description?: string;
+    start: { dateTime: string };
+    end: { dateTime: string };
   }) => Promise<void>;
-initialEvent ?: GoogleCalendarEvent;
-linkedTaskTitle ?: string;
+  initialEvent?: GoogleCalendarEvent;
+  linkedTaskTitle?: string;
 }
 
 const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
@@ -44,9 +56,9 @@ const CalendarEventModal: React.FC<CalendarEventModalProps> = ({
         // Default to now + 1 hour
         const now = new Date();
         const later = new Date(now.getTime() + 60 * 60 * 1000);
-        setStartDate(now.toISOString().split('T')[0] || '');
+        setStartDate(toDateKey(now));
         setStartTime(now.toTimeString().slice(0, 5));
-        setEndDate(later.toISOString().split('T')[0] || '');
+        setEndDate(toDateKey(later));
         setEndTime(later.toTimeString().slice(0, 5));
         setSummary(linkedTaskTitle || '');
         setDescription('');

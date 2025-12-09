@@ -11,12 +11,14 @@ import React, {
 import type { FeedItem, PersonalItem, Space } from '../../types';
 import * as dataService from '../../services/dataService';
 import { syncService } from '../../services/syncService';
+import { cloudSyncService } from '../../services/cloudSyncService';
 
 export interface DataContextValue {
   feedItems: FeedItem[];
   personalItems: PersonalItem[];
   spaces: Space[];
   isLoading: boolean;
+  isStale: boolean;
   error: string | null;
 
   // Lazy loading
@@ -58,11 +60,13 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [personalItems, setPersonalItems] = useState<PersonalItem[]>([]);
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false); // Changed to false - no initial load
+  const [isStale, setIsStale] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Track which data types have been loaded
   const loadedTypesRef = useRef<Set<string>>(new Set());
   const loadingTypesRef = useRef<Set<string>>(new Set());
+  const pendingLoadsCount = useRef(0); // Track concurrent loads to fix race condition
 
   // Track mounted state to prevent state updates after unmount
   const mountedRef = useRef(true);
@@ -87,6 +91,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     }
 
     loadingTypesRef.current.add(type);
+    pendingLoadsCount.current++;
     setIsLoading(true);
 
     try {
@@ -126,10 +131,43 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       }
     } finally {
       loadingTypesRef.current.delete(type);
-      if (mountedRef.current && loadingTypesRef.current.size === 0) {
+      pendingLoadsCount.current--;
+      // Only set isLoading to false when ALL pending loads are complete
+      if (mountedRef.current && pendingLoadsCount.current === 0) {
         setIsLoading(false);
       }
     }
+  }, []);
+
+  // CLOUD SYNC: Initialize centralized sync service
+  useEffect(() => {
+    cloudSyncService.initialize({
+      onPersonalItemsUpdate: async (items) => {
+        if (!mountedRef.current) return;
+        console.log(`DataContext: Received ${items.length} personal items from cloud`);
+
+        // Update local DB and State
+        await dataService.replacePersonalItemsFromCloud(items);
+        setPersonalItems(items);
+        loadedTypesRef.current.add('personalItems');
+      },
+      onBodyWeightUpdate: async (entries) => {
+        console.log(`DataContext: Received ${entries.length} body weight entries from cloud`);
+        await dataService.replaceBodyWeightFromCloud(entries);
+      },
+      onWorkoutSessionsUpdate: async (sessions) => {
+        console.log(`DataContext: Received ${sessions.length} workout sessions from cloud`);
+        await dataService.replaceWorkoutSessionsFromCloud(sessions);
+      },
+      onWorkoutTemplatesUpdate: async (templates) => {
+        console.log(`DataContext: Received ${templates.length} workout templates from cloud`);
+        await dataService.replaceWorkoutTemplatesFromCloud(templates);
+      },
+    });
+
+    return () => {
+      cloudSyncService.cleanup();
+    };
   }, []);
 
   // Load essential data for initial screen (personalItems for Today view)
@@ -163,6 +201,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       console.error('Failed to load initial data:', err);
       if (mountedRef.current) {
         setError('Failed to load data');
+        setIsStale(true); // Mark data as potentially stale after load failure
       }
     } finally {
       if (mountedRef.current) {
@@ -174,6 +213,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const refreshAll = useCallback(async () => {
     // Clear loaded types to force reload
     loadedTypesRef.current.clear();
+    setIsStale(false); // Clear stale flag before reload attempt
     await loadAll();
   }, [loadAll]);
 
@@ -249,7 +289,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       personalItems,
       spaces,
       isLoading,
+      isStale,
       error,
+      // These functions have stable refs via useCallback([]) - including them
+      // in deps is unnecessary and would cause excessive re-renders
       loadDataType,
       isDataTypeLoaded,
       refreshAll,
@@ -262,24 +305,9 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       updateSpace,
       removeSpace,
     }),
-    [
-      feedItems,
-      personalItems,
-      spaces,
-      isLoading,
-      error,
-      loadDataType,
-      isDataTypeLoaded,
-      refreshAll,
-      updateFeedItem,
-      removeFeedItem,
-      addPersonalItem,
-      updatePersonalItem,
-      removePersonalItem,
-      addSpace,
-      updateSpace,
-      removeSpace,
-    ]
+    // PERF: Only include data deps - callbacks are stable refs and excluded
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [feedItems, personalItems, spaces, isLoading, isStale, error]
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

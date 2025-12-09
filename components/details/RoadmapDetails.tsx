@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef, DragEvent } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useUI } from '../../src/contexts/UIContext';
 import { PersonalItem, RoadmapPhase, RoadmapTask } from '../../types';
 import {

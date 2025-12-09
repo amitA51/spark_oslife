@@ -62,9 +62,14 @@ const TaskItem: React.FC<TaskItemProps> = ({
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
   const touchStartX = useRef<number | null>(null);
+  const isTogglingRef = useRef(false); // Guard against rapid double-taps
   const swipeThreshold = 100;
 
   const handleToggle = useCallback(() => {
+    // Prevent rapid double-tap race condition
+    if (isTogglingRef.current) return;
+    isTogglingRef.current = true;
+
     triggerHaptic('light');
 
     const isCompleting = !item.isCompleted;
@@ -80,6 +85,9 @@ const TaskItem: React.FC<TaskItemProps> = ({
       isCompleted: !item.isCompleted,
       lastCompleted: !item.isCompleted ? new Date().toISOString() : undefined,
     });
+
+    // Reset guard after a short delay to allow state to propagate
+    setTimeout(() => { isTogglingRef.current = false; }, 300);
   }, [item.id, item.isCompleted, onUpdate, triggerHaptic, playSuccess, playToggle]);
 
 

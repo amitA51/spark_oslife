@@ -69,6 +69,7 @@ const AnimatedProgressRing: React.FC<AnimatedProgressRingProps> = ({
             return () => clearTimeout(timer);
         }
         setPrevPercentage(percentage);
+        return undefined;
     }, [percentage, prevPercentage, showConfetti]);
 
     // Confetti colors

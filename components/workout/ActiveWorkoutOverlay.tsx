@@ -1,6 +1,8 @@
 import React from 'react';
-import ActiveWorkout from './ActiveWorkout';
+// Using new modular architecture - see ./core, ./hooks, ./components, ./overlays
+import { ActiveWorkout } from '.';
 import { useData } from '../../src/contexts/DataContext';
+import { PersonalItem } from '../../types';
 
 const ActiveWorkoutOverlay: React.FC = () => {
   const { personalItems, updatePersonalItem } = useData();
@@ -12,7 +14,7 @@ const ActiveWorkoutOverlay: React.FC = () => {
 
   if (!activeWorkout) return null;
 
-  const handleUpdate = (id: string, updates: any) => {
+  const handleUpdate = (id: string, updates: Partial<PersonalItem>) => {
     void updatePersonalItem(id, updates);
   };
 
@@ -27,4 +29,4 @@ const ActiveWorkoutOverlay: React.FC = () => {
   return <ActiveWorkout item={activeWorkout} onUpdate={handleUpdate} onExit={handleExit} />;
 };
 
-export default ActiveWorkoutOverlay;
+export default React.memo(ActiveWorkoutOverlay);

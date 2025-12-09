@@ -1,4 +1,13 @@
-GripVerticalIcon,
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import { PersonalItem } from '../types';
+import { useSettings } from '../src/contexts/SettingsContext';
+import {
+  CheckCircleIcon,
+  EditIcon,
+  TrashIcon,
+  CalendarIcon,
+  GripVerticalIcon,
   ClockIcon,
   EyeOffIcon,
 } from './icons';

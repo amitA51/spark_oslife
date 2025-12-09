@@ -42,6 +42,9 @@ export const refreshAllFeeds = async (): Promise<FeedItem[]> => {
   const promises: Promise<any>[] = [];
 
   // 1. AI Content Generation
+  console.log(`[Feed Refresh] AI Sparks: ${settings.aiFeedSettings.isEnabled ? 'enabled' : 'disabled'} (${settings.aiFeedSettings.itemsPerRefresh} per refresh)`);
+  console.log(`[Feed Refresh] RSS Feeds: ${allFeeds.length} sources`);
+
   if (settings.aiFeedSettings.isEnabled && settings.aiFeedSettings.itemsPerRefresh > 0) {
     promises.push(
       generateAiFeedItems(

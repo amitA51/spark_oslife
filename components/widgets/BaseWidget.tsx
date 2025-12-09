@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
-import { WidgetSize } from '../../types';
 import { SettingsIcon, RefreshIcon } from '../icons';
+
+type WidgetSize = 'small' | 'medium' | 'large';
 
 interface BaseWidgetProps {
   title: string;

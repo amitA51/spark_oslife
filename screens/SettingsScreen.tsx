@@ -1,29 +1,27 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  PaletteIcon,
-  BrainCircuitIcon,
-  SettingsIcon,
-  CloudIcon,
-  DatabaseIcon,
-  DumbbellIcon,
-  InfoIcon,
-  SparklesIcon,
-  TimerIcon,
-
-} from '../components/icons';
+import React, { useState, useCallback, Suspense, lazy } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { SettingsCategory, SettingItem, getCategoryInfo } from '../components/settings/settingsRegistry';
 import { Screen } from '../types';
 import { useSettings } from '../src/contexts/SettingsContext';
-import { useUser } from '../src/contexts/UserContext';
 import StatusMessage, { StatusMessageType } from '../components/StatusMessage';
-import AppearanceSection from '../components/settings/AppearanceSection';
-import AISection from '../components/settings/AISection';
-import GeneralSection from '../components/settings/GeneralSection';
-import IntegrationsSection from '../components/settings/IntegrationsSection';
-import DataSection from '../components/settings/DataSection';
-import WorkoutSection from '../components/settings/WorkoutSection';
-import AboutSection from '../components/settings/AboutSection';
-import FocusSection from '../components/settings/FocusSection';
 
+// Import new premium components
+import SettingsHeader from '../components/settings/SettingsHeader';
+import SettingsSearch from '../components/settings/SettingsSearch';
+import SettingsFavorites from '../components/settings/SettingsFavorites';
+import SettingsGroups from '../components/settings/SettingsGroups';
+import SettingsSheet from '../components/settings/SettingsSheet';
+
+// Lazy load section components for better performance
+const AppearanceSection = lazy(() => import('../components/settings/AppearanceSection'));
+const AISection = lazy(() => import('../components/settings/AISection'));
+const GeneralSection = lazy(() => import('../components/settings/GeneralSection'));
+const IntegrationsSection = lazy(() => import('../components/settings/IntegrationsSection'));
+const DataSection = lazy(() => import('../components/settings/DataSection'));
+const WorkoutSection = lazy(() => import('../components/settings/WorkoutSection'));
+const AboutSection = lazy(() => import('../components/settings/AboutSection'));
+const FocusSection = lazy(() => import('../components/settings/FocusSection'));
+const ProfileSection = lazy(() => import('../components/settings/ProfileSection'));
 
 type Status = {
   type: StatusMessageType;
@@ -32,155 +30,185 @@ type Status = {
   onUndo?: () => void;
 } | null;
 
-type SettingsSectionId = 'appearance' | 'ai' | 'integrations' | 'general' | 'focus' | 'data' | 'workout' | 'about';
+// Map ALL categories to section components
+const SECTION_COMPONENTS: Partial<Record<SettingsCategory, React.ComponentType<any>>> = {
+  profile: ProfileSection,
+  appearance: AppearanceSection,
+  behavior: GeneralSection,
+  interface: GeneralSection,
+  focus: FocusSection,
+  workout: WorkoutSection,
+  ai: AISection,
+  sync: IntegrationsSection,
+  data: DataSection,
+  about: AboutSection,
+};
+
+// Section loading skeleton
+const SectionSkeleton: React.FC = () => (
+  <div className="space-y-4 animate-pulse">
+    <div className="h-8 w-32 bg-white/[0.08] rounded-lg" />
+    <div className="h-40 bg-white/[0.05] rounded-2xl" />
+    <div className="h-32 bg-white/[0.05] rounded-2xl" />
+  </div>
+);
 
 const SettingsScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = ({
   setActiveScreen,
 }) => {
-  const { settings } = useSettings();
-  const { user } = useUser();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { settings } = useSettings(); // Reserved for future settings-dependent UI
 
-  const sections: { id: SettingsSectionId; label: string; icon: React.ReactNode }[] = [
-    { id: 'appearance', label: 'מראה', icon: <PaletteIcon className="w-5 h-5" /> },
-    { id: 'general', label: 'כללי', icon: <SettingsIcon className="w-5 h-5" /> },
-    { id: 'focus', label: 'פוקוס', icon: <TimerIcon className="w-5 h-5" /> },
-
-    { id: 'ai', label: 'AI', icon: <BrainCircuitIcon className="w-5 h-5" /> },
-    { id: 'integrations', label: 'שילובים', icon: <CloudIcon className="w-5 h-5" /> },
-    { id: 'data', label: 'נתונים', icon: <DatabaseIcon className="w-5 h-5" /> },
-    { id: 'workout', label: 'אימון', icon: <DumbbellIcon className="w-5 h-5" /> },
-    { id: 'about', label: 'אודות', icon: <InfoIcon className="w-5 h-5" /> },
-  ];
-
-  const [activeSection, setActiveSection] = useState<SettingsSectionId>('appearance');
+  // State
+  const [activeCategory, setActiveCategory] = useState<SettingsCategory | null>(null);
   const [statusMessage, setStatusMessage] = useState<Status>(null);
-  const [scrolled, setScrolled] = useState(false);
-  const [imgError, setImgError] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  // Check for deep link on mount
-  useEffect(() => {
-    const deepLink = sessionStorage.getItem('settings_deep_link');
-    if (deepLink === 'add-layout') {
-      setActiveSection('general');
-      sessionStorage.removeItem('settings_deep_link');
+  // Handle category selection - opens bottom sheet on mobile
+  const handleSelectCategory = useCallback((category: SettingsCategory) => {
+    setActiveCategory(category);
+    setIsSheetOpen(true);
+    navigator.vibrate?.(10);
+  }, []);
+
+  // Handle setting selection from search
+  const handleSelectSetting = useCallback((setting: SettingItem) => {
+    setActiveCategory(setting.category);
+    setIsSheetOpen(true);
+    navigator.vibrate?.(10);
+
+    // Track recent setting
+    try {
+      const recent = JSON.parse(localStorage.getItem('settings_recent') || '[]');
+      const newRecent = [
+        { id: setting.id, title: setting.title, category: setting.category, timestamp: Date.now() },
+        ...recent.filter((r: { id: string }) => r.id !== setting.id)
+      ].slice(0, 10);
+      localStorage.setItem('settings_recent', JSON.stringify(newRecent));
+    } catch {
+      // Ignore storage errors
     }
   }, []);
 
-  // Scroll detection for header blur - using passive listener for better performance
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+  // Close sheet
+  const handleCloseSheet = useCallback(() => {
+    setIsSheetOpen(false);
+    setActiveCategory(null);
+  }, []);
+
+  // Get current section component
+  const renderSectionContent = useCallback(() => {
+    if (!activeCategory) return null;
+
+    const SectionComponent = SECTION_COMPONENTS[activeCategory];
+    if (!SectionComponent) {
+      return (
+        <div className="text-center py-12 text-[var(--text-secondary)]">
+          <p>קטגוריה זו עדיין בפיתוח</p>
+        </div>
+      );
+    }
+
+    // Props for sections that need them
+    const sectionProps: Record<string, Record<string, unknown>> = {
+      profile: { setStatusMessage },
+      sync: { setStatusMessage },
+      data: { setActiveScreen, setStatusMessage },
+      behavior: { setStatusMessage },
+      interface: { setStatusMessage },
     };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
-  // Reset image error when user changes
-  useEffect(() => {
-    setImgError(false);
-  }, [user?.photoURL]);
+    return (
+      <Suspense fallback={<SectionSkeleton />}>
+        <SectionComponent {...(sectionProps[activeCategory] || {})} />
+      </Suspense>
+    );
+  }, [activeCategory, setActiveScreen]);
 
-  // Memoized section click handler
-  const handleSectionClick = useCallback((sectionId: SettingsSectionId) => {
-    setActiveSection(sectionId);
-  }, []);
+  // Get category info for sheet header
+  const activeCategoryInfo = activeCategory ? getCategoryInfo(activeCategory) : null;
 
   return (
     <>
       <div className="min-h-screen pb-32">
-        {/* Premium Hero Header */}
-        <header className={`
-          sticky top-0 z-30 transition-all duration-300 -mx-4 px-4
-          ${scrolled
-            ? 'bg-[var(--bg-primary)]/80 backdrop-blur-2xl border-b border-white/[0.05] py-3'
-            : 'bg-transparent py-5'
-          }
-        `}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {/* User Avatar */}
-              <div className="relative">
-                <div className={`
-                  w-12 h-12 rounded-2xl flex items-center justify-center text-2xl
-                  bg-gradient-to-br from-[var(--dynamic-accent-start)]/20 to-[var(--dynamic-accent-end)]/20
-                  border border-[var(--dynamic-accent-start)]/30
-                  shadow-[0_0_20px_var(--dynamic-accent-glow)]
-                  transition-all duration-300
-                  ${scrolled ? 'w-10 h-10 rounded-xl' : ''}
-                `}>
-                  {user?.photoURL && !imgError ? (
-                    <img
-                      src={user.photoURL}
-                      alt="Profile"
-                      className="w-full h-full rounded-2xl object-cover"
-                      onError={() => setImgError(true)}
-                    />
-                  ) : (
-                    settings.userEmoji || '⚙️'
-                  )}
-                </div>
-                {/* Online indicator */}
-                <div className="absolute -bottom-0.5 -left-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-[var(--bg-primary)]" />
-              </div>
+        {/* Premium Parallax Header */}
+        <SettingsHeader />
 
-              <div className={`transition-all duration-300 ${scrolled ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
-                <h1 className="text-2xl font-bold text-white">
-                  {settings.screenLabels?.settings || 'הגדרות'}
-                </h1>
-                <p className="text-sm text-[var(--text-secondary)]">
-                  {user?.displayName || settings.userName || 'התאם את החוויה שלך'}
-                </p>
-              </div>
-            </div>
-
-            {/* Quick Action */}
-            <button className="p-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] transition-all">
-              <SparklesIcon className="w-5 h-5 text-[var(--dynamic-accent-start)]" />
-            </button>
-          </div>
-        </header>
-
-        {/* Section Navigation - Pills */}
-        <div className={`
-          sticky z-20 -mx-4 px-4 py-3 transition-all duration-300
-          ${scrolled ? 'top-[52px]' : 'top-[88px]'}
-          bg-gradient-to-b from-[var(--bg-primary)] via-[var(--bg-primary)]/95 to-transparent
-        `}>
-          <div className="flex overflow-x-auto gap-2 pb-2 no-scrollbar snap-x snap-mandatory">
-            {sections.map((section, index) => (
-              <button
-                key={section.id}
-                onClick={() => handleSectionClick(section.id)}
-                className={`
-                  snap-start flex items-center gap-2 px-4 py-2.5 rounded-xl whitespace-nowrap transition-all duration-300 font-medium text-sm
-                  ${activeSection === section.id
-                    ? 'bg-gradient-to-r from-[var(--dynamic-accent-start)] to-[var(--dynamic-accent-end)] text-white shadow-lg shadow-[var(--dynamic-accent-glow)]/30'
-                    : 'bg-white/[0.05] text-[var(--text-secondary)] border border-white/[0.08] hover:bg-white/[0.1] hover:text-white'
-                  }
-                  animate-premium-fade-in
-                `}
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <span className={activeSection === section.id ? 'drop-shadow-lg' : ''}>{section.icon}</span>
-                <span>{section.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Search Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="sticky top-[70px] z-30 py-3 -mx-1 px-1
+                     bg-gradient-to-b from-[var(--bg-primary)] via-[var(--bg-primary)] to-transparent"
+        >
+          <SettingsSearch
+            onSelectSetting={handleSelectSetting}
+            onSelectCategory={handleSelectCategory}
+          />
+        </motion.div>
 
         {/* Main Content */}
-        <main className="mt-4 px-0 space-y-6">
-          {activeSection === 'appearance' && <AppearanceSection />}
-          {activeSection === 'ai' && <AISection />}
-          {activeSection === 'general' && <GeneralSection setStatusMessage={setStatusMessage} />}
-          {activeSection === 'focus' && <FocusSection />}
-          {activeSection === 'integrations' && <IntegrationsSection setStatusMessage={setStatusMessage} />}
-          {activeSection === 'data' && <DataSection setActiveScreen={setActiveScreen} setStatusMessage={setStatusMessage} />}
-          {activeSection === 'workout' && <WorkoutSection />}
-          {activeSection === 'about' && <AboutSection />}
+        <main className="mt-6 space-y-8 px-0">
+          {/* Favorites & Recent */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <SettingsFavorites
+              onSelectSetting={handleSelectSetting}
+              onViewAll={() => { }}
+            />
+          </motion.div>
+
+          {/* iOS-Style Grouped Categories */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <SettingsGroups onSelectCategory={handleSelectCategory} />
+          </motion.div>
+
+          {/* Footer */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-center py-6 text-xs text-[var(--text-tertiary)]"
+          >
+            <p>Spark OS v2.0.0</p>
+            <p className="mt-1">נבנה עם ❤️ עבורך</p>
+          </motion.div>
         </main>
       </div>
 
+      {/* Bottom Sheet for Category Content */}
+      <SettingsSheet
+        isOpen={isSheetOpen}
+        onClose={handleCloseSheet}
+        title={activeCategoryInfo?.title || 'הגדרות'}
+        icon={
+          activeCategoryInfo && (
+            <span className="text-xl">{activeCategoryInfo.icon}</span>
+          )
+        }
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeCategory}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          >
+            {renderSectionContent()}
+          </motion.div>
+        </AnimatePresence>
+      </SettingsSheet>
+
+      {/* Status Messages */}
       {statusMessage && (
         <StatusMessage
           key={statusMessage.id}

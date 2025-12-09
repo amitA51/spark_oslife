@@ -7,6 +7,7 @@ import { useFocusSession } from '../../src/contexts/FocusContext';
 import { useHabitReminders } from '../../hooks/useHabitReminders';
 import { useTaskReminders } from '../../hooks/useTaskReminders';
 import { useBeforeUnloadWarning } from '../../hooks/useBeforeUnloadWarning';
+import { useDoubleTapExit } from '../../hooks/useDoubleTapExit';
 import { useGoogleCalendar } from '../../hooks/useGoogleCalendar';
 import { useThemeEffect } from '../../hooks/useThemeEffect';
 import { usePwaUpdate } from '../../hooks/usePwaUpdate';
@@ -16,6 +17,7 @@ import AppLifecycle from './AppLifecycle';
 import AppKeyboardShortcuts from './AppKeyboardShortcuts';
 import AppMonitoring from './AppMonitoring';
 import AppRouter from './AppRouter';
+import AppLoading from '../AppLoading';
 import { StatusMessageType } from '../StatusMessage';
 import type { Screen, PersonalItem } from '../../types';
 
@@ -46,6 +48,7 @@ const AppCore: React.FC = () => {
   } | null>(null);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isGuest, setIsGuest] = useState(!!localStorage.getItem('isGuest'));
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   // Handle Guest Access
   const handleGuestAccess = useCallback(() => {
@@ -69,6 +72,16 @@ const AppCore: React.FC = () => {
   useGoogleCalendar(showStatus);
   useThemeEffect({ themeSettings, uiDensity, animationIntensity, fontSizeScale });
   const { updateAvailable, applyUpdate } = usePwaUpdate();
+
+  // Double-tap back button to exit protection
+  useDoubleTapExit({
+    enabled: true,
+    message: 'לחץ שוב ליציאה מהאפליקציה',
+    timeout: 2000,
+    onFirstTap: (msg) => {
+      showStatus('info', msg);
+    },
+  });
 
   // Notify user when update is available
   React.useEffect(() => {
@@ -107,6 +120,7 @@ const AppCore: React.FC = () => {
         setIsGuest={setIsGuest}
         setActiveScreen={setActiveScreen}
         defaultScreen={settings.defaultScreen}
+        setIsAuthLoading={setIsAuthLoading}
       />
 
       {/* Keyboard Shortcuts */}
@@ -115,25 +129,30 @@ const AppCore: React.FC = () => {
       {/* Performance Monitoring */}
       <AppMonitoring feedItems={feedItems} showStatus={showStatus} />
 
-      {/* Main Router & UI */}
-      <AppRouter
-        activeScreen={activeScreen}
-        setActiveScreen={setActiveScreen}
-        activeSession={activeSession}
+      {/* Show loading while auth is being determined */}
+      {isAuthLoading ? (
+        <AppLoading />
+      ) : (
+        /* Main Router & UI */
+        <AppRouter
+          activeScreen={activeScreen}
+          setActiveScreen={setActiveScreen}
+          activeSession={activeSession}
 
-        themeSettings={themeSettings}
-        statusMessage={statusMessage}
-        setStatusMessage={setStatusMessage}
-        isCommandPaletteOpen={isCommandPaletteOpen}
-        setIsCommandPaletteOpen={setIsCommandPaletteOpen}
-        updateAvailable={updateAvailable}
-        handleUpdate={applyUpdate}
-        handleGuestAccess={handleGuestAccess}
-        showStatus={showStatus}
-        updatePersonalItem={handleUpdatePersonalItem}
-        startSession={startSession}
-        cancelSession={cancelSession}
-      />
+          themeSettings={themeSettings}
+          statusMessage={statusMessage}
+          setStatusMessage={setStatusMessage}
+          isCommandPaletteOpen={isCommandPaletteOpen}
+          setIsCommandPaletteOpen={setIsCommandPaletteOpen}
+          updateAvailable={updateAvailable}
+          handleUpdate={applyUpdate}
+          handleGuestAccess={handleGuestAccess}
+          showStatus={showStatus}
+          updatePersonalItem={handleUpdatePersonalItem}
+          startSession={startSession}
+          cancelSession={cancelSession}
+        />
+      )}
     </>
   );
 };

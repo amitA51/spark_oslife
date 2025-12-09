@@ -10,6 +10,7 @@ import * as geminiService from '../services/geminiService';
 import * as dataService from '../services/dataService';
 import { ComfortZoneChallenge } from '../types';
 import { useHaptics } from '../hooks/useHaptics';
+import { todayKey } from '../utils/dateUtils';
 import LoadingSpinner from './LoadingSpinner';
 import { toDateKey } from '../utils/dateUtils';
 
@@ -75,7 +76,7 @@ const ComfortZoneWidget: React.FC<ComfortZoneWidgetProps> = ({ title }) => {
       const result = await geminiService.generateComfortZoneChallenge('medium'); // Default to medium
       const newChallenge: ComfortZoneChallenge = {
         id: `cz-${Date.now()}`,
-        date: new Date().toISOString().split('T')[0] || '',
+        date: todayKey(),
         text: result.text,
         difficulty: result.difficulty,
         status: 'hidden',

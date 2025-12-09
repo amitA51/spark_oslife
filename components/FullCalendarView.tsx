@@ -30,6 +30,16 @@ interface FullCalendarViewProps {
   onEventClick?: (event: GoogleCalendarEvent) => void;
 }
 
+// Type for calendar events (both Google events and task events)
+interface CalendarEventData {
+  id?: string;
+  title: string;
+  start: Date;
+  end: Date;
+  allDay?: boolean;
+  resource?: { type: 'task'; task: PersonalItem } | GoogleCalendarEvent;
+}
+
 const FullCalendarView: React.FC<FullCalendarViewProps> = ({ tasks = [], onEventClick }) => {
   const [events, setEvents] = useState<GoogleCalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -78,16 +88,16 @@ const FullCalendarView: React.FC<FullCalendarViewProps> = ({ tasks = [], onEvent
     setIsModalOpen(true);
   };
 
-  const handleSelectEvent = (event: any) => {
-    if (event.resource?.type === 'task') {
+  const handleSelectEvent = (event: CalendarEventData) => {
+    if (event.resource && 'type' in event.resource && event.resource.type === 'task') {
       // It's a task, not a calendar event
       return;
     }
 
-    if (onEventClick) {
-      onEventClick(event);
-    } else {
-      setSelectedEvent(event);
+    if (onEventClick && event.resource && !('type' in event.resource)) {
+      onEventClick(event.resource as GoogleCalendarEvent);
+    } else if (!event.resource || !('type' in event.resource)) {
+      setSelectedEvent(event as unknown as GoogleCalendarEvent);
       setSelectedSlot(null);
       setIsModalOpen(true);
     }
@@ -145,7 +155,7 @@ const FullCalendarView: React.FC<FullCalendarViewProps> = ({ tasks = [], onEvent
   );
 
   // Add tasks as events (optional)
-  const taskEvents = React.useMemo(
+  const taskEvents: CalendarEventData[] = React.useMemo(
     () =>
       tasks
         .filter(task => task.dueDate && !task.isCompleted)
@@ -155,7 +165,7 @@ const FullCalendarView: React.FC<FullCalendarViewProps> = ({ tasks = [], onEvent
           start: new Date(task.dueDate + (task.dueTime ? `T${task.dueTime}` : 'T09:00')),
           end: new Date(task.dueDate + (task.dueTime ? `T${task.dueTime}` : 'T09:00')),
           allDay: !task.dueTime,
-          resource: { type: 'task', task },
+          resource: { type: 'task' as const, task },
         })),
     [tasks]
   );
@@ -226,8 +236,8 @@ const FullCalendarView: React.FC<FullCalendarViewProps> = ({ tasks = [], onEvent
               noEventsInRange: 'אין אירועים בטווח זה',
               showMore: total => `+${total} נוספים`,
             }}
-            eventPropGetter={(event: any) => {
-              const isTask = event.resource?.type === 'task';
+            eventPropGetter={(event: CalendarEventData) => {
+              const isTask = event.resource && 'type' in event.resource && event.resource.type === 'task';
               return {
                 style: {
                   backgroundColor: isTask

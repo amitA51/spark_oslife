@@ -12,8 +12,8 @@ import {
 const WorkoutSection: React.FC = () => {
   const { settings, updateSettings } = useSettings();
 
-  const handleSettingChange = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
-    updateSettings({ [key]: value } as any);
+  const handleSettingChange = <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) => {
+    updateSettings({ [key]: value } as Pick<typeof settings, K>);
   };
 
   return (
@@ -24,11 +24,11 @@ const WorkoutSection: React.FC = () => {
           description="כמה זמן לנוח בין סטים."
         >
           <SegmentedControl
-            value={settings.workoutSettings.defaultRestTime}
+            value={String(settings.workoutSettings.defaultRestTime)}
             onChange={v =>
               handleSettingChange('workoutSettings', {
                 ...settings.workoutSettings,
-                defaultRestTime: v,
+                defaultRestTime: Number(v),
               })
             }
             options={[
@@ -45,11 +45,11 @@ const WorkoutSection: React.FC = () => {
           description="כמה סטים בכל תרגיל חדש."
         >
           <SegmentedControl
-            value={settings.workoutSettings.defaultSets}
+            value={String(settings.workoutSettings.defaultSets)}
             onChange={v =>
               handleSettingChange('workoutSettings', {
                 ...settings.workoutSettings,
-                defaultSets: v,
+                defaultSets: Number(v),
               })
             }
             options={[
@@ -131,7 +131,7 @@ const WorkoutSection: React.FC = () => {
             onChange={e =>
               handleSettingChange('workoutSettings', {
                 ...settings.workoutSettings,
-                defaultWorkoutGoal: e.target.value as any,
+                defaultWorkoutGoal: e.target.value as 'strength' | 'hypertrophy' | 'endurance' | 'flexibility' | 'general',
               })
             }
             className="bg-[var(--bg-secondary)] border border-[var(--border-primary)] text-[var(--text-primary)] text-sm rounded-lg p-2 focus:outline-none focus:border-[var(--dynamic-accent-start)]"
@@ -153,7 +153,7 @@ const WorkoutSection: React.FC = () => {
             onChange={v =>
               handleSettingChange('workoutSettings', {
                 ...settings.workoutSettings,
-                warmupPreference: v,
+                warmupPreference: v as 'always' | 'never' | 'ask',
               })
             }
             options={[
@@ -173,7 +173,7 @@ const WorkoutSection: React.FC = () => {
             onChange={v =>
               handleSettingChange('workoutSettings', {
                 ...settings.workoutSettings,
-                cooldownPreference: v,
+                cooldownPreference: v as 'always' | 'never' | 'ask',
               })
             }
             options={[
@@ -288,11 +288,11 @@ const WorkoutSection: React.FC = () => {
         {settings.workoutSettings.waterReminderEnabled && (
           <SettingsRow title="תדירות (דקות)" description="כל כמה זמן להזכיר.">
             <SegmentedControl
-              value={settings.workoutSettings.waterReminderInterval}
+              value={String(settings.workoutSettings.waterReminderInterval)}
               onChange={v =>
                 handleSettingChange('workoutSettings', {
                   ...settings.workoutSettings,
-                  waterReminderInterval: v,
+                  waterReminderInterval: Number(v),
                 })
               }
               options={[

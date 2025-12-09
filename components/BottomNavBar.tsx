@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useSpring } from 'framer-motion';
+import { motion, useSpring } from 'framer-motion';
 import {
   FeedIcon,
   TargetIcon,
@@ -143,32 +143,11 @@ const PremiumNavItem: React.FC<{
       onTapStart={() => scale.set(0.95)}
       onTap={() => scale.set(1)}
       style={{ scale }}
-      className="relative z-10 flex flex-col items-center justify-center h-full w-full transition-all duration-300 group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50 rounded-xl"
+      className="relative z-10 flex flex-col items-center justify-center h-full w-full transition-all duration-300 group focus:outline-none rounded-xl"
       aria-label={label}
       aria-current={isActive ? 'page' : undefined}
     >
-      <AnimatePresence>
-        {isActive && (
-          <motion.div
-            layoutId="nav-indicator"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{
-              type: 'spring',
-              stiffness: 500,
-              damping: 35,
-              mass: 0.8,
-            }}
-            className="absolute -top-1 left-1/2 -translate-x-1/2 w-14 h-14 rounded-2xl"
-            style={{
-              background: 'var(--dynamic-accent-color)',
-              border: '1px solid var(--dynamic-accent-start)',
-              boxShadow: `0 4px 16px var(--dynamic-accent-glow)`,
-            }}
-          />
-        )}
-      </AnimatePresence>
+
 
       {isActive && (
         <motion.div
@@ -370,9 +349,8 @@ const BottomNavBar: React.FC<{
     triggerHaptic('light');
     if (activeScreen === 'investments') {
       sessionStorage.setItem('preselect_add', 'ticker');
-    } else if (activeScreen === 'feed') {
-      sessionStorage.setItem('preselect_add', 'spark');
     }
+    // Note: Removed auto-selection of 'spark' from feed screen
     setActiveScreen('add');
   }, [activeScreen, setActiveScreen, playPop, triggerHaptic]);
 

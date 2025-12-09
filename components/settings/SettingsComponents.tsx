@@ -131,7 +131,7 @@ export const SettingsRow: React.FC<{
 export const SegmentedControl: React.FC<{
   options: { label: string; value: string; icon?: React.ReactNode }[];
   value: string | number;
-  onChange: (value: any) => void;
+  onChange: (value: string) => void;
 }> = ({ options, value, onChange }) => {
   const selectedIndex = options.findIndex(opt => opt.value === value.toString());
 
@@ -164,6 +164,7 @@ export const SegmentedControl: React.FC<{
     </div>
   );
 };
+
 
 // Premium Theme Preview Card with 3D tilt
 export const ThemePreviewCard: React.FC<{

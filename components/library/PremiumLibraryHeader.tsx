@@ -9,7 +9,6 @@ import {
   InboxIcon,
   RoadmapIcon,
   LayoutDashboardIcon,
-  FileIcon
 } from '../icons';
 
 interface LibraryStats {

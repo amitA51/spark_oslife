@@ -125,8 +125,8 @@ const PRHistoryTab: React.FC = () => {
               key={option.id}
               onClick={() => setSortBy(option.id as SortOption)}
               className={`px-4 py-2 min-h-[36px] rounded-full text-xs font-semibold transition-all ${sortBy === option.id
-                  ? 'bg-[var(--cosmos-accent-primary)] text-black'
-                  : 'bg-white/5 text-white/60 border border-white/10'
+                ? 'bg-[var(--cosmos-accent-primary)] text-black'
+                : 'bg-white/5 text-white/60 border border-white/10'
                 }`}
             >
               {option.label}
@@ -213,4 +213,4 @@ const PRHistoryTab: React.FC = () => {
   );
 };
 
-export default PRHistoryTab;
+export default React.memo(PRHistoryTab);
