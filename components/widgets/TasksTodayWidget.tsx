@@ -12,14 +12,27 @@ interface TasksTodayWidgetProps {
   onTaskComplete?: (taskId: string) => void;
 }
 
-const SectionItem = ({ section, id }: { section: any; id: string }) => {
+// Config for the static parts of the section
+interface SectionData {
+  title: string;
+  icon: React.ReactNode;
+  tasks: PersonalItem[];
+  gradient: string;
+  borderColor: string;
+  onReorder: (newTasks: PersonalItem[]) => void;
+}
+
+// SectionItem takes the fully merged props for TimeSection
+type SectionId = 'morning' | 'afternoon' | 'evening' | 'anytime';
+
+const SectionItem = ({ section, id }: { section: Omit<React.ComponentProps<typeof TimeSection>, 'dragHandleProps'>; id: string }) => {
   const dragControls = useDragControls();
   return (
     <Reorder.Item value={id} dragListener={false} dragControls={dragControls} className="relative">
       <TimeSection
         {...section}
         isDraggable={true}
-        dragHandleProps={{ onPointerDown: (e: any) => dragControls.start(e) }}
+        dragHandleProps={{ onPointerDown: (e: React.PointerEvent) => dragControls.start(e) }}
       />
     </Reorder.Item>
   );
@@ -32,7 +45,7 @@ const TasksTodayWidget: React.FC<TasksTodayWidgetProps> = ({ onTaskClick, onTask
     message: '',
     isVisible: false,
   });
-  const [sectionOrder, setSectionOrder] = useState<string[]>([
+  const [sectionOrder, setSectionOrder] = useState<SectionId[]>([
     'morning',
     'afternoon',
     'evening',
@@ -167,10 +180,10 @@ const TasksTodayWidget: React.FC<TasksTodayWidgetProps> = ({ onTaskClick, onTask
   const eveningTasks = visibleTasks.filter(t => isEvening(t.dueTime));
   const anytimeTasks = visibleTasks.filter(t => !t.dueTime);
 
-  const sectionsConfig: Record<string, any> = {
+  const sectionsConfig: Record<SectionId, SectionData> = {
     morning: {
       title: 'בוקר',
-      icon: <span className="text-lg">🌅</span>,
+      icon: <span className="text-lg text-orange-400" aria-hidden="true">○</span>,
       tasks: morningTasks,
       gradient: 'from-orange-400 to-yellow-400',
       borderColor: 'border-orange-400/20',
@@ -179,7 +192,7 @@ const TasksTodayWidget: React.FC<TasksTodayWidgetProps> = ({ onTaskClick, onTask
     },
     afternoon: {
       title: 'צהריים',
-      icon: <span className="text-lg">☀️</span>,
+      icon: <span className="text-lg text-blue-400" aria-hidden="true">○</span>,
       tasks: afternoonTasks,
       gradient: 'from-blue-400 to-cyan-400',
       borderColor: 'border-blue-400/20',
@@ -188,7 +201,7 @@ const TasksTodayWidget: React.FC<TasksTodayWidgetProps> = ({ onTaskClick, onTask
     },
     evening: {
       title: 'ערב',
-      icon: <span className="text-lg">🌙</span>,
+      icon: <span className="text-lg text-purple-400" aria-hidden="true">○</span>,
       tasks: eveningTasks,
       gradient: 'from-indigo-400 to-purple-400',
       borderColor: 'border-indigo-400/20',
@@ -208,7 +221,7 @@ const TasksTodayWidget: React.FC<TasksTodayWidgetProps> = ({ onTaskClick, onTask
 
   const visibleSections = sectionOrder.filter(id => sectionsConfig[id].tasks.length > 0);
 
-  const handleSectionReorder = (newVisibleOrder: string[]) => {
+  const handleSectionReorder = (newVisibleOrder: SectionId[]) => {
     // Append hidden sections to the end
     const hiddenSections = sectionOrder.filter(id => !newVisibleOrder.includes(id));
     setSectionOrder([...newVisibleOrder, ...hiddenSections]);
@@ -230,8 +243,8 @@ const TasksTodayWidget: React.FC<TasksTodayWidgetProps> = ({ onTaskClick, onTask
               className="bg-[var(--dynamic-accent-start)] h-2 rounded-full transition-all"
               style={{
                 width: `${orderedTasks.length + completedToday > 0
-                    ? (completedToday / (completedToday + orderedTasks.length)) * 100
-                    : 0
+                  ? (completedToday / (completedToday + orderedTasks.length)) * 100
+                  : 0
                   }%`,
               }}
             />
@@ -263,7 +276,7 @@ const TasksTodayWidget: React.FC<TasksTodayWidgetProps> = ({ onTaskClick, onTask
         {orderedTasks.length === 0 && (
           <div className="flex flex-col items-center justify-center h-40 text-[var(--text-tertiary)]">
             <CheckCircleIcon className="w-12 h-12 mb-2 opacity-20" />
-            <p>אין משימות להיום</p>
+            <p>היום פנוי. הוסף משימות כדי להתחיל.</p>
           </div>
         )}
       </div>

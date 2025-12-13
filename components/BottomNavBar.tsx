@@ -41,7 +41,7 @@ const allNavItems: Record<Screen, {
     glowColor: 'rgba(139, 92, 246, 0.5)',
   },
   library: {
-    label: 'המתכנן',
+    label: 'ספרייה',
     icon: <LayoutDashboardIcon />,
     gradient: 'from-emerald-400 to-green-500',
     glowColor: 'rgba(52, 211, 153, 0.5)',
@@ -260,12 +260,12 @@ const PremiumCenterButton: React.FC<{
 
   return (
     <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-      {/* Subtle glow effect */}
+      {/* Subtle glow effect - Quiet Luxury: reduced opacity */}
       <div
-        className="absolute inset-0 rounded-full blur-lg opacity-40"
+        className="absolute inset-0 rounded-full blur-xl opacity-25"
         style={{
           background: 'var(--dynamic-accent-glow)',
-          transform: 'scale(1.3)',
+          transform: 'scale(1.2)',
         }}
       />
 
@@ -325,12 +325,13 @@ const BottomNavBar: React.FC<{
 
   const floatY = useSpring(0, { stiffness: 100, damping: 20 });
 
+  // Quiet Luxury: Subtle float animation
   useEffect(() => {
     let frame: number;
     let time = 0;
     const animate = () => {
-      time += 0.02;
-      floatY.set(Math.sin(time) * 2);
+      time += 0.015;  // Slower animation
+      floatY.set(Math.sin(time) * 1.5);  // Reduced amplitude
       frame = requestAnimationFrame(animate);
     };
     frame = requestAnimationFrame(animate);
@@ -377,9 +378,13 @@ const BottomNavBar: React.FC<{
     const layout = navBarLayout.filter(id => id !== 'add').slice(0, 4);
     return layout.map(screenId => {
       const item = allNavItems[screenId] || allNavItems.today;
+      // Force 'ספרייה' label for library screen (migration from old 'המתכנן' label)
+      const label = screenId === 'library' && screenLabels[screenId] === 'המתכנן'
+        ? 'ספרייה'
+        : (screenLabels[screenId] || item.label);
       return {
         id: screenId,
-        label: screenLabels[screenId] || item.label,
+        label,
         icon: item.icon,
         gradient: item.gradient,
         glowColor: item.glowColor,
@@ -407,30 +412,30 @@ const BottomNavBar: React.FC<{
           }}
         />
 
-        {/* Glass background */}
+        {/* Glass background - Quiet Luxury */}
         <div
           className="absolute inset-[1px] rounded-[calc(2.5rem-1px)]"
           style={{
-            background: 'rgba(255, 255, 255, 0.02)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
+            background: 'rgba(10, 10, 15, 0.7)',
+            backdropFilter: 'blur(var(--blur-2xl))',
+            WebkitBackdropFilter: 'blur(var(--blur-2xl))',
             boxShadow: `
-              0 25px 50px -12px rgba(0, 0, 0, 0.5),
-              0 0 0 1px rgba(255, 255, 255, 0.05) inset,
-              0 1px 0 rgba(255, 255, 255, 0.08) inset
+              var(--shadow-2xl),
+              0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+              0 1px 0 rgba(255, 255, 255, 0.05) inset
             `,
           }}
         />
 
-        {/* Hover effect - subtle */}
+        {/* Hover effect - Quiet Luxury: subtler spotlight */}
         <motion.div
           className="absolute inset-0 pointer-events-none rounded-[2.5rem]"
           animate={{
-            opacity: isHovering ? 1 : 0,
+            opacity: isHovering ? 0.6 : 0,
           }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.4 }}
           style={{
-            background: `radial-gradient(300px circle at ${mousePosition.x}px ${mousePosition.y}px, var(--dynamic-accent-color), transparent 60%)`,
+            background: `radial-gradient(250px circle at ${mousePosition.x}px ${mousePosition.y}px, var(--ql-surface-overlay), transparent 60%)`,
           }}
         />
 

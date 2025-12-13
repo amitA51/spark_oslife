@@ -1,9 +1,10 @@
 import React, { useState, useCallback, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SettingsCategory, SettingItem, getCategoryInfo } from '../components/settings/settingsRegistry';
-import { Screen } from '../types';
+import { MessageCircleIcon } from '../components/icons';
 import { useSettings } from '../src/contexts/SettingsContext';
 import StatusMessage, { StatusMessageType } from '../components/StatusMessage';
+import type { Screen } from '../types';
 
 // Import new premium components
 import SettingsHeader from '../components/settings/SettingsHeader';
@@ -11,6 +12,8 @@ import SettingsSearch from '../components/settings/SettingsSearch';
 import SettingsFavorites from '../components/settings/SettingsFavorites';
 import SettingsGroups from '../components/settings/SettingsGroups';
 import SettingsSheet from '../components/settings/SettingsSheet';
+import SettingsCard from '../components/settings/SettingsCard';
+import ThemeSelector from '../components/settings/ThemeSelector';
 
 // Lazy load section components for better performance
 const AppearanceSection = lazy(() => import('../components/settings/AppearanceSection'));
@@ -22,6 +25,13 @@ const WorkoutSection = lazy(() => import('../components/settings/WorkoutSection'
 const AboutSection = lazy(() => import('../components/settings/AboutSection'));
 const FocusSection = lazy(() => import('../components/settings/FocusSection'));
 const ProfileSection = lazy(() => import('../components/settings/ProfileSection'));
+// New sections
+const NotificationsSection = lazy(() => import('../components/settings/NotificationsSection'));
+const CalendarSection = lazy(() => import('../components/settings/CalendarSection'));
+const TasksSection = lazy(() => import('../components/settings/TasksSection'));
+const SmartFeaturesSection = lazy(() => import('../components/settings/SmartFeaturesSection'));
+const AccessibilitySection = lazy(() => import('../components/settings/AccessibilitySection'));
+const PrivacySection = lazy(() => import('../components/settings/PrivacySection'));
 
 type Status = {
   type: StatusMessageType;
@@ -42,14 +52,21 @@ const SECTION_COMPONENTS: Partial<Record<SettingsCategory, React.ComponentType<a
   sync: IntegrationsSection,
   data: DataSection,
   about: AboutSection,
+  // New sections
+  notifications: NotificationsSection,
+  calendar: CalendarSection,
+  tasks: TasksSection,
+  smart: SmartFeaturesSection,
+  accessibility: AccessibilitySection,
+  privacy: PrivacySection,
 };
 
-// Section loading skeleton
+// Section loading skeleton - Quiet Luxury
 const SectionSkeleton: React.FC = () => (
   <div className="space-y-4 animate-pulse">
-    <div className="h-8 w-32 bg-white/[0.08] rounded-lg" />
-    <div className="h-40 bg-white/[0.05] rounded-2xl" />
-    <div className="h-32 bg-white/[0.05] rounded-2xl" />
+    <div className="h-8 w-32 bg-white/[0.04] rounded-lg" />
+    <div className="h-40 bg-white/[0.02] rounded-2xl" />
+    <div className="h-32 bg-white/[0.02] rounded-2xl" />
   </div>
 );
 
@@ -57,7 +74,7 @@ const SettingsScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = 
   setActiveScreen,
 }) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { settings } = useSettings(); // Reserved for future settings-dependent UI
+  const { settings: _settings } = useSettings(); // Reserved for future settings-dependent UI
 
   // State
   const [activeCategory, setActiveCategory] = useState<SettingsCategory | null>(null);
@@ -88,12 +105,6 @@ const SettingsScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = 
     } catch {
       // Ignore storage errors
     }
-  }, []);
-
-  // Close sheet
-  const handleCloseSheet = useCallback(() => {
-    setIsSheetOpen(false);
-    setActiveCategory(null);
   }, []);
 
   // Get current section component
@@ -149,7 +160,44 @@ const SettingsScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = 
         </motion.div>
 
         {/* Main Content */}
+        <div className="flex items-center gap-2 w-full max-w-6xl mx-auto px-6 pt-8 pb-4">
+          {activeCategory ? (
+            <button
+              onClick={() => setActiveCategory(null)}
+              className="p-2 hover:bg-white/[0.06] rounded-full transition-all duration-300 order-first"
+            >
+              <div className="w-6 h-6 flex items-center justify-center text-white/60 hover:text-white">
+                ←
+              </div>
+            </button>
+          ) : (
+            <div className="order-last mr-auto">
+              <button
+                className="flex items-center gap-2 px-4 py-2 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.04] rounded-xl transition-all duration-300 text-sm font-medium text-white/50 hover:text-white"
+              >
+                <MessageCircleIcon className="w-4 h-4" />
+                <span className="hidden sm:inline">משוב</span>
+              </button>
+            </div>
+          )}
+        </div>
         <main className="mt-6 space-y-8 px-0">
+          {/* Theme Selector - Premium Feature */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <div className="mb-4 flex items-center justify-between px-2">
+              <h3 className="text-sm font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                עיצוב ונושא
+              </h3>
+            </div>
+            <SettingsCard className="mb-8">
+              <ThemeSelector />
+            </SettingsCard>
+          </motion.div>
+
           {/* Favorites & Recent */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -187,7 +235,7 @@ const SettingsScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = 
       {/* Bottom Sheet for Category Content */}
       <SettingsSheet
         isOpen={isSheetOpen}
-        onClose={handleCloseSheet}
+        onClose={() => setIsSheetOpen(false)}
         title={activeCategoryInfo?.title || 'הגדרות'}
         icon={
           activeCategoryInfo && (

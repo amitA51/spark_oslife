@@ -7,6 +7,7 @@ import {
   LinkIcon,
   LightbulbIcon,
   FlameIcon,
+  CloseIcon,
 } from '../icons';
 import { useHaptics } from '../../hooks/useHaptics';
 
@@ -114,6 +115,12 @@ const QuickCreateFAB: React.FC<QuickCreateFABProps> = ({
       label: 'הכרת תודה',
       color: 'from-amber-500 to-orange-500',
     },
+    antigoal: {
+      type: 'antigoal',
+      icon: <CloseIcon />,
+      label: 'אנטי-יעד',
+      color: 'from-red-500 to-red-700',
+    },
   };
 
   const actions = suggestedTypes.slice(0, 5).map(type => allActions[type]);
@@ -176,15 +183,13 @@ const QuickCreateFAB: React.FC<QuickCreateFABProps> = ({
 
         <button
           onClick={handleToggle}
-          className={`relative w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 via-violet-500 to-pink-500 shadow-[0_0_30px_rgba(0,240,255,0.3)] hover:shadow-[0_0_40px_rgba(0,240,255,0.5)] transition-all duration-300 overflow-hidden group ${
-            isExpanded ? 'scale-95 rotate-45' : 'scale-100 rotate-0 hover:scale-105'
-          }`}
+          className={`relative w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 via-violet-500 to-pink-500 shadow-[0_0_30px_rgba(0,240,255,0.3)] hover:shadow-[0_0_40px_rgba(0,240,255,0.5)] transition-all duration-300 overflow-hidden group ${isExpanded ? 'scale-95 rotate-45' : 'scale-100 rotate-0 hover:scale-105'
+            }`}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          
-          <div className={`absolute inset-0 flex items-center justify-center transition-transform duration-300 ${
-            isExpanded ? 'rotate-45' : 'rotate-0'
-          }`}>
+
+          <div className={`absolute inset-0 flex items-center justify-center transition-transform duration-300 ${isExpanded ? 'rotate-45' : 'rotate-0'
+            }`}>
             <SparklesIcon className="w-8 h-8 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" />
           </div>
 

@@ -20,7 +20,7 @@ interface TimeSectionProps {
   onHide?: (id: string) => void;
   onHideSection?: () => void;
   children?: React.ReactNode;
-  dragHandleProps?: any;
+  dragHandleProps?: React.DOMAttributes<HTMLDivElement>;
 }
 
 const TimeSection: React.FC<TimeSectionProps> = ({
@@ -204,7 +204,7 @@ const TaskItemWrapper: React.FC<{
         onSelect={onSelectTask}
         onReschedule={onRescheduleTask}
         onHide={onHide}
-        dragHandleProps={{ onPointerDown: (e: any) => dragControls.start(e) }}
+        dragHandleProps={{ onPointerDown: (e: React.PointerEvent) => dragControls.start(e) }}
       />
     </Reorder.Item>
   );

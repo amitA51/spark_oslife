@@ -82,7 +82,7 @@ const DEFAULT_EVENTS: (keyof WindowEventMap)[] = [
   'drop',
 ];
 
-const useIdleTimer = (options: UseIdleTimerOptions = {}): UseIdleTimerReturn => {
+export const useIdleTimer = (options: UseIdleTimerOptions = {}): UseIdleTimerReturn => {
   const {
     idleTimeout = 5 * 60 * 1000, // 5 minutes default
     warningTimeout,
@@ -272,4 +272,4 @@ const useIdleTimer = (options: UseIdleTimerOptions = {}): UseIdleTimerReturn => 
   };
 };
 
-export default useIdleTimer;
+// export default useIdleTimer; // Removed default export

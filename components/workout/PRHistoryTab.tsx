@@ -90,7 +90,7 @@ const PRHistoryTab: React.FC = () => {
         >
           <TrophyIcon className="w-10 h-10 text-yellow-400/50" />
         </motion.div>
-        <h3 className="text-lg font-bold text-white mb-2">עדיין אין שיאים</h3>
+        <h3 className="text-lg font-bold text-white mb-2">השיאים שלך יופיעו כאן</h3>
         <p className="text-white/40 text-sm">
           סיים אימונים כדי להתחיל לצבור שיאים אישיים
         </p>
@@ -108,10 +108,10 @@ const PRHistoryTab: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="חיפוש תרגיל..."
+            placeholder="חפש תרגיל..."
             className="w-full h-11 pl-4 pr-10 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 outline-none focus:border-[var(--cosmos-accent-primary)]"
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30">🔍</span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30">◌</span>
         </div>
 
         {/* Sort Options */}

@@ -12,8 +12,27 @@ import {
     subscribeToBodyWeight,
     subscribeToWorkoutSessions,
     subscribeToWorkoutTemplates,
+    subscribeToSettings,
+    subscribeToSpaces,
+    subscribeToTags,
+    subscribeToQuotes,
+    subscribeToFeedItems,
+    subscribeToTemplates,
+    subscribeToWatchlist,
 } from './firestoreService';
-import { PersonalItem, BodyWeightEntry, WorkoutSession, WorkoutTemplate } from '../types';
+import {
+    PersonalItem,
+    BodyWeightEntry,
+    WorkoutSession,
+    WorkoutTemplate,
+    AppSettings,
+    Space,
+    Tag,
+    Quote,
+    FeedItem,
+    Template,
+    WatchlistItem,
+} from '../types';
 
 // Type definitions for callback handlers
 export interface CloudSyncCallbacks {
@@ -21,6 +40,13 @@ export interface CloudSyncCallbacks {
     onBodyWeightUpdate?: (entries: BodyWeightEntry[]) => void;
     onWorkoutSessionsUpdate?: (sessions: WorkoutSession[]) => void;
     onWorkoutTemplatesUpdate?: (templates: WorkoutTemplate[]) => void;
+    onSettingsUpdate?: (settings: AppSettings | null) => void;
+    onSpacesUpdate?: (spaces: Space[]) => void;
+    onTagsUpdate?: (tags: Tag[]) => void;
+    onQuotesUpdate?: (quotes: Quote[]) => void;
+    onFeedItemsUpdate?: (items: FeedItem[]) => void;
+    onTemplatesUpdate?: (templates: Template[]) => void;
+    onWatchlistUpdate?: (items: WatchlistItem[]) => void;
 }
 
 class CloudSyncService {
@@ -29,6 +55,13 @@ class CloudSyncService {
     private unsubscribeBodyWeight: (() => void) | null = null;
     private unsubscribeWorkoutSessions: (() => void) | null = null;
     private unsubscribeWorkoutTemplates: (() => void) | null = null;
+    private unsubscribeSettings: (() => void) | null = null;
+    private unsubscribeSpaces: (() => void) | null = null;
+    private unsubscribeTags: (() => void) | null = null;
+    private unsubscribeQuotes: (() => void) | null = null;
+    private unsubscribeFeedItems: (() => void) | null = null;
+    private unsubscribeTemplates: (() => void) | null = null;
+    private unsubscribeWatchlist: (() => void) | null = null;
     private callbacks: CloudSyncCallbacks = {};
     private isInitialized = false;
 
@@ -78,8 +111,6 @@ class CloudSyncService {
                     this.callbacks.onPersonalItemsUpdate?.(items);
                 }
             );
-        } else {
-            console.log('[CloudSyncService] No callback for Personal Items');
         }
 
         // Body Weight
@@ -118,6 +149,90 @@ class CloudSyncService {
             );
         }
 
+        // Settings
+        if (this.callbacks.onSettingsUpdate) {
+            console.log('[CloudSyncService] Subscribing to Settings...');
+            this.unsubscribeSettings = subscribeToSettings(
+                user.uid,
+                (settings) => {
+                    console.log('[CloudSyncService] Settings update received');
+                    this.callbacks.onSettingsUpdate?.(settings);
+                }
+            );
+        }
+
+        // Spaces
+        if (this.callbacks.onSpacesUpdate) {
+            console.log('[CloudSyncService] Subscribing to Spaces...');
+            this.unsubscribeSpaces = subscribeToSpaces(
+                user.uid,
+                (spaces) => {
+                    console.log(`[CloudSyncService] Spaces update received: ${spaces.length} spaces`);
+                    this.callbacks.onSpacesUpdate?.(spaces);
+                }
+            );
+        }
+
+        // Tags
+        if (this.callbacks.onTagsUpdate) {
+            console.log('[CloudSyncService] Subscribing to Tags...');
+            this.unsubscribeTags = subscribeToTags(
+                user.uid,
+                (tags) => {
+                    console.log(`[CloudSyncService] Tags update received: ${tags.length} tags`);
+                    this.callbacks.onTagsUpdate?.(tags);
+                }
+            );
+        }
+
+        // Quotes
+        if (this.callbacks.onQuotesUpdate) {
+            console.log('[CloudSyncService] Subscribing to Quotes...');
+            this.unsubscribeQuotes = subscribeToQuotes(
+                user.uid,
+                (quotes) => {
+                    console.log(`[CloudSyncService] Quotes update received: ${quotes.length} quotes`);
+                    this.callbacks.onQuotesUpdate?.(quotes);
+                }
+            );
+        }
+
+        // Feed Items
+        if (this.callbacks.onFeedItemsUpdate) {
+            console.log('[CloudSyncService] Subscribing to Feed Items...');
+            this.unsubscribeFeedItems = subscribeToFeedItems(
+                user.uid,
+                (items) => {
+                    console.log(`[CloudSyncService] Feed Items update received: ${items.length} items`);
+                    this.callbacks.onFeedItemsUpdate?.(items);
+                }
+            );
+        }
+
+        // Templates
+        if (this.callbacks.onTemplatesUpdate) {
+            console.log('[CloudSyncService] Subscribing to Templates...');
+            this.unsubscribeTemplates = subscribeToTemplates(
+                user.uid,
+                (templates) => {
+                    console.log(`[CloudSyncService] Templates update received: ${templates.length} templates`);
+                    this.callbacks.onTemplatesUpdate?.(templates);
+                }
+            );
+        }
+
+        // Watchlist
+        if (this.callbacks.onWatchlistUpdate) {
+            console.log('[CloudSyncService] Subscribing to Watchlist...');
+            this.unsubscribeWatchlist = subscribeToWatchlist(
+                user.uid,
+                (items) => {
+                    console.log(`[CloudSyncService] Watchlist update received: ${items.length} items`);
+                    this.callbacks.onWatchlistUpdate?.(items);
+                }
+            );
+        }
+
         console.log('[CloudSyncService] All subscriptions started');
     }
 
@@ -142,6 +257,34 @@ class CloudSyncService {
         if (this.unsubscribeWorkoutTemplates) {
             this.unsubscribeWorkoutTemplates();
             this.unsubscribeWorkoutTemplates = null;
+        }
+        if (this.unsubscribeSettings) {
+            this.unsubscribeSettings();
+            this.unsubscribeSettings = null;
+        }
+        if (this.unsubscribeSpaces) {
+            this.unsubscribeSpaces();
+            this.unsubscribeSpaces = null;
+        }
+        if (this.unsubscribeTags) {
+            this.unsubscribeTags();
+            this.unsubscribeTags = null;
+        }
+        if (this.unsubscribeQuotes) {
+            this.unsubscribeQuotes();
+            this.unsubscribeQuotes = null;
+        }
+        if (this.unsubscribeFeedItems) {
+            this.unsubscribeFeedItems();
+            this.unsubscribeFeedItems = null;
+        }
+        if (this.unsubscribeTemplates) {
+            this.unsubscribeTemplates();
+            this.unsubscribeTemplates = null;
+        }
+        if (this.unsubscribeWatchlist) {
+            this.unsubscribeWatchlist();
+            this.unsubscribeWatchlist = null;
         }
     }
 

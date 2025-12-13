@@ -215,7 +215,7 @@ const TodayView: React.FC<TodayViewProps> = ({
         isCollapsible={false}
         isExpanded={true}
         onToggle={() => { }}
-        emptyMessage="אין משימות - לחץ + להוספה"
+        emptyMessage="הוסף משימות כדי להתחיל"
       >
         <div className="space-y-2">
           <AnimatePresence mode="popLayout">
@@ -272,8 +272,8 @@ const TodayView: React.FC<TodayViewProps> = ({
       {/* Empty State */}
       {dateTasks.length === 0 && overdueTasks.length === 0 && habits.length === 0 && (
         <div className="text-center py-12">
-          <span className="text-4xl mb-3 block">✨</span>
-          <p className="text-gray-400 text-sm">{isToday ? 'יום פנוי! הוסף משימות או הרגלים' : 'אין משימות ליום זה'}</p>
+          <span className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-3 mx-auto"><span className="text-2xl text-white/30">○</span></span>
+          <p className="text-gray-400 text-sm">{isToday ? 'היום פנוי. הוסף משימות או הרגלים.' : 'אין משימות ליום זה'}</p>
         </div>
       )}
     </div>

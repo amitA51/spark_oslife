@@ -1,13 +1,56 @@
 // Import Workbox libraries from CDN
 importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.0.0/workbox-sw.js');
 
-const CACHE_VERSION = 'spark-v1';
+const CACHE_VERSION = 'spark-v2';  // Bumped to force cache refresh
 const NOTIFICATION_CACHE = 'spark-notifications';
 const WIDGET_CACHE = 'spark-widget-data';
 
 // Workbox manifest injection point - DO NOT MODIFY THIS LINE
 // Workbox will replace self.__WB_MANIFEST with the actual precache manifest
 workbox.precaching.precacheAndRoute(self.__WB_MANIFEST);
+
+// -----------------------------------------------------------------------------
+// Runtime Caching Configuration
+// -----------------------------------------------------------------------------
+
+// Cache Google Fonts Stylesheets
+workbox.routing.registerRoute(
+  ({ url }) => url.origin === 'https://fonts.googleapis.com',
+  new workbox.strategies.StaleWhileRevalidate({
+    cacheName: 'google-fonts-stylesheets',
+  })
+);
+
+// Cache Google Fonts Webfonts
+workbox.routing.registerRoute(
+  ({ url }) => url.origin === 'https://fonts.gstatic.com',
+  new workbox.strategies.CacheFirst({
+    cacheName: 'google-fonts-webfonts',
+    plugins: [
+      new workbox.cacheableResponse.CacheableResponsePlugin({
+        statuses: [0, 200],
+      }),
+      new workbox.expiration.ExpirationPlugin({
+        maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+        maxEntries: 30,
+      }),
+    ],
+  })
+);
+
+// Cache Images
+workbox.routing.registerRoute(
+  ({ request }) => request.destination === 'image',
+  new workbox.strategies.CacheFirst({
+    cacheName: 'images',
+    plugins: [
+      new workbox.expiration.ExpirationPlugin({
+        maxEntries: 60,
+        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+      }),
+    ],
+  })
+);
 
 const DB_NAME = 'SparkOS';
 const DB_VERSION = 1;
@@ -319,5 +362,29 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   console.log('[SW] Custom service worker activated');
-  event.waitUntil(clients.claim());
+
+  // Clean up old caches on activation
+  const currentCaches = [
+    CACHE_VERSION,
+    NOTIFICATION_CACHE,
+    WIDGET_CACHE,
+    'google-fonts-stylesheets',
+    'google-fonts-webfonts',
+    'images',
+    'workbox-precache-v2-https://spark-antigravity.web.app/',
+  ];
+
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          // Delete any cache that isn't in our current list
+          if (!currentCaches.includes(cacheName) && !cacheName.includes('workbox')) {
+            console.log('[SW] Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => clients.claim())
+  );
 });

@@ -80,6 +80,7 @@ const SettingsHeader: React.FC<SettingsHeaderProps> = ({
                                 alt="Profile"
                                 className="w-full h-full rounded-2xl object-cover"
                                 onError={() => setImgError(true)}
+                                loading="lazy"
                             />
                         ) : (
                             settings.userEmoji || '⚙️'

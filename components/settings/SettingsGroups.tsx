@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeftIcon } from '../icons';
 import { CATEGORIES, SettingsCategory } from './settingsRegistry';
+import SettingsCard from './SettingsCard';
 
 interface SettingsGroupsProps {
     onSelectCategory: (category: SettingsCategory) => void;
@@ -11,15 +12,19 @@ interface SettingsGroupsProps {
 const GROUPS = [
     {
         title: 'התאמה אישית',
-        categories: ['profile', 'appearance', 'behavior'] as SettingsCategory[],
+        categories: ['profile', 'appearance', 'accessibility', 'behavior'] as SettingsCategory[],
     },
     {
-        title: 'ממשק ופעולות',
-        categories: ['interface', 'focus', 'workout'] as SettingsCategory[],
+        title: 'פרודקטיביות',
+        categories: ['tasks', 'calendar', 'focus', 'workout'] as SettingsCategory[],
     },
     {
-        title: 'חיבורים ונתונים',
-        categories: ['ai', 'sync', 'data'] as SettingsCategory[],
+        title: 'מערכת וממשק',
+        categories: ['interface', 'notifications', 'smart'] as SettingsCategory[],
+    },
+    {
+        title: 'פרטיות ונתונים',
+        categories: ['privacy', 'ai', 'sync', 'data'] as SettingsCategory[],
     },
     {
         title: 'מידע',
@@ -51,7 +56,7 @@ const SettingsGroups: React.FC<SettingsGroupsProps> = ({ onSelectCategory }) => 
                     </h3>
 
                     {/* Grouped Card - iOS Style */}
-                    <div className="bg-white/[0.04] backdrop-blur-xl rounded-2xl border border-white/[0.06] overflow-hidden">
+                    <SettingsCard className="overflow-hidden" noPadding>
                         {group.categories.map((categoryId, index) => {
                             const category = getCategoryInfo(categoryId);
                             if (!category) return null;
@@ -100,7 +105,7 @@ const SettingsGroups: React.FC<SettingsGroupsProps> = ({ onSelectCategory }) => 
                                 </motion.button>
                             );
                         })}
-                    </div>
+                    </SettingsCard>
                 </motion.div>
             ))}
         </div>

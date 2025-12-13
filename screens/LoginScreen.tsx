@@ -6,8 +6,17 @@
  */
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GoogleIcon, LockIcon, UserIcon, SparklesIcon } from '../components/icons';
-import { PremiumButton, PremiumInput } from '../components/premium/PremiumComponents';
+import { UltraCard } from '../components/ui/UltraCard';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import {
+  GoogleIcon,
+  LockIcon,
+  UserIcon,
+  SparklesIcon,
+  ArrowRightIcon,
+  AlertIcon
+} from '../components/icons';
 import { FloatingParticles, FeatureBadge } from '../components/auth';
 import { useLoginAuth } from '../hooks/useLoginAuth';
 
@@ -23,8 +32,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToSignup, onSkip })
     password,
     setPassword,
     error,
-    isLoading,
-    handleEmailLogin,
+    isLoading: loading,
+    handleEmailLogin: handleLogin,
     handleGoogleLogin,
   } = useLoginAuth();
 
@@ -32,7 +41,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToSignup, onSkip })
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[var(--bg-primary)]">
       {/* Enhanced Cinematic Background */}
       <div className="absolute inset-0 z-0">
-        {/* Primary gradient orbs */}
         <motion.div
           className="absolute top-[-30%] right-[-20%] w-[900px] h-[900px] rounded-full blur-[150px]"
           style={{ background: 'var(--dynamic-accent-start)' }}
@@ -51,33 +59,33 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToSignup, onSkip })
           }}
           transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
         />
-
-        {/* Central glow */}
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[200px] opacity-20"
           style={{ background: 'radial-gradient(circle, var(--dynamic-accent-glow), transparent)' }}
         />
-
-        {/* Grid pattern */}
         <div
           className="absolute inset-0 opacity-[0.02]"
           style={{
             backgroundImage: `linear-gradient(var(--dynamic-accent-start) 1px, transparent 1px),
-                              linear-gradient(90deg, var(--dynamic-accent-start) 1px, transparent 1px)`,
+                                linear-gradient(90deg, var(--dynamic-accent-start) 1px, transparent 1px)`,
             backgroundSize: '60px 60px',
           }}
         />
-
-        {/* Floating particles - now from separate component */}
         <FloatingParticles />
-
-        {/* Noise texture */}
         <div className="absolute inset-0 bg-noise-pattern opacity-20 mix-blend-overlay pointer-events-none" />
       </div>
 
-      {/* Main Content */}
-      <div className="relative z-10 w-full max-w-lg mx-4 p-2">
-        {/* Feature badges above card - now using extracted component */}
+      <div className="absolute top-6 left-6 z-20">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onSkip}
+          icon={<ArrowRightIcon className="w-5 h-5" />}
+          className="rounded-full bg-white/5 hover:bg-white/10 text-white backdrop-blur-md border border-white/10"
+        />
+      </div>
+
+      <div className="relative z-10 w-full max-w-md p-6">
         <motion.div
           className="flex flex-wrap justify-center gap-2 mb-6"
           initial={{ opacity: 0 }}
@@ -89,204 +97,123 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToSignup, onSkip })
           <FeatureBadge icon={<span className="text-sm">☁️</span>} label="סנכרון ענן" delay={0.8} />
         </motion.div>
 
-        {/* Login Card */}
         <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="relative rounded-[2.5rem] overflow-hidden"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, type: 'spring', stiffness: 100 }}
         >
-          {/* Card border gradient */}
-          <div
-            className="absolute inset-0 rounded-[2.5rem] p-[1px]"
-            style={{
-              background: 'linear-gradient(135deg, var(--dynamic-accent-start), transparent 50%, var(--dynamic-accent-end))',
-            }}
-          />
+          <UltraCard variant="glass" glowColor="cyan" className="p-8 border-white/10 bg-cosmos-black/40 backdrop-blur-3xl">
+            <div className="text-center mb-8 relative">
+              {/* Brand Logo Glow */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-20 bg-accent-cyan/20 blur-[40px] rounded-full pointer-events-none" />
 
-          {/* Card inner content */}
-          <div className="relative bg-[var(--bg-primary)]/90 backdrop-blur-2xl rounded-[2.5rem] p-8 md:p-10 m-[1px]">
-            {/* Logo and branding */}
-            <div className="text-center mb-10">
-              {/* Animated Logo */}
               <motion.div
-                className="relative w-28 h-28 mx-auto mb-6"
-                whileHover={{ scale: 1.05, rotate: 5 }}
-                transition={{ type: 'spring', stiffness: 300 }}
-              >
-                {/* Outer glow ring */}
-                <motion.div
-                  className="absolute inset-0 rounded-3xl"
-                  style={{
-                    background: `linear-gradient(135deg, var(--dynamic-accent-start), var(--dynamic-accent-end))`,
-                    filter: 'blur(20px)',
-                  }}
-                  animate={{
-                    opacity: [0.4, 0.7, 0.4],
-                    scale: [1, 1.1, 1],
-                  }}
-                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                />
-
-                {/* Logo container */}
-                <div
-                  className="relative w-full h-full rounded-3xl flex items-center justify-center border border-white/20 shadow-2xl overflow-hidden"
-                  style={{
-                    background: `linear-gradient(135deg, var(--dynamic-accent-start), var(--dynamic-accent-end))`,
-                  }}
-                >
-                  {/* Shine effect */}
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                    animate={{ x: ['-100%', '100%'] }}
-                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                  />
-                  <span className="text-6xl filter drop-shadow-lg">⚡</span>
-                </div>
-              </motion.div>
-
-              {/* Title with gradient */}
-              <motion.h1
-                className="text-5xl md:text-6xl font-black tracking-tighter font-heading mb-3"
-                style={{
-                  background: 'linear-gradient(135deg, #FFFFFF 0%, rgba(255,255,255,0.8) 50%, var(--dynamic-accent-start) 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
+                transition={{ delay: 0.2 }}
+                className="flex flex-col items-center"
               >
-                Spark OS
-              </motion.h1>
-
-              <motion.p
-                className="text-sm font-semibold tracking-[0.15em] uppercase"
-                style={{ color: 'var(--dynamic-accent-start)' }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.9 }}
-                transition={{ delay: 0.4 }}
-              >
-                מערכת ההפעלה לחיים שלך
-              </motion.p>
+                <div className="w-16 h-16 mb-4 rounded-2xl bg-gradient-to-br from-accent-cyan to-accent-violet flex items-center justify-center shadow-lg shadow-accent-cyan/20">
+                  <SparklesIcon className="w-8 h-8 text-white" />
+                </div>
+                <h1 className="text-4xl font-black mb-2 tracking-tight">
+                  <span className="text-white">Spark</span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-cyan to-accent-violet">OS</span>
+                </h1>
+                <p className="text-gray-400 text-sm font-medium tracking-wide">ברוכים השבים</p>
+              </motion.div>
             </div>
 
-            {/* Error message */}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10, height: 0 }}
-                  animate={{ opacity: 1, y: 0, height: 'auto' }}
-                  exit={{ opacity: 0, y: -10, height: 0 }}
-                  className="bg-red-500/10 border border-red-500/20 text-red-200 px-4 py-3 rounded-xl mb-6 text-sm text-center backdrop-blur-md"
-                >
-                  {error}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Login Form */}
-            <form onSubmit={handleEmailLogin} className="space-y-5 mb-6">
-              <PremiumInput
-                label="אימייל"
+            <form onSubmit={handleLogin} className="space-y-5">
+              <Input
                 type="email"
+                placeholder="אימייל"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
+                onChange={(e) => setEmail(e.target.value)}
                 icon={<UserIcon className="w-5 h-5" />}
-              />
-
-              <PremiumInput
-                label="סיסמה"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
                 required
-                icon={<LockIcon className="w-5 h-5" />}
               />
 
-              <PremiumButton
+              <div className="space-y-1">
+                <Input
+                  type="password"
+                  placeholder="סיסמה"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  icon={<LockIcon className="w-5 h-5" />}
+                  required
+                />
+                <div className="flex justify-end">
+                  <button type="button" className="text-xs text-gray-400 hover:text-accent-cyan transition-colors mt-1">
+                    שכחתי סיסמה?
+                  </button>
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-start gap-2 overflow-hidden"
+                  >
+                    <AlertIcon className="w-5 h-5 text-red-500 shrink-0" />
+                    <p className="text-sm text-red-200">{error}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <Button
                 type="submit"
-                isLoading={isLoading}
-                className="w-full py-4 text-lg font-bold"
+                className="w-full justify-center text-lg font-bold py-3.5 mt-2"
+                disabled={loading}
+                isLoading={loading}
                 variant="primary"
+                size="lg"
               >
-                <span className="flex items-center justify-center gap-2">
-                  <SparklesIcon className="w-5 h-5" />
-                  התחבר למערכת
-                </span>
-              </PremiumButton>
+                התחברות
+              </Button>
+
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full h-[1px] bg-white/10"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-[#0A0A0F] px-3 text-gray-500 tracking-wider border border-white/5 rounded-full py-0.5">או</span>
+                </div>
+              </div>
+
+              <Button
+                onClick={handleGoogleLogin}
+                isLoading={loading}
+                variant="secondary"
+                className="w-full py-3.5"
+                icon={<GoogleIcon className="w-5 h-5" />}
+              >
+                התחבר עם Google
+              </Button>
             </form>
 
-            {/* Divider */}
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div
-                  className="w-full h-[1px]"
-                  style={{
-                    background: 'linear-gradient(90deg, transparent, var(--dynamic-accent-start), transparent)',
-                    opacity: 0.3,
-                  }}
-                />
-              </div>
-              <div className="relative flex justify-center">
-                <span
-                  className="px-4 py-1 text-[10px] uppercase tracking-[0.2em] rounded-full border"
-                  style={{
-                    background: 'var(--bg-primary)',
-                    borderColor: 'var(--dynamic-accent-start)',
-                    color: 'var(--dynamic-accent-start)',
-                    opacity: 0.8,
-                  }}
-                >
-                  או
-                </span>
-              </div>
-            </div>
-
-            {/* Google Login */}
-            <PremiumButton
-              onClick={handleGoogleLogin}
-              isLoading={isLoading}
-              variant="secondary"
-              className="w-full py-4 mb-6"
-              icon={<GoogleIcon className="w-5 h-5" />}
-            >
-              התחבר עם Google
-            </PremiumButton>
-
-            {/* Footer links */}
-            <div className="text-center space-y-3">
+            <div className="mt-8 pt-6 border-t border-white/5 text-center">
               <p className="text-gray-400 text-sm">
-                עדיין אין לך חשבון?{' '}
+                אין לך חשבון?{' '}
                 <button
                   onClick={onNavigateToSignup}
-                  className="font-bold transition-all focus:outline-none ml-1 underline decoration-transparent hover:decoration-current underline-offset-4"
-                  style={{ color: 'var(--dynamic-accent-start)' }}
+                  className="text-accent-cyan font-semibold hover:text-accent-violet transition-colors"
                 >
-                  הירשם בחינם
+                  הרשמה
                 </button>
               </p>
-              <button
-                onClick={onSkip}
-                className="text-gray-500 text-xs hover:text-white transition-colors focus:outline-none tracking-wide opacity-60 hover:opacity-100"
-              >
-                המשך כאורח (ללא סנכרון ענן)
-              </button>
             </div>
-          </div>
+          </UltraCard>
         </motion.div>
-
-        {/* Bottom tagline */}
-        <motion.p
-          className="text-center text-gray-500 text-xs mt-6 opacity-50"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.5 }}
-          transition={{ delay: 1 }}
-        >
-          גרסה 2.0 • נבנה עם ❤️ בישראל
-        </motion.p>
+      </div>
+      {/* Bottom tagline */}
+      <div className="absolute bottom-6 left-0 right-0 text-center z-10">
+        <p className="text-gray-600 text-[10px] tracking-widest uppercase opacity-60">
+          Smart Personal Architect • OS 2.0
+        </p>
       </div>
     </div>
   );

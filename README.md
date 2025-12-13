@@ -140,7 +140,7 @@ sparkos/
 │   └── ui/              # Core UI primitives
 ├── screens/             # Main application screens (16)
 │   ├── HomeScreen.tsx   # Dashboard & Today view
-│   ├── LibraryScreen.tsx # Planner with multiple views
+│   ├── LibraryScreen.tsx # Library with multiple views
 │   ├── FeedScreen.tsx   # RSS & curated content
 │   ├── SettingsScreen.tsx
 │   └── ...

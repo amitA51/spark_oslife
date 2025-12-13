@@ -247,6 +247,49 @@
      LEGACY COMPATIBILITY
      ================================================================ */
 
+  /* Quiet Luxury Surfaces */
+  --ql-surface-base: rgba(255, 255, 255, 0.01);
+  --ql-surface-subtle: rgba(255, 255, 255, 0.02);
+  --ql-surface-elevated: rgba(255, 255, 255, 0.035);
+  --ql-surface-overlay: rgba(255, 255, 255, 0.05);
+
+  /* Quiet Luxury Borders */
+  --ql-border-invisible: rgba(255, 255, 255, 0.02);
+  --ql-border-subtle: rgba(255, 255, 255, 0.04);
+  --ql-border-default: rgba(255, 255, 255, 0.06);
+  --ql-border-emphasized: rgba(255, 255, 255, 0.1);
+
+  /* Quiet Luxury Spacing */
+  --ql-space-xs: 0.375rem;
+  /* 6px */
+  --ql-space-sm: 0.75rem;
+  /* 12px */
+  --ql-space-md: 1.25rem;
+  /* 20px */
+  --ql-space-lg: 2rem;
+  /* 32px */
+  --ql-space-xl: 3rem;
+  /* 48px */
+  --ql-space-2xl: 4.5rem;
+  /* 72px */
+
+  /* Quiet Luxury Shadows */
+  --ql-shadow-subtle: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --ql-shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.15);
+  --ql-shadow-medium: 0 16px 40px rgba(0, 0, 0, 0.2);
+  --ql-shadow-heavy: 0 24px 60px rgba(0, 0, 0, 0.3);
+
+  /* Quiet Luxury Motion */
+  --ql-ease-luxe: cubic-bezier(0.22, 1, 0.36, 1);
+  --ql-duration-quick: 0.15s;
+  --ql-duration-smooth: 0.3s;
+  --ql-duration-gentle: 0.5s;
+
+  /* Quiet Luxury Blur */
+  --ql-blur-light: 8px;
+  --ql-blur-medium: 16px;
+  --ql-blur-heavy: 32px;
+  --ql-blur-extreme: 48px;
   /* Map old variables to new system for gradual migration */
   --bg-primary: var(--color-cosmos-black);
   --bg-secondary: var(--color-cosmos-void);
@@ -2350,16 +2393,18 @@
    MODAL PERFORMANCE OPTIMIZATIONS
    ================================================================ */
 
-/* GPU-accelerated modal entry */
+/* GPU-accelerated modal entry - Quiet Luxury with blur */
 @keyframes modal-scale-in {
   0% {
     opacity: 0;
     transform: scale(0.95) translate3d(0, 0, 0);
+    filter: blur(8px);
   }
 
   100% {
     opacity: 1;
     transform: scale(1) translate3d(0, 0, 0);
+    filter: blur(0px);
   }
 }
 
@@ -2367,11 +2412,13 @@
   0% {
     opacity: 0;
     transform: translate3d(0, 20px, 0);
+    filter: blur(6px);
   }
 
   100% {
     opacity: 1;
     transform: translate3d(0, 0, 0);
+    filter: blur(0px);
   }
 }
 

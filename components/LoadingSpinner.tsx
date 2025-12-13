@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useSettings } from '../src/contexts/SettingsContext';
 
-type SpinnerVariant = 'default' | 'dots' | 'pulse' | 'orbit';
+type SpinnerVariant = 'default' | 'dots' | 'pulse' | 'orbit' | 'gradient' | 'wave';
 type SpinnerSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 interface LoadingSpinnerProps {
@@ -145,11 +145,122 @@ const OrbitSpinner: React.FC<{ size: SpinnerSize }> = ({ size }) => {
   );
 };
 
+// Premium gradient rotating ring with glow
+const GradientSpinner: React.FC<{ size: SpinnerSize }> = ({ size }) => {
+  const sizeValue = size === 'xs' ? 16 : size === 'sm' ? 20 : size === 'md' ? 32 : size === 'lg' ? 48 : 64;
+  const strokeWidth = size === 'xs' || size === 'sm' ? 2 : 3;
+  const radius = (sizeValue - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+
+  return (
+    <div className="relative" style={{ width: sizeValue, height: sizeValue }}>
+      {/* Glow effect */}
+      <motion.div
+        className="absolute inset-0 rounded-full blur-md"
+        style={{
+          background: 'linear-gradient(135deg, var(--dynamic-accent-start), var(--dynamic-accent-end))',
+          opacity: 0.4,
+        }}
+        animate={{
+          opacity: [0.3, 0.6, 0.3],
+          scale: [0.9, 1.1, 0.9],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
+      {/* Spinning gradient arc */}
+      <motion.svg
+        className="relative z-10"
+        width={sizeValue}
+        height={sizeValue}
+        viewBox={`0 0 ${sizeValue} ${sizeValue}`}
+        animate={{ rotate: 360 }}
+        transition={{
+          duration: 1,
+          repeat: Infinity,
+          ease: 'linear',
+        }}
+      >
+        <defs>
+          <linearGradient id="gradient-spinner" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="var(--dynamic-accent-start)" />
+            <stop offset="100%" stopColor="var(--dynamic-accent-end)" />
+          </linearGradient>
+        </defs>
+        <circle
+          cx={sizeValue / 2}
+          cy={sizeValue / 2}
+          r={radius}
+          stroke="url(#gradient-spinner)"
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * 0.7}
+        />
+      </motion.svg>
+    </div>
+  );
+};
+
+// Wave/ripple effect spinner
+const WaveSpinner: React.FC<{ size: SpinnerSize }> = ({ size }) => {
+  const sizeValue = size === 'xs' ? 16 : size === 'sm' ? 20 : size === 'md' ? 32 : size === 'lg' ? 48 : 64;
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: sizeValue, height: sizeValue }}>
+      {[0, 1, 2].map((i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            border: '2px solid var(--dynamic-accent-start)',
+            width: '100%',
+            height: '100%',
+          }}
+          animate={{
+            scale: [0.3, 1.2],
+            opacity: [0.8, 0],
+          }}
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            delay: i * 0.4,
+            ease: 'easeOut',
+          }}
+        />
+      ))}
+      {/* Center dot */}
+      <motion.div
+        className="absolute rounded-full"
+        style={{
+          width: sizeValue * 0.25,
+          height: sizeValue * 0.25,
+          backgroundColor: 'var(--dynamic-accent-start)',
+        }}
+        animate={{
+          scale: [0.8, 1.1, 0.8],
+        }}
+        transition={{
+          duration: 0.8,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+      />
+    </div>
+  );
+};
+
 const variantMap: Record<SpinnerVariant, React.FC<{ size: SpinnerSize }>> = {
   default: DefaultSpinner,
   dots: DotsSpinner,
   pulse: PulseSpinner,
   orbit: OrbitSpinner,
+  gradient: GradientSpinner,
+  wave: WaveSpinner,
 };
 
 const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({

@@ -1,10 +1,11 @@
 import { fetchAsText } from './apiService';
 
 // A list of public CORS proxies to improve reliability.
+// Note: Free proxies can be unreliable. Order matters - more reliable ones first.
 const CORS_PROXIES = [
+  'https://api.cors.lol/?url=',
+  'https://api.codetabs.com/v1/proxy?quest=',
   'https://api.allorigins.win/raw?url=',
-  'https://corsproxy.io/?',
-  'https://cors-proxy.fringe.zone/',
 ];
 
 export interface ParsedFeedItem {
@@ -157,10 +158,8 @@ export const fetchAndParseFeed = async (feedUrl: string): Promise<ParsedFeed> =>
 
   for (const proxy of CORS_PROXIES) {
     try {
-      let urlToProxy = feedUrl;
-      if (proxy.includes('allorigins.win')) {
-        urlToProxy = encodeURIComponent(feedUrl);
-      }
+      // All of these proxies require URL encoding
+      const urlToProxy = encodeURIComponent(feedUrl);
       const fetchUrl = `${proxy}${urlToProxy}`;
       const xmlString = await fetchAsText(fetchUrl);
       return parseRssXml(xmlString, feedUrl);

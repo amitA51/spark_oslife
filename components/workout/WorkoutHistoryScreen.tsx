@@ -324,9 +324,9 @@ const WorkoutHistoryScreen: React.FC<WorkoutHistoryScreenProps> = ({
                     {/* Empty State */}
                     {!loading && sessions.length === 0 && (
                         <div className="text-center py-12">
-                            <div className="text-4xl mb-4">💪</div>
-                            <div className="text-white/60 text-sm">עדיין אין אימונים</div>
-                            <div className="text-white/40 text-xs mt-1">סיים אימון כדי לראות את ההיסטוריה</div>
+                            <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4"><TrophyIcon className="w-8 h-8 text-white/30" /></div>
+                            <div className="text-white/60 text-sm">ההיסטוריה ריקה</div>
+                            <div className="text-white/40 text-xs mt-1">סיים אימון כדי לראות אותו כאן</div>
                         </div>
                     )}
 

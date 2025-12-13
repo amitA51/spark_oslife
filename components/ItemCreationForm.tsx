@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useReducer, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import type {
   PersonalItem,
   Template,
@@ -18,10 +19,11 @@ import {
   CloseIcon,
   SparklesIcon,
   RoadmapIcon,
-  CloudIcon,
   CheckCircleIcon,
+  BanIcon,
 } from './icons';
 import { useDebounce } from '../hooks/useDebounce';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import LoadingSpinner from './LoadingSpinner';
 import { useHaptics } from '../hooks/useHaptics';
 import { MarkdownToolbar, AttachmentManager, inputStyles } from './details/common';
@@ -31,6 +33,13 @@ import { useData } from '../src/contexts/DataContext';
 import { useUI } from '../src/contexts/UIContext';
 import { Toast } from './ui/Toast';
 
+import {
+  JournalFields,
+  IdeaFields,
+  NoteFields,
+  LearningFields,
+} from './ItemCreationFormFields';
+
 // Import extracted reducer and types
 import {
   formReducer,
@@ -38,146 +47,16 @@ import {
   type FormState as State,
 } from './itemCreationFormReducer';
 
+// Import extracted premium UI components
+import {
+  AutoSaveIndicator,
+  AISuggestionsPanel,
+  KeyboardShortcutsHint,
+  premiumInputStyles,
+} from './forms/PremiumFormComponents';
+
 // Use createInitialState for the reducer
 const initialState = createInitialState();
-
-// formReducer is imported from ./itemCreationFormReducer
-
-// --- Premium UI Enhancements ---
-
-const AutoSaveIndicator: React.FC<{ status: 'idle' | 'saving' | 'saved' | 'error' }> = ({ status }) => {
-  if (status === 'idle') return null;
-
-  return (
-    <div className="flex items-center gap-2 text-xs font-medium animate-in fade-in-0 slide-in-from-right-2 duration-300">
-      {status === 'saving' && (
-        <>
-          <div className="w-3 h-3 rounded-full border-2 border-cyan-500/30 border-t-cyan-500 animate-spin" />
-          <span className="text-white/50">שומר...</span>
-        </>
-      )}
-      {status === 'saved' && (
-        <>
-          <CloudIcon className="w-4 h-4 text-green-400" />
-          <span className="text-green-400/80">נשמר</span>
-        </>
-      )}
-      {status === 'error' && (
-        <>
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-          <span className="text-red-400/80">שגיאה בשמירה</span>
-        </>
-      )}
-    </div>
-  );
-};
-
-const AISuggestionsPanel: React.FC<{
-  itemType: AddableType;
-  title: string;
-  content: string;
-  onSuggestionSelect: (suggestion: string, field: 'title' | 'content') => void;
-  isVisible: boolean;
-}> = ({ itemType, title, content, onSuggestionSelect, isVisible }) => {
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const debouncedTitle = useDebounce(title, 1000);
-
-  useEffect(() => {
-    if (debouncedTitle && debouncedTitle.length > 3 && isVisible) {
-      setIsLoading(true);
-      setSuggestions([
-        `הוסף פרטים נוספים על "${debouncedTitle}"`,
-        `הגדר תאריך יעד למשימה`,
-        `חלק את זה לתתי-משימות`,
-      ]);
-      setIsLoading(false);
-    }
-  }, [debouncedTitle, itemType, isVisible]);
-
-  if (!isVisible || suggestions.length === 0) return null;
-
-  return (
-    <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-cyan-500/10 to-violet-500/10 border border-cyan-500/20 backdrop-blur-sm animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
-      <div className="flex items-center gap-2 mb-3">
-        <SparklesIcon className="w-4 h-4 text-cyan-400" />
-        <span className="text-xs font-bold text-cyan-400">הצעות AI</span>
-        {isLoading && <div className="w-3 h-3 rounded-full border-2 border-cyan-500/30 border-t-cyan-500 animate-spin" />}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {suggestions.map((suggestion, index) => (
-          <button
-            key={index}
-            type="button"
-            onClick={() => onSuggestionSelect(suggestion, 'content')}
-            className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all duration-200 border border-white/5 hover:border-white/20"
-          >
-            {suggestion}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const KeyboardShortcutsHint: React.FC<{ isVisible: boolean; onClose: () => void }> = ({ isVisible, onClose }) => {
-  if (!isVisible) return null;
-
-  const shortcuts = [
-    { keys: ['Cmd/Ctrl', 'Enter'], action: 'שמור ושלח' },
-    { keys: ['Cmd/Ctrl', 'S'], action: 'שמור טיוטה' },
-    { keys: ['Escape'], action: 'סגור' },
-    { keys: ['Tab'], action: 'שדה הבא' },
-    { keys: ['Cmd/Ctrl', 'B'], action: 'הדגשה' },
-    { keys: ['Cmd/Ctrl', 'I'], action: 'נטוי' },
-  ];
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in-0 duration-200" onClick={onClose}>
-      <div
-        className="bg-[#1a1d24]/95 rounded-2xl p-6 max-w-md w-full mx-4 border border-white/10 shadow-2xl animate-in zoom-in-95 duration-300"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <span className="text-cyan-400">⌨️</span>
-            קיצורי מקלדת
-          </h3>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors">
-            <CloseIcon className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="space-y-3">
-          {shortcuts.map(({ keys, action }, index) => (
-            <div key={index} className="flex items-center justify-between">
-              <span className="text-white/70 text-sm">{action}</span>
-              <div className="flex gap-1">
-                {keys.map((key, i) => (
-                  <kbd key={i} className="px-2 py-1 text-xs font-mono bg-white/10 rounded-md text-white/80 border border-white/20">
-                    {key}
-                  </kbd>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-// --- Premium Input Styles ---
-const premiumInputStyles = `
-  w-full bg-black/30 text-white p-4 rounded-xl
-  border border-white/10
-  focus:outline-none focus:ring-2 focus:ring-[var(--dynamic-accent-start)]/50 focus:border-[var(--dynamic-accent-start)]
-  placeholder-white/30
-  transition-all duration-300
-  hover:border-white/20 hover:bg-black/40
-  backdrop-blur-sm
-`;
 
 // --- Sub-components for form fields ---
 
@@ -277,7 +156,7 @@ const SimpleFormFields: React.FC<{
               value={content}
               onChange={e => setContent(e.target.value)}
               placeholder={contentPlaceholder}
-              className="w-full bg-transparent text-white p-4 focus:outline-none resize-y min-h-[150px] placeholder-white/30 transition-all"
+              className="w-full bg-transparent text-white p-4 focus:outline-none resize-y min-h-[250px] sm:min-h-[300px] placeholder-white/30 transition-all text-base"
               required={contentRequired}
             />
             {/* Word count footer */}
@@ -332,7 +211,7 @@ const TaskFields: React.FC<{
   dueTime?: string;
   setDueTime?: (v: string) => void;
   priority?: string;
-  setPriority?: (v: any) => void;
+  setPriority?: (v: 'low' | 'medium' | 'high') => void;
 }> = ({ dueDate, setDueDate, dueTime, setDueTime, priority, setPriority }) => (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-white/5 p-4 rounded-xl border border-white/5">
     <div>
@@ -367,7 +246,7 @@ const TaskFields: React.FC<{
           עדיפות
         </label>
         <div className="flex bg-black/20 p-1 rounded-xl border border-white/10">
-          {['low', 'medium', 'high'].map(p => (
+          {(['low', 'medium', 'high'] as const).map(p => (
             <button
               key={p}
               type="button"
@@ -448,6 +327,7 @@ export const ItemCreationForm: React.FC<{
       link: LinkIcon,
       idea: SparklesIcon,
       habit: FlameIcon,
+      antigoal: BanIcon,
       book: BookOpenIcon,
       workout: DumbbellIcon,
       goal: TargetIcon,
@@ -466,6 +346,7 @@ export const ItemCreationForm: React.FC<{
       link: '#60A5FA',
       idea: '#FBBF24',
       habit: '#F472B6',
+      antigoal: '#EF4444',
       book: '#A78BFA',
       workout: '#F472B6',
       goal: '#2DD4BF',
@@ -598,6 +479,11 @@ export const ItemCreationForm: React.FC<{
         if (formState.habitType === 'bad') {
           newItemData.lastCompleted = new Date().toISOString();
         }
+      } else if (itemType === 'antigoal') {
+        newItemData.antiGoalData = {
+          ...formState.antiGoalData,
+          lastCheckIn: new Date().toISOString(), // Start with today's check-in
+        };
       }
 
       await addPersonalItem(newItemData);
@@ -607,8 +493,16 @@ export const ItemCreationForm: React.FC<{
       if (itemType === 'workout') {
         // Stay on current screen, overlay will appear
       } else if (itemType === 'task' || itemType === 'habit') {
-        setActiveScreen('today');
+        if (newItemData.spaceId) {
+          sessionStorage.setItem('library_redirect_space', newItemData.spaceId);
+          setActiveScreen('library');
+        } else {
+          setActiveScreen('today');
+        }
       } else {
+        if (newItemData.spaceId) {
+          sessionStorage.setItem('library_redirect_space', newItemData.spaceId);
+        }
         setActiveScreen('library');
       }
       onClose();
@@ -705,15 +599,13 @@ export const ItemCreationForm: React.FC<{
       case 'note':
         return (
           <>
-            <SimpleFormFields
+            <NoteFields
               title={formState.title}
               setTitle={v => dispatch({ type: 'SET_FIELD', payload: { field: 'title', value: v } })}
               content={formState.content}
               setContent={v =>
                 dispatch({ type: 'SET_FIELD', payload: { field: 'content', value: v } })
               }
-              titlePlaceholder="כותרת הפתק"
-              contentPlaceholder="כתוב משהו..."
             />
             <div className="pt-6 border-t border-white/10 mt-6">
               <p className="text-xs font-bold text-secondary uppercase tracking-wider mb-3">
@@ -771,36 +663,51 @@ export const ItemCreationForm: React.FC<{
               </div>
             </div>
 
-            <div className="space-y-2">
-              <h3 className="text-3xl font-black text-white">אימון חדש</h3>
-              <p className="text-white/50 max-w-xs mx-auto text-sm leading-relaxed">
-                התחל אימון לייב מיד. תוכל להוסיף תרגילים תוך כדי תנועה.
-              </p>
-            </div>
 
-            <div className="w-full max-w-sm text-right px-2">
-              <SimpleFormFields
-                title={formState.title}
-                setTitle={v =>
-                  dispatch({ type: 'SET_FIELD', payload: { field: 'title', value: v } })
-                }
-                content={formState.content}
-                setContent={v =>
-                  dispatch({ type: 'SET_FIELD', payload: { field: 'content', value: v } })
-                }
-                titlePlaceholder="שם האימון (אופציונלי)"
-                contentPlaceholder="הערות..."
-                contentRequired={false}
-              />
-            </div>
 
-            <button
-              type="submit"
-              className="w-full max-w-sm py-5 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 rounded-2xl font-bold text-white text-lg shadow-2xl shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 ring-1 ring-white/20"
-            >
-              <span>התחל אימון עכשיו</span>
-              <span className="text-xl">⚡</span>
-            </button>
+            <div className="space-y-8 animate-in zoom-in-95 duration-700 delay-100 relative z-10 w-full max-w-md">
+              <div className="text-center space-y-4">
+                <h3 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-rose-500 to-indigo-500 tracking-tighter drop-shadow-sm">
+                  READY?
+                </h3>
+                <p className="text-white/60 text-lg font-medium leading-relaxed">
+                  Start an open workout session. Add exercises as you flow.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="relative group">
+                  <input
+                    type="text"
+                    value={formState.title}
+                    onChange={v => dispatch({ type: 'SET_FIELD', payload: { field: 'title', value: v.target.value } })}
+                    placeholder="SESSION NAME (OPTIONAL)"
+                    className="w-full bg-white/10 text-center text-xl font-bold p-5 rounded-2xl border-2 border-white/5 focus:border-rose-500 focus:bg-white/10 outline-none transition-all placeholder-white/20 uppercase tracking-wide"
+                  />
+                </div>
+                <div className="relative group">
+                  <textarea
+                    value={formState.content}
+                    onChange={v => dispatch({ type: 'SET_FIELD', payload: { field: 'content', value: v.target.value } })}
+                    placeholder="Focus / Goals..."
+                    rows={2}
+                    className="w-full bg-white/5 text-center text-lg p-4 rounded-xl border border-white/5 focus:border-white/20 focus:bg-white/10 outline-none transition-all placeholder-white/20 resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  className="group relative w-full py-6 bg-gradient-to-r from-rose-600 to-indigo-600 rounded-2xl font-black text-white text-2xl shadow-[0_10px_40px_-10px_rgba(244,63,94,0.4)] hover:shadow-[0_20px_60px_-10px_rgba(244,63,94,0.6)] hover:scale-[1.02] active:scale-[0.98] transition-all overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
+                  <span className="flex items-center justify-center gap-3">
+                    START NOW <DumbbellIcon className="w-7 h-7" />
+                  </span>
+                </button>
+              </div>
+            </div>
           </div>
         );
       case 'roadmap':
@@ -818,23 +725,32 @@ export const ItemCreationForm: React.FC<{
               contentPlaceholder="תיאור כללי של המטרה..."
               contentRequired={false}
             />
-            <div className="flex items-center justify-between bg-gradient-to-r from-[var(--dynamic-accent-start)]/20 to-[var(--dynamic-accent-end)]/20 p-5 rounded-xl border border-[var(--dynamic-accent-start)]/30 shadow-lg shadow-[var(--dynamic-accent-start)]/10">
-              <div>
-                <h4 className="font-bold text-white flex items-center gap-2 text-lg">
-                  <SparklesIcon className="w-5 h-5 text-accent" /> צור מפת דרכים עם AI
-                </h4>
-                <p className="text-xs text-secondary mt-1">
-                  AI יפרק את המטרה לשלבים מעשיים באופן אוטומטי
-                </p>
+            <div className="relative group overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 border border-white/10 hover:border-white/20 transition-all p-6">
+              <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h4 className="font-black text-white flex items-center gap-2 text-xl">
+                    <SparklesIcon className="w-5 h-5 text-indigo-400" />
+                    <span>AI Roadmap Generator</span>
+                  </h4>
+                  <p className="text-sm text-white/50 mt-1 max-w-sm">
+                    Let AI break down your goal into actionable steps instantly.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGenerateRoadmap}
+                  disabled={formState.isGeneratingRoadmap || !formState.title}
+                  className="w-full sm:w-auto bg-white text-black px-6 py-3 rounded-xl text-sm font-bold hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)] disabled:opacity-50 disabled:scale-100"
+                >
+                  {formState.isGeneratingRoadmap ? (
+                    <span className="flex items-center gap-2">
+                      <LoadingSpinner className="w-4 h-4 text-black" />
+                      Creating...
+                    </span>
+                  ) : 'Generate Steps'}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={handleGenerateRoadmap}
-                disabled={formState.isGeneratingRoadmap || !formState.title}
-                className="bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors border border-white/10 disabled:opacity-50 shadow-sm"
-              >
-                {formState.isGeneratingRoadmap ? 'מייצר...' : 'צור עכשיו'}
-              </button>
             </div>
             {formState.phases.length > 1 && (
               <div className="space-y-2 bg-black/20 p-4 rounded-xl border border-white/5">
@@ -858,6 +774,103 @@ export const ItemCreationForm: React.FC<{
             )}
           </div>
         );
+      case 'antigoal':
+        return (
+          <>
+            <SimpleFormFields
+              title={formState.title}
+              setTitle={v => dispatch({ type: 'SET_FIELD', payload: { field: 'title', value: v } })}
+              content={formState.content}
+              setContent={v =>
+                dispatch({ type: 'SET_FIELD', payload: { field: 'content', value: v } })
+              }
+              titlePlaceholder="ממה אני רוצה להימנע?"
+              contentPlaceholder="הערות נוספות..."
+              contentRequired={false}
+            />
+
+            {/* Motivation */}
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
+              <div className="group relative">
+                <label className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2 block group-focus-within:text-amber-400 transition-colors">
+                  WHY THIS MATTERS?
+                </label>
+                <textarea
+                  dir="auto"
+                  value={formState.antiGoalData?.motivation || ''}
+                  onChange={e =>
+                    dispatch({
+                      type: 'SET_FIELD',
+                      payload: {
+                        field: 'antiGoalData',
+                        value: { ...formState.antiGoalData, motivation: e.target.value },
+                      },
+                    })
+                  }
+                  placeholder="Deep reason driving this avoidance..."
+                  rows={2}
+                  className="w-full bg-white/5 text-lg text-white p-4 rounded-xl border border-white/10 focus:outline-none focus:bg-black/40 focus:border-amber-500/50 transition-all resize-none"
+                />
+              </div>
+
+              {/* Reward */}
+              <div className="group relative">
+                <label className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2 block group-focus-within:text-emerald-400 transition-colors">
+                  THE REWARD
+                </label>
+                <input
+                  type="text"
+                  dir="auto"
+                  value={formState.antiGoalData?.reward || ''}
+                  onChange={e =>
+                    dispatch({
+                      type: 'SET_FIELD',
+                      payload: {
+                        field: 'antiGoalData',
+                        value: { ...formState.antiGoalData, reward: e.target.value },
+                      },
+                    })
+                  }
+                  placeholder="What do you get if you succeed?"
+                  className="w-full bg-white/5 text-lg text-white p-4 rounded-xl border border-white/10 focus:outline-none focus:bg-black/40 focus:border-emerald-500/50 transition-all list-none"
+                />
+              </div>
+
+              {/* Daily Check-in Toggle */}
+              <div className="p-5 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 rounded-2xl border border-emerald-500/20 hover:border-emerald-500/40 transition-all flex items-center justify-between group">
+                <div>
+                  <label className="font-bold text-white text-lg group-hover:text-emerald-300 transition-colors">Daily Accountability</label>
+                  <p className="text-sm text-white/40 mt-1">
+                    Get a daily notification to confirm you stayed clean.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    dispatch({
+                      type: 'SET_FIELD',
+                      payload: {
+                        field: 'antiGoalData',
+                        value: { ...formState.antiGoalData, dailyCheckIn: !formState.antiGoalData?.dailyCheckIn },
+                      },
+                    })
+                  }
+                  className={`relative w-14 h-8 rounded-full transition-all duration-300 ${formState.antiGoalData?.dailyCheckIn !== false
+                    ? 'bg-emerald-500 shadow-[0_0_15px_-3px_rgba(16,185,129,0.5)]'
+                    : 'bg-white/10'
+                    }`}
+                >
+                  <span
+                    className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-sm transition-all duration-300 ${formState.antiGoalData?.dailyCheckIn !== false
+                      ? 'translate-x-7'
+                      : 'translate-x-1'
+                      }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </>
+        );
       case 'habit':
         return (
           <>
@@ -874,6 +887,43 @@ export const ItemCreationForm: React.FC<{
             />
             <HabitEditComponent editState={formState as any} dispatch={dispatch as any} />
           </>
+        );
+      case 'journal':
+        return (
+          <JournalFields
+            title={formState.title}
+            setTitle={v => dispatch({ type: 'SET_FIELD', payload: { field: 'title', value: v } })}
+            content={formState.content}
+            setContent={v =>
+              dispatch({ type: 'SET_FIELD', payload: { field: 'content', value: v } })
+            }
+          />
+        );
+      case 'idea':
+        return (
+          <IdeaFields
+            title={formState.title}
+            setTitle={v => dispatch({ type: 'SET_FIELD', payload: { field: 'title', value: v } })}
+            content={formState.content}
+            setContent={v =>
+              dispatch({ type: 'SET_FIELD', payload: { field: 'content', value: v } })
+            }
+          />
+        );
+      case 'learning':
+        return (
+          <LearningFields
+            title={formState.title}
+            setTitle={v => dispatch({ type: 'SET_FIELD', payload: { field: 'title', value: v } })}
+            content={formState.content}
+            setContent={v =>
+              dispatch({ type: 'SET_FIELD', payload: { field: 'content', value: v } })
+            }
+            source={formState.author} // Reusing author field for learning source
+            setSource={v =>
+              dispatch({ type: 'SET_FIELD', payload: { field: 'author', value: v } })
+            }
+          />
         );
       default:
         return (
@@ -899,6 +949,7 @@ export const ItemCreationForm: React.FC<{
       link: 'קישור',
       idea: 'רעיון',
       habit: 'הרגל',
+      antigoal: 'אנטי-יעד',
       book: 'ספר',
       workout: 'אימון',
       goal: 'פרויקט',
@@ -913,6 +964,7 @@ export const ItemCreationForm: React.FC<{
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [showAISuggestions] = useState(true);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   // Auto-save functionality
   const debouncedFormState = useDebounce(formState, 2000);
@@ -983,178 +1035,310 @@ export const ItemCreationForm: React.FC<{
     <>
       <KeyboardShortcutsHint isVisible={showKeyboardShortcuts} onClose={() => setShowKeyboardShortcuts(false)} />
 
-      <DraggableModalWrapper
-        onClose={onClose}
-        className={`
+      {isMobile ? createPortal(
+        <div className="fixed inset-0 z-[9999] bg-[#000000] flex flex-col h-[100dvh] w-full overflow-hidden animate-in slide-in-from-bottom-[10%] duration-300 safe-area-top">
+          {itemType === 'workout' ? (
+            <header className="relative px-5 pt-4 shrink-0 flex justify-end">
+              <button
+                onClick={onClose}
+                className="p-3 bg-white/10 rounded-full text-white/70 hover:bg-white/20 hover:text-white transition-all duration-200 active:scale-90"
+              >
+                <CloseIcon className="w-6 h-6" />
+              </button>
+            </header>
+          ) : (
+            <header className="relative px-5 pt-5 pb-5 shrink-0">
+              {/* Mobile Header - Cleaner & Bigger */}
+              <div className="flex justify-between items-start mb-2">
+                <button
+                  onClick={onClose}
+                  className="p-3 -mr-2 rounded-full text-white/50 hover:bg-white/10 active:bg-white/20 transition-all active:scale-95"
+                >
+                  <CloseIcon className="w-8 h-8" />
+                </button>
+
+                <div className="flex items-center gap-3">
+                  <AutoSaveIndicator status={autoSaveStatus} />
+                  <button
+                    type="button"
+                    onClick={() => setShowKeyboardShortcuts(true)}
+                    className="p-2 bg-white/5 rounded-xl text-white/40"
+                  >
+                    <span className="text-lg">⌨️</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 mb-2">
+                <div
+                  className="relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg ring-1 ring-white/10 overflow-hidden"
+                  style={{ backgroundColor: `${accentColor}15` }}
+                >
+                  <TypeIcon className="w-7 h-7 relative z-10" style={{ color: accentColor }} />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold text-white tracking-tight">
+                    {typeLabel}
+                  </h2>
+                </div>
+              </div>
+            </header>
+          )}
+
+          <form onSubmit={(e) => { handleSubmit(e); clearDraft(); }} className="flex flex-col flex-1 overflow-hidden relative">
+            <div className={`flex-1 overflow-y-auto px-5 py-4 space-y-6 custom-scrollbar overscroll-contain pb-32`}>
+              {renderFormFields()}
+
+              {/* AI Suggestions Panel */}
+              {['task', 'note', 'idea', 'spark'].includes(itemType) && (
+                <AISuggestionsPanel
+                  itemType={itemType}
+                  title={formState.title}
+                  content={formState.content}
+                  onSuggestionSelect={(suggestion, field) => {
+                    dispatch({ type: 'SET_FIELD', payload: { field, value: field === 'content' ? formState.content + '\n' + suggestion : suggestion } });
+                    triggerHaptic('light');
+                  }}
+                  isVisible={showAISuggestions && formState.title.length > 3}
+                />
+              )}
+
+              {itemType !== 'ticker' && itemType !== 'workout' && (
+                <>
+                  <div className="group mt-6">
+                    <label className="text-sm font-bold text-white/60 uppercase tracking-wider mb-3 block">
+                      שיוך למרחב
+                    </label>
+                    <div className="h-16 relative">
+                      <select
+                        value={formState.spaceId}
+                        onChange={e =>
+                          dispatch({
+                            type: 'SET_FIELD',
+                            payload: { field: 'spaceId', value: e.target.value },
+                          })
+                        }
+                        className={premiumInputStyles + ' h-full text-lg'}
+                      >
+                        <option value="">ללא מרחב</option>
+                        {spaces
+                          .filter(s => s.type === 'personal')
+                          .map(s => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                      </select>
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
+                        ▼
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <AttachmentManager
+                      attachments={formState.attachments}
+                      onAttachmentsChange={atts =>
+                        dispatch({ type: 'SET_FIELD', payload: { field: 'attachments', value: atts } })
+                      }
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {itemType !== 'workout' && (
+              <div className="p-4 border-t border-white/5 bg-[#000000]/90 backdrop-blur-xl fixed bottom-0 left-0 right-0 z-50 pb-safe-bottom">
+                <button
+                  type="submit"
+                  disabled={formState.submissionStatus === 'submitting'}
+                  className="w-full h-16 bg-gradient-to-r from-cyan-500 to-violet-600 active:from-cyan-400 active:to-violet-500 text-white font-bold text-xl rounded-2xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                >
+                  {formState.submissionStatus === 'submitting' ? (
+                    <LoadingSpinner />
+                  ) : (
+                    <span>שמור פריט</span>
+                  )}
+                </button>
+              </div>
+            )}
+          </form>
+        </div>,
+        document.body
+      ) : (
+        <DraggableModalWrapper
+          onClose={onClose}
+          className={`
           bg-gradient-to-br from-[#1a1d24]/98 via-[#12141a]/98 to-[#0a0c10]/98
           w-full 
-          ${itemType === 'workout' ? 'h-auto max-h-[90dvh] rounded-t-[32px] sm:rounded-2xl' : 'h-[100dvh] sm:h-auto sm:max-h-[90vh] sm:rounded-2xl'}
-          md:w-[90vw] md:max-w-2xl
+          ${itemType === 'workout' ? 'h-auto max-h-full rounded-t-[32px] sm:rounded-2xl' : 'h-full sm:h-[95vh] sm:max-h-[95vh] sm:rounded-2xl'}
+          md:w-[95vw] md:max-w-4xl lg:max-w-5xl
           shadow-2xl shadow-black/50
           flex flex-col 
           border-0 sm:border border-white/10 
           will-change-[transform,opacity]
           overflow-hidden
         `}
-      >
-        {/* Premium Header with Glow - Simplified for workout */}
-        {itemType === 'workout' ? (
-          <header className="relative px-4 pt-safe-top py-3 shrink-0 flex justify-end">
-            <button
-              onClick={onClose}
-              className="p-2.5 bg-white/5 rounded-xl text-white/50 hover:bg-white/10 hover:text-white transition-all duration-200 active:scale-90"
-            >
-              <CloseIcon className="w-5 h-5" />
-            </button>
-          </header>
-        ) : (
-          <header className="relative px-4 pt-safe-top py-3 sm:px-6 sm:py-4 shrink-0 overflow-hidden">
-            {/* Subtle gradient background - reduced for performance */}
-            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/3 via-transparent to-violet-500/3 pointer-events-none" />
-            <div
-              className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 rounded-full blur-2xl pointer-events-none opacity-20 hidden sm:block"
-              style={{ backgroundColor: accentColor }}
-            />
-
-            <div className="relative z-10 flex justify-between items-start">
-              <div className="flex items-center gap-4">
-                {/* Premium Icon Container - Smaller on mobile */}
-                <div
-                  className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg ring-1 ring-white/20 overflow-hidden"
-                  style={{ backgroundColor: `${accentColor}20` }}
-                >
-                  <TypeIcon className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" style={{ color: accentColor }} />
-                </div>
-
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                    הוספת {typeLabel}
-                  </h2>
-                  <p className="text-xs sm:text-sm text-white/50 font-medium mt-0.5 hidden sm:block">הזן את הפרטים למטה</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {/* Auto-save indicator */}
-                <AutoSaveIndicator status={autoSaveStatus} />
-
-                {/* Keyboard shortcuts button */}
-                <button
-                  type="button"
-                  onClick={() => setShowKeyboardShortcuts(true)}
-                  className="p-2 bg-white/5 rounded-xl text-white/40 hover:bg-white/10 hover:text-white/70 transition-all"
-                  title="קיצורי מקלדת (Cmd+/)"
-                >
-                  <span className="text-sm">⌨️</span>
-                </button>
-
-                {/* Close button */}
-                <button
-                  onClick={onClose}
-                  className="p-2.5 bg-white/5 rounded-xl text-white/50 hover:bg-white/10 hover:text-white transition-all duration-200 active:scale-90"
-                >
-                  <CloseIcon className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </header>
-        )}
-
-        <form onSubmit={(e) => { handleSubmit(e); clearDraft(); }} className="flex flex-col flex-1 overflow-hidden relative">
-          <div className={`flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 space-y-5 sm:space-y-6 custom-scrollbar overscroll-contain ${itemType === 'workout' ? 'pb-6' : 'pb-28 sm:pb-24'}`}>
-            {renderFormFields()}
-
-            {/* AI Suggestions Panel */}
-            {['task', 'note', 'idea', 'spark'].includes(itemType) && (
-              <AISuggestionsPanel
-                itemType={itemType}
-                title={formState.title}
-                content={formState.content}
-                onSuggestionSelect={(suggestion, field) => {
-                  dispatch({ type: 'SET_FIELD', payload: { field, value: field === 'content' ? formState.content + '\n' + suggestion : suggestion } });
-                  triggerHaptic('light');
-                }}
-                isVisible={showAISuggestions && formState.title.length > 3}
+        >
+          {/* Desktop Content (Original Layout) */}
+          {itemType === 'workout' ? (
+            <header className="relative px-4 pt-safe-top py-3 shrink-0 flex justify-end">
+              <button
+                onClick={onClose}
+                className="p-2.5 bg-white/5 rounded-xl text-white/50 hover:bg-white/10 hover:text-white transition-all duration-200 active:scale-90"
+              >
+                <CloseIcon className="w-5 h-5" />
+              </button>
+            </header>
+          ) : (
+            <header className="relative px-4 pt-safe-top py-3 sm:px-6 sm:py-4 shrink-0 overflow-hidden">
+              {/* Subtle gradient background - reduced for performance */}
+              <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/3 via-transparent to-violet-500/3 pointer-events-none" />
+              <div
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 rounded-full blur-2xl pointer-events-none opacity-20 hidden sm:block"
+                style={{ backgroundColor: accentColor }}
               />
-            )}
 
-            {itemType !== 'ticker' && itemType !== 'workout' && (
-              <>
-                <div className="group">
-                  <label className="text-xs font-bold text-white/60 uppercase tracking-wider mb-2 block transition-colors group-focus-within:text-cyan-400">
-                    שיוך למרחב
-                  </label>
-                  <select
-                    value={formState.spaceId}
-                    onChange={e =>
-                      dispatch({
-                        type: 'SET_FIELD',
-                        payload: { field: 'spaceId', value: e.target.value },
-                      })
-                    }
-                    className={premiumInputStyles}
+              <div className="relative z-10 flex justify-between items-start">
+                <div className="flex items-center gap-4">
+                  {/* Premium Icon Container - Smaller on mobile */}
+                  <div
+                    className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg ring-1 ring-white/20 overflow-hidden"
+                    style={{ backgroundColor: `${accentColor}20` }}
                   >
-                    <option value="">ללא מרחב</option>
-                    {spaces
-                      .filter(s => s.type === 'personal')
-                      .map(s => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                  </select>
+                    <TypeIcon className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" style={{ color: accentColor }} />
+                  </div>
+
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                      הוספת {typeLabel}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-white/50 font-medium mt-0.5 hidden sm:block">הזן את הפרטים למטה</p>
+                  </div>
                 </div>
 
-                <AttachmentManager
-                  attachments={formState.attachments}
-                  onAttachmentsChange={atts =>
-                    dispatch({ type: 'SET_FIELD', payload: { field: 'attachments', value: atts } })
-                  }
-                />
-              </>
-            )}
-          </div>
+                <div className="flex items-center gap-2">
+                  {/* Auto-save indicator */}
+                  <AutoSaveIndicator status={autoSaveStatus} />
 
-          {/* Premium Sticky Footer */}
-          {itemType !== 'workout' && (
-            <div className="p-3 sm:p-4 border-t border-white/10 bg-[#1a1d24]/95 backdrop-blur-md fixed bottom-0 left-0 right-0 sm:absolute sm:bottom-0 w-full z-20 md:relative md:rounded-b-2xl safe-area-bottom">
-              <div className="flex items-center gap-2 sm:gap-3">
-                {/* Secondary action - Save as draft (hidden on mobile to save space) */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic('light');
-                    setAutoSaveStatus('saving');
-                    const draftKey = `draft_${itemType}`;
-                    localStorage.setItem(draftKey, JSON.stringify(formState));
-                    setTimeout(() => setAutoSaveStatus('saved'), 300);
-                  }}
-                  className="hidden sm:flex px-4 h-12 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white font-semibold rounded-xl transition-all border border-white/10 hover:border-white/20 items-center justify-center"
-                >
-                  שמור טיוטה
-                </button>
+                  {/* Keyboard shortcuts button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowKeyboardShortcuts(true)}
+                    className="p-2 bg-white/5 rounded-xl text-white/40 hover:bg-white/10 hover:text-white/70 transition-all"
+                    title="קיצורי מקלדת (Cmd+/)"
+                  >
+                    <span className="text-sm">⌨️</span>
+                  </button>
 
-                {/* Primary submit button */}
-                <button
-                  type="submit"
-                  disabled={formState.submissionStatus === 'submitting'}
-                  className="flex-1 h-12 sm:h-14 bg-gradient-to-r from-cyan-500 to-violet-600 hover:from-cyan-400 hover:to-violet-500 text-white font-bold text-base sm:text-lg rounded-xl transition-colors transform active:scale-[0.98] shadow-lg disabled:opacity-50 disabled:transform-none disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {formState.submissionStatus === 'submitting' ? (
-                    <LoadingSpinner />
-                  ) : (
-                    <>
-                      <span>שמור פריט</span>
-                      <span className="text-white/50 text-xs hidden sm:inline">⌘+Enter</span>
-                    </>
-                  )}
-                </button>
+                  {/* Close button */}
+                  <button
+                    onClick={onClose}
+                    className="p-2.5 bg-white/5 rounded-xl text-white/50 hover:bg-white/10 hover:text-white transition-all duration-200 active:scale-90"
+                  >
+                    <CloseIcon className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-            </div>
+            </header>
           )}
-        </form>
 
-      </DraggableModalWrapper >
+          <form onSubmit={(e) => { handleSubmit(e); clearDraft(); }} className="flex flex-col flex-1 overflow-hidden relative">
+            <div className={`flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 space-y-5 sm:space-y-6 custom-scrollbar overscroll-contain ${itemType === 'workout' ? 'pb-6' : 'pb-28 sm:pb-24'}`}>
+              {renderFormFields()}
+
+              {/* AI Suggestions Panel */}
+              {['task', 'note', 'idea', 'spark'].includes(itemType) && (
+                <AISuggestionsPanel
+                  itemType={itemType}
+                  title={formState.title}
+                  content={formState.content}
+                  onSuggestionSelect={(suggestion, field) => {
+                    dispatch({ type: 'SET_FIELD', payload: { field, value: field === 'content' ? formState.content + '\n' + suggestion : suggestion } });
+                    triggerHaptic('light');
+                  }}
+                  isVisible={showAISuggestions && formState.title.length > 3}
+                />
+              )}
+
+              {itemType !== 'ticker' && itemType !== 'workout' && (
+                <>
+                  <div className="group">
+                    <label className="text-xs font-bold text-white/60 uppercase tracking-wider mb-2 block transition-colors group-focus-within:text-cyan-400">
+                      שיוך למרחב
+                    </label>
+                    <select
+                      value={formState.spaceId}
+                      onChange={e =>
+                        dispatch({
+                          type: 'SET_FIELD',
+                          payload: { field: 'spaceId', value: e.target.value },
+                        })
+                      }
+                      className={premiumInputStyles}
+                    >
+                      <option value="">ללא מרחב</option>
+                      {spaces
+                        .filter(s => s.type === 'personal')
+                        .map(s => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  <AttachmentManager
+                    attachments={formState.attachments}
+                    onAttachmentsChange={atts =>
+                      dispatch({ type: 'SET_FIELD', payload: { field: 'attachments', value: atts } })
+                    }
+                  />
+                </>
+              )}
+            </div>
+
+            {/* Premium Sticky Footer */}
+            {itemType !== 'workout' && (
+              <div className="p-3 sm:p-4 border-t border-white/10 bg-[#1a1d24]/95 backdrop-blur-md fixed bottom-0 left-0 right-0 sm:absolute sm:bottom-0 w-full z-20 md:relative md:rounded-b-2xl safe-area-bottom">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  {/* Secondary action - Save as draft (hidden on mobile to save space) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setAutoSaveStatus('saving');
+                      const draftKey = `draft_${itemType}`;
+                      localStorage.setItem(draftKey, JSON.stringify(formState));
+                      setTimeout(() => setAutoSaveStatus('saved'), 300);
+                    }}
+                    className="hidden sm:flex px-4 h-12 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white font-semibold rounded-xl transition-all border border-white/10 hover:border-white/20 items-center justify-center"
+                  >
+                    שמור טיוטה
+                  </button>
+
+                  {/* Primary submit button */}
+                  <button
+                    type="submit"
+                    disabled={formState.submissionStatus === 'submitting'}
+                    className="flex-1 h-12 sm:h-14 bg-gradient-to-r from-cyan-500 to-violet-600 hover:from-cyan-400 hover:to-violet-500 text-white font-bold text-base sm:text-lg rounded-xl transition-colors transform active:scale-[0.98] shadow-lg disabled:opacity-50 disabled:transform-none disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {formState.submissionStatus === 'submitting' ? (
+                      <LoadingSpinner />
+                    ) : (
+                      <>
+                        <span>שמור פריט</span>
+                        <span className="text-white/50 text-xs hidden sm:inline">⌘+Enter</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </form>
+
+        </DraggableModalWrapper >
+      )}
       <Toast
         message={toast.message}
         isVisible={toast.isVisible}

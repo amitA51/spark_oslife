@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef, DragEvent } from 'react';
 import { useUI } from '../../src/contexts/UIContext';
-import { PersonalItem, RoadmapPhase, RoadmapTask } from '../../types';
+import { PersonalItem, RoadmapPhase, RoadmapTask, Attachment } from '../../types';
 import {
   DragHandleIcon,
   AddIcon,
@@ -235,7 +235,7 @@ const FilesTab: React.FC<{
 }> = ({ stage, onUpdate }) => {
   const hasFiles = stage.attachments && stage.attachments.length > 0;
 
-  const handleFileSelect = (file: any) => {
+  const handleFileSelect = (file: Attachment) => {
     const newAttachments = [...(stage.attachments || []), file];
     onUpdate({ attachments: newAttachments });
   };

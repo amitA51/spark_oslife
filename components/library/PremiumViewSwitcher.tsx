@@ -71,7 +71,7 @@ const PremiumViewSwitcher: React.FC<PremiumViewSwitcherProps> = ({
           border: '1px solid rgba(255,255,255,0.06)',
         }}
         role="tablist"
-        aria-label="תצוגות המתכנן"
+        aria-label="תצוגות הספרייה"
       >
         {/* Background blur layer */}
         <div className="absolute inset-0 backdrop-blur-xl -z-10" />

@@ -27,7 +27,16 @@ export interface EventLog {
   | 'focus_session';
   itemId: string;
   itemTitle: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
+}
+
+interface StoredEventLog {
+  id: string;
+  timestamp: string;
+  eventType: EventLog['eventType'];
+  itemId: string;
+  itemTitle: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Correlation {
@@ -84,8 +93,8 @@ export const getEventLog = (): EventLog[] => {
     const stored = localStorage.getItem(EVENT_LOG_KEY);
     if (!stored) return [];
 
-    const parsed = JSON.parse(stored);
-    return parsed.map((e: any) => ({
+    const parsed = JSON.parse(stored) as StoredEventLog[];
+    return parsed.map((e: StoredEventLog) => ({
       ...e,
       timestamp: new Date(e.timestamp),
     }));

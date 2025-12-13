@@ -18,10 +18,22 @@ interface WakeLockSentinel extends EventTarget {
 }
 
 // Navigator type augmentation for Wake Lock API
+interface BatteryManager extends EventTarget {
+  charging: boolean;
+  chargingTime: number;
+  dischargingTime: number;
+  level: number;
+  onchargingchange: ((this: BatteryManager, ev: Event) => any) | null;
+  onchargingtimechange: ((this: BatteryManager, ev: Event) => any) | null;
+  ondischargingtimechange: ((this: BatteryManager, ev: Event) => any) | null;
+  onlevelchange: ((this: BatteryManager, ev: Event) => any) | null;
+}
+
 type NavigatorWithWakeLock = Navigator & {
   wakeLock?: {
     request(type: 'screen'): Promise<WakeLockSentinel>;
   };
+  getBattery?: () => Promise<BatteryManager>;
 };
 
 export interface WakeLockStats {
@@ -289,7 +301,7 @@ export const useWakeLock = (options: UseWakeLockOptions = {}): UseWakeLockReturn
       return;
     }
 
-    let battery: any = null;
+    let battery: BatteryManager | null = null;
 
     const handleBatteryChange = () => {
       if (battery) {
@@ -303,7 +315,7 @@ export const useWakeLock = (options: UseWakeLockOptions = {}): UseWakeLockReturn
       }
     };
 
-    (navigator as any).getBattery().then((bat: any) => {
+    navigator.getBattery().then((bat: BatteryManager) => {
       battery = bat;
       handleBatteryChange();
 

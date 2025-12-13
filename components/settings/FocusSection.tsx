@@ -11,7 +11,7 @@ import ToggleSwitch from '../../components/ToggleSwitch';
 import { useFocusSession } from '../../src/contexts/FocusContext';
 import {
     SettingsSection,
-    SettingsCard,
+    SettingsGroupCard,
     SettingsRow,
     SettingsInfoBanner,
 } from './SettingsComponents';
@@ -99,7 +99,7 @@ const FocusSection: React.FC = () => {
             </div>
 
             {/* Timer Durations */}
-            <SettingsCard title="משכי זמן" icon={<TimerIcon className="w-5 h-5" />}>
+            <SettingsGroupCard title="משכי זמן" icon={<TimerIcon className="w-5 h-5" />}>
                 <SettingsRow title="זמן עבודה (דקות)" description="משך סשן עבודה רגיל במצב פוקוס.">
                     <input
                         type="number"
@@ -143,10 +143,10 @@ const FocusSection: React.FC = () => {
                         className="w-20 bg-white/[0.05] border border-white/[0.1] rounded-xl p-2.5 text-center text-white focus:border-[var(--dynamic-accent-start)] focus:ring-2 focus:ring-[var(--dynamic-accent-start)]/20 outline-none transition-all"
                     />
                 </SettingsRow>
-            </SettingsCard>
+            </SettingsGroupCard>
 
             {/* Automation Settings */}
-            <SettingsCard title="אוטומציה" icon={<PlayIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
+            <SettingsGroupCard title="אוטומציה" icon={<PlayIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
                 <SettingsRow title="התחל הפסקות אוטומטית" description="התחל הפסקה באופן אוטומטי לאחר סיום סשן עבודה.">
                     <ToggleSwitch
                         checked={settings.autoStartBreaks}
@@ -160,10 +160,10 @@ const FocusSection: React.FC = () => {
                         onChange={(v: boolean) => updateSettings({ autoStartFocus: v })}
                     />
                 </SettingsRow>
-            </SettingsCard>
+            </SettingsGroupCard>
 
             {/* Sound & Feedback */}
-            <SettingsCard title="צלילים ומשוב" icon={<VolumeIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
+            <SettingsGroupCard title="צלילים ומשוב" icon={<VolumeIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
                 <SettingsRow title="אפקטים קוליים" description="השמע צלילים בהתחלה וסיום של סשנים.">
                     <ToggleSwitch
                         checked={settings.enableSounds}
@@ -174,10 +174,10 @@ const FocusSection: React.FC = () => {
                 <SettingsInfoBanner variant="info">
                     💡 הצלילים ישמעו בהתחלת סשן, בסיום עבודה, בהשהייה ובסיום הפסקה.
                 </SettingsInfoBanner>
-            </SettingsCard>
+            </SettingsGroupCard>
 
             {/* Daily Goal */}
-            <SettingsCard title="יעד יומי" icon={<TargetIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
+            <SettingsGroupCard title="יעד יומי" icon={<TargetIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
                 <SettingsRow title="יעד זמן יומי (דקות)" description="הגדר את מטרת הזמן היומית שלך למצב פוקוס.">
                     <input
                         type="number"
@@ -208,10 +208,10 @@ const FocusSection: React.FC = () => {
                         ))}
                     </div>
                 </div>
-            </SettingsCard>
+            </SettingsGroupCard>
 
             {/* Data Management */}
-            <SettingsCard title="ניהול נתונים" icon={<RefreshIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
+            <SettingsGroupCard title="ניהול נתונים" icon={<RefreshIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
                 <SettingsInfoBanner variant="warning">
                     ⚠️ מחיקת היסטוריית הפוקוס תמחק את כל הסטטיסטיקות, הרצפים והסשנים השמורים.
                 </SettingsInfoBanner>
@@ -242,9 +242,11 @@ const FocusSection: React.FC = () => {
                         </div>
                     )}
                 </div>
-            </SettingsCard>
+            </SettingsGroupCard>
         </SettingsSection>
     );
 };
 
 export default FocusSection;
+
+

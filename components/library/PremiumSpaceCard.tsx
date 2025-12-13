@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronRightIcon } from '../icons';
+import { ChevronRightIcon, PinIcon } from '../icons';
+
 
 interface SpaceItem {
   id: string;
@@ -10,17 +11,28 @@ interface SpaceItem {
   itemCount: number;
   description?: string;
   lastUpdated?: string;
+  tags?: string[];
+  category?: string;
+  isPinned?: boolean;
 }
 
 interface PremiumSpaceCardProps {
   space: SpaceItem;
-  onOpen: (id: string) => void;
+  // Use onOpen instead of onClick for consistency with existing usage if needed, or stick to onClick. 
+  // Looking at LibraryScreen, it uses onOpen in the current code, but I'll make it flexible or update LibraryScreen.
+  // LibraryScreen currently passes onOpen. I will support onOpen.
+  onOpen: (id: string, space: SpaceItem) => void;
   index?: number;
   // Drag & drop props
+  draggable?: boolean; // Added for flexibility
   isDragging?: boolean;
-  onDragStart?: () => void;
-  onDragOver?: () => void;
-  onDrop?: () => void;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
+
+  // New props
+  viewMode?: 'grid' | 'list';
+  onTogglePin?: (e: React.MouseEvent) => void;
 }
 
 const PremiumSpaceCard: React.FC<PremiumSpaceCardProps> = ({
@@ -31,263 +43,235 @@ const PremiumSpaceCard: React.FC<PremiumSpaceCardProps> = ({
   onDragStart,
   onDragOver,
   onDrop,
+  viewMode = 'grid',
+  onTogglePin,
+  draggable,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    setMousePosition({ x, y });
-  };
-
-  const rotateX = isHovered ? (mousePosition.y - 0.5) * -15 : 0;
-  const rotateY = isHovered ? (mousePosition.x - 0.5) * 15 : 0;
-
-  return (
-    <div
-      draggable={!!onDragStart}
-      onDragStart={onDragStart}
-      onDragOver={(e) => {
-        e.preventDefault();
-        onDragOver?.();
-      }}
-      onDrop={(e) => {
-        e.preventDefault();
-        onDrop?.();
-      }}
-      onDragEnd={() => {
-        // cleanup handled by parent
-      }}
-    >
+  // --- LIST VIEW ---
+  if (viewMode === 'list') {
+    return (
       <motion.div
-        className={`relative cursor-pointer ${isDragging ? 'opacity-50 scale-95' : ''}`}
+        layout
+        onClick={() => onOpen(space.id, space)}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        onMouseMove={handleMouseMove}
-        onClick={() => onOpen(space.id)}
-        style={{
-          perspective: '1000px',
-        }}
-        initial={{ opacity: 0, y: 30, scale: 0.9 }}
-        animate={{ opacity: isDragging ? 0.5 : 1, y: 0, scale: isDragging ? 0.95 : 1 }}
-        transition={{
-          type: 'spring',
-          stiffness: 200,
-          damping: 20,
-          delay: index * 0.05,
-        }}
+        className={`relative group cursor-pointer ${isDragging ? 'opacity-30' : ''}`}
+        draggable={draggable}
+        onDragStart={(e) => onDragStart && onDragStart(e as any)}
+        onDragOver={(e) => onDragOver && onDragOver(e as any)}
+        onDrop={(e) => onDrop && onDrop(e as any)}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: isDragging ? 0.3 : 1, y: 0 }}
+        whileHover={{ scale: 1.01, backgroundColor: 'rgba(255,255,255,0.03)' }}
+        whileTap={{ scale: 0.99 }}
       >
-        <motion.div
-          className="relative rounded-3xl overflow-hidden"
+        <div
+          className="flex items-center gap-4 p-3 rounded-xl border border-white/5 bg-[#141419]"
           style={{
-            rotateX,
-            rotateY,
-            transformStyle: 'preserve-3d',
+            borderColor: isHovered ? `${space.color}40` : 'rgba(255,255,255,0.05)',
           }}
-          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-          whileHover={{ scale: 1.03, z: 50 }}
-          whileTap={{ scale: 0.98 }}
         >
+          {/* Icon */}
           <div
-            className="absolute inset-0"
+            className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors"
             style={{
-              background: `
-              linear-gradient(135deg, 
-                ${space.color}15 0%, 
-                rgba(255,255,255,0.02) 50%,
-                ${space.color}08 100%
-              )
-            `,
-              border: `1px solid ${space.color}20`,
-              backdropFilter: 'blur(24px)',
+              background: `${space.color}15`,
+              color: space.color,
             }}
-          />
+          >
+            <span className="text-xl">{space.icon}</span>
+          </div>
 
-          <div
-            className="absolute top-0 left-0 right-0 h-1.5 rounded-t-3xl"
-            style={{
-              background: `linear-gradient(90deg, ${space.color}, ${space.color}60)`,
-              boxShadow: `0 0 20px ${space.color}50`,
-            }}
-          />
-
-          <motion.div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: `
-              radial-gradient(
-                circle at ${mousePosition.x * 100}% ${mousePosition.y * 100}%,
-                ${space.color}25 0%,
-                transparent 50%
-              )
-            `,
-            }}
-            animate={{
-              opacity: isHovered ? 1 : 0,
-            }}
-            transition={{ duration: 0.3 }}
-          />
-
-          <div
-            className="absolute inset-0 opacity-10 pointer-events-none"
-            style={{
-              background: `
-              radial-gradient(circle at 30% 20%, ${space.color}40 0%, transparent 40%),
-              radial-gradient(circle at 70% 80%, ${space.color}30 0%, transparent 30%)
-            `,
-            }}
-          />
-
-          <div className="relative p-5 sm:p-6" style={{ transform: 'translateZ(20px)' }}>
-            <motion.div
-              className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl mb-3 sm:mb-4"
-              style={{
-                background: `linear-gradient(135deg, ${space.color}30 0%, ${space.color}10 100%)`,
-                border: `1px solid ${space.color}40`,
-                boxShadow: `
-                0 4px 20px ${space.color}20,
-                inset 0 1px 0 rgba(255,255,255,0.1)
-              `,
-              }}
-              animate={{
-                boxShadow: isHovered
-                  ? `0 8px 40px ${space.color}40, inset 0 1px 0 rgba(255,255,255,0.2)`
-                  : `0 4px 20px ${space.color}20, inset 0 1px 0 rgba(255,255,255,0.1)`,
-                scale: isHovered ? 1.1 : 1,
-              }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            >
-              {space.icon}
-
-              <motion.div
-                className="absolute -inset-2 rounded-3xl"
-                style={{
-                  background: `radial-gradient(circle, ${space.color}40 0%, transparent 70%)`,
-                  filter: 'blur(8px)',
-                }}
-                animate={{
-                  opacity: isHovered ? 0.8 : 0.3,
-                  scale: isHovered ? 1.2 : 1,
-                }}
-              />
-            </motion.div>
-
-            <div className="space-y-2">
-              <motion.h3
-                className="text-xl font-bold text-white font-heading"
-                animate={{
-                  x: isHovered ? 4 : 0,
-                }}
-                transition={{ type: 'spring', stiffness: 300 }}
-              >
-                {space.name}
-              </motion.h3>
-
+          {/* Content */}
+          <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-white truncate">{space.name}</h3>
               {space.description && (
-                <p className="text-sm text-gray-400 line-clamp-2">
-                  {space.description}
-                </p>
+                <p className="text-xs text-gray-400 truncate max-w-[200px]">{space.description}</p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Tags */}
+              {space.tags && space.tags.length > 0 && (
+                <div className="hidden sm:flex gap-1">
+                  {space.tags.slice(0, 2).map((tag, i) => (
+                    <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-gray-400">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               )}
 
-              <div className="flex items-center justify-between pt-2">
-                <div className="flex items-center gap-2">
-                  <motion.span
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium"
-                    style={{
-                      background: `${space.color}15`,
-                      color: space.color,
-                      border: `1px solid ${space.color}30`,
-                    }}
-                    animate={{
-                      boxShadow: isHovered
-                        ? `0 0 15px ${space.color}30`
-                        : `0 0 0px ${space.color}00`,
-                    }}
-                  >
-                    <span className="font-mono font-bold">{space.itemCount}</span>
-                    <span className="text-xs opacity-70">פריטים</span>
-                  </motion.span>
-                </div>
+              {/* Stats */}
+              <span className="text-xs text-gray-500 font-mono bg-white/5 px-2 py-1 rounded">
+                {space.itemCount}
+              </span>
 
-                <motion.div
-                  className="p-2 rounded-full"
-                  style={{
-                    background: `${space.color}10`,
-                    border: `1px solid ${space.color}20`,
-                  }}
-                  animate={{
-                    x: isHovered ? 0 : 10,
-                    opacity: isHovered ? 1 : 0,
-                    scale: isHovered ? 1 : 0.8,
-                  }}
-                  transition={{ type: 'spring', stiffness: 300 }}
+              {/* Pin Button */}
+              {onTogglePin && (space.isPinned || isHovered) && (
+                <button
+                  onClick={onTogglePin}
+                  className={`p-1.5 rounded-full transition-all ${space.isPinned ? 'text-white bg-white/10' : 'text-gray-500 hover:text-white hover:bg-white/10'}`}
                 >
-                  <ChevronRightIcon
-                    className="w-4 h-4 rotate-180"
-                    style={{ color: space.color }}
-                  />
-                </motion.div>
-              </div>
-
-              {space.lastUpdated && (
-                <motion.p
-                  className="text-xs text-gray-500 pt-1"
-                  animate={{
-                    opacity: isHovered ? 1 : 0.6,
-                  }}
-                >
-                  עודכן {space.lastUpdated}
-                </motion.p>
+                  <PinIcon className="w-4 h-4" filled={space.isPinned} />
+                </button>
               )}
             </div>
           </div>
-
-          <motion.div
-            className="absolute inset-0 pointer-events-none rounded-3xl"
-            style={{
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, transparent 50%)',
-            }}
-            animate={{
-              opacity: isHovered ? 0.8 : 0.4,
-            }}
-          />
-
-          <div
-            className="absolute bottom-0 left-4 right-4 h-px"
-            style={{
-              background: `linear-gradient(90deg, transparent, ${space.color}40, transparent)`,
-            }}
-          />
-        </motion.div>
-
-        <motion.div
-          className="absolute inset-0 rounded-3xl -z-10"
-          style={{
-            background: space.color,
-            filter: 'blur(50px)',
-          }}
-          animate={{
-            opacity: isHovered ? 0.2 : 0.08,
-            scale: isHovered ? 1.1 : 1,
-          }}
-          transition={{ duration: 0.4 }}
-        />
-
-        <motion.div
-          className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-4 rounded-full -z-20"
-          style={{
-            background: 'rgba(0,0,0,0.4)',
-            filter: 'blur(10px)',
-          }}
-          animate={{
-            opacity: isHovered ? 0.6 : 0.3,
-            scaleX: isHovered ? 0.9 : 0.8,
-          }}
-        />
+        </div>
       </motion.div>
-    </div>
+    );
+  }
+
+  // --- GRID VIEW (Default) ---
+  return (
+    <motion.div
+      layout
+      className="relative group cursor-pointer"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={() => onOpen(space.id, space)}
+      draggable={draggable}
+      onDragStart={(e) => onDragStart && onDragStart(e as any)}
+      onDragOver={(e) => {
+        e.preventDefault();
+        onDragOver?.(e as any);
+      }}
+      onDrop={(e) => onDrop && onDrop(e as any)}
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{
+        opacity: isDragging ? 0.3 : 1,
+        scale: isDragging ? 0.95 : 1,
+      }}
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+    >
+      <motion.div
+        className="relative overflow-hidden rounded-3xl bg-[#141419] border border-white/5 h-full"
+        animate={{
+          borderColor: isHovered ? `${space.color}40` : 'rgba(255,255,255,0.05)',
+          boxShadow: isHovered
+            ? `0 20px 40px -10px ${space.color}15`
+            : '0 0 0 0 transparent',
+        }}
+        // Remove fixed height to allow content to dictate or CSS grid to handle it
+        style={{ minHeight: '220px' } as any}
+      >
+        {/* Header Image / Gradient Area */}
+        <div
+          className="h-28 relative overflow-hidden"
+          style={{
+            background: `linear-gradient(135deg, ${space.color}15 0%, ${space.color}05 100%)`,
+          }}
+        >
+          {/* Big background icon */}
+          <div
+            className="absolute -right-4 -bottom-6 text-9xl opacity-[0.07] rotate-12 select-none pointer-events-none"
+            style={{ color: space.color }}
+          >
+            {space.icon}
+          </div>
+
+          {/* Pin Button (Absolute Top Left) */}
+          {onTogglePin && (
+            <div className={`absolute top-3 left-3 z-10 transition-opacity duration-200 ${space.isPinned || isHovered ? 'opacity-100' : 'opacity-0'}`}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePin(e);
+                }}
+                className={`p-2 rounded-xl backdrop-blur-md transition-all ${space.isPinned
+                  ? `bg-[var(--dynamic-accent-start)] text-white shadow-lg`
+                  : 'bg-black/20 text-white/70 hover:bg-black/40 hover:text-white'}`}
+              >
+                <PinIcon className="w-4 h-4" filled={space.isPinned} />
+              </button>
+            </div>
+          )}
+
+        </div>
+
+        {/* Content Body */}
+        <div className="p-5 relative">
+          {/* Floating Icon */}
+          <div className="absolute -top-8 right-5">
+            <motion.div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg backdrop-blur-xl border border-white/10 text-3xl"
+              style={{
+                background: isHovered ? `${space.color}30` : 'rgba(30,30,35,0.8)',
+                boxShadow: `0 8px 30px -5px ${space.color}20`,
+              } as any}
+              animate={{
+                scale: isHovered ? 1.1 : 1,
+                rotate: isHovered ? [0, -5, 5, 0] : 0
+              }}
+            >
+              {space.icon}
+            </motion.div>
+          </div>
+
+          <motion.h3
+            className="text-xl font-bold text-white font-heading mt-6 mb-1"
+            animate={{
+              x: isHovered ? 2 : 0,
+            }}
+          >
+            {space.name}
+          </motion.h3>
+
+          {space.description && (
+            <p className="text-sm text-gray-400 line-clamp-2 h-10 mb-3 leading-relaxed">
+              {space.description}
+            </p>
+          )}
+
+          <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-2">
+            <div className="flex flex-col gap-1">
+              {/* Item Count Pill */}
+              <div className="flex items-center gap-2">
+                <motion.span
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-white/5"
+                  style={{ color: space.color } as any}
+                >
+                  <span className="font-bold">{space.itemCount}</span>
+                  <span className="opacity-70">פריטים</span>
+                </motion.span>
+              </div>
+
+              {/* Tags (limited) */}
+              {space.tags && space.tags.length > 0 && (
+                <div className="flex gap-1 mt-1">
+                  {space.tags.slice(0, 2).map((tag, i) => (
+                    <span key={i} className="text-[10px] text-gray-500">#{tag}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <motion.div
+              className="p-2 rounded-full"
+              style={{
+                background: `${space.color}10`,
+                border: `1px solid ${space.color}20`,
+              } as any}
+              animate={{
+                x: isHovered ? 0 : 5,
+                opacity: isHovered ? 1 : 0.5,
+              }}
+            >
+              <ChevronRightIcon
+                className="w-4 h-4 rotate-180"
+                style={{ color: space.color }}
+              />
+            </motion.div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

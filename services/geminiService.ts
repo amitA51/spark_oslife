@@ -41,6 +41,15 @@ if (API_KEY) {
   );
 }
 
+/**
+ * Checks if AI service is available (API key is configured).
+ * Use this to conditionally show AI features in the UI.
+ */
+export const isAiAvailable = (): boolean => {
+  return ai !== null;
+};
+
+
 // ==================================================================================
 // --- Rate Limiter for API calls ---
 // ==================================================================================
@@ -119,6 +128,94 @@ class RateLimiter {
 
 const rateLimiter = new RateLimiter();
 
+// ==================================================================================
+// --- Response Cache for AI Calls ---
+// ==================================================================================
+
+interface CacheEntry<T> {
+  value: T;
+  timestamp: number;
+  size: number;
+}
+
+/**
+ * LRU Cache for AI responses to avoid redundant API calls for identical prompts.
+ * Features: TTL expiration, max size limit, LRU eviction.
+ */
+class ResponseCache {
+  private cache = new Map<string, CacheEntry<unknown>>();
+  private readonly maxSize: number;
+  private readonly ttlMs: number;
+  private currentSize = 0;
+
+  constructor(maxSize: number = 50, ttlMinutes: number = 10) {
+    this.maxSize = maxSize;
+    this.ttlMs = ttlMinutes * 60 * 1000;
+  }
+
+  private hash(key: string): string {
+    // Simple hash for cache key
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+      const char = key.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return hash.toString(16);
+  }
+
+  get<T>(key: string): T | null {
+    const hashedKey = this.hash(key);
+    const entry = this.cache.get(hashedKey);
+
+    if (!entry) return null;
+
+    // Check TTL expiration
+    if (Date.now() - entry.timestamp > this.ttlMs) {
+      this.cache.delete(hashedKey);
+      this.currentSize--;
+      return null;
+    }
+
+    // Move to end for LRU (re-insert)
+    this.cache.delete(hashedKey);
+    this.cache.set(hashedKey, entry);
+
+    return entry.value as T;
+  }
+
+  set<T>(key: string, value: T): void {
+    const hashedKey = this.hash(key);
+    const size = JSON.stringify(value).length;
+
+    // Evict oldest entries if at capacity
+    while (this.currentSize >= this.maxSize) {
+      const oldest = this.cache.keys().next().value;
+      if (oldest) {
+        this.cache.delete(oldest);
+        this.currentSize--;
+      } else {
+        break;
+      }
+    }
+
+    this.cache.set(hashedKey, {
+      value,
+      timestamp: Date.now(),
+      size,
+    });
+    this.currentSize++;
+  }
+
+  clear(): void {
+    this.cache.clear();
+    this.currentSize = 0;
+  }
+}
+
+// Shared cache instance for AI responses (50 entries, 10 minute TTL)
+const aiResponseCache = new ResponseCache(50, 10);
+
 /**
  * Wraps an API call with rate limiting and retry logic for 429 errors
  */
@@ -128,14 +225,16 @@ const withRateLimit = async <T>(fn: () => Promise<T>, maxRetries: number = 3): P
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       return await rateLimiter.throttle(fn);
-    } catch (error: any) {
-      lastError = error;
+    } catch (error: unknown) {
+      lastError = error instanceof Error ? error : new Error(String(error));
 
       // Check if it's a rate limit error (429)
+      const errorMessage = lastError.message || '';
+      const errorStatus = (error as { status?: number })?.status;
       if (
-        error?.status === 429 ||
-        error?.message?.includes('429') ||
-        error?.message?.includes('rate')
+        errorStatus === 429 ||
+        errorMessage.includes('429') ||
+        errorMessage.includes('rate')
       ) {
         const waitTime = Math.pow(2, attempt) * 2000; // Exponential backoff: 2s, 4s, 8s
         console.warn(
@@ -569,6 +668,14 @@ export const parseNaturalLanguageInput = async (query: string): Promise<NlpResul
  */
 export const summarizeItemContent = async (content: string): Promise<string> => {
   if (!ai) throw new Error('API Key not configured.');
+
+  // Check cache first (use first 200 chars as key to avoid very long keys)
+  const cacheKey = `summary:${content.substring(0, 200)}`;
+  const cached = aiResponseCache.get<string>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const settings = loadSettings();
   const prompt = `Summarize the following text concisely in Hebrew, in 2-4 bullet points. Focus on the key takeaways.
 
@@ -587,6 +694,8 @@ Summary:`;
     if (!text) {
       throw new Error('AI response was empty.');
     }
+    // Cache the result
+    aiResponseCache.set(cacheKey, text);
     return text;
   } catch (error) {
     console.error('Error summarizing content:', error);
@@ -1298,7 +1407,7 @@ Return a JSON object with a key "phases", which is an array of phase objects. Ea
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-2.0-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -1407,6 +1516,14 @@ export const breakDownRoadmapTask = async (taskTitle: string): Promise<Partial<S
 
 export const suggestIconForTitle = async (title: string): Promise<string> => {
   if (!ai) throw new Error('API Key not configured.');
+
+  // Check cache first
+  const cacheKey = `icon:${title}`;
+  const cached = aiResponseCache.get<string>(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const settings = loadSettings();
 
   const prompt = `You are an intelligent icon assigner for a productivity app. Your task is to select the most relevant icon for a new item based on its title.
@@ -1445,7 +1562,9 @@ export const suggestIconForTitle = async (title: string): Promise<string> => {
       throw new Error('AI response was empty.');
     }
     const result = JSON.parse(text) as IconSuggestionResult;
-    if ([...AVAILABLE_ICONS].includes(result.iconName as any)) {
+    if ((AVAILABLE_ICONS as readonly string[]).includes(result.iconName)) {
+      // Cache the result
+      aiResponseCache.set(cacheKey, result.iconName);
       return result.iconName;
     }
     return 'sparkles'; // Fallback

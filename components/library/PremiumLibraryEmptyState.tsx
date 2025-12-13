@@ -26,60 +26,60 @@ const emptyStateConfigs: Record<PremiumLibraryEmptyStateProps['type'], {
   suggestions: string[];
 }> = {
   projects: {
-    title: 'אין מפות דרכים עדיין',
-    description: 'צור מפת דרכים חדשה כדי לתכנן את היעדים שלך בשלבים ברורים',
-    illustration: '🗺️',
+    title: 'המסע מתחיל כאן',
+    description: 'מפת דרכים מחלקת מטרות גדולות לשלבים ברורים. צור את הראשונה.',
+    illustration: '◇',
     color: 'var(--dynamic-accent-start)',
-    suggestions: ['מפת קריירה', 'לימודים', 'פרויקט אישי'],
+    suggestions: ['קריירה', 'לימודים', 'פרויקט אישי'],
   },
   spaces: {
-    title: 'אין מרחבים',
-    description: 'מרחבים עוזרים לך לארגן את הפריטים שלך לפי נושא או קטגוריה',
-    illustration: '🌌',
+    title: 'ארגן לפי נושאים',
+    description: 'מרחבים מאפשרים לארגן פריטים לפי נושא או פרויקט.',
+    illustration: '○',
     color: '#8B5CF6',
     suggestions: ['עבודה', 'אישי', 'בריאות'],
   },
   inbox: {
-    title: 'האינבוקס ריק',
-    description: 'כל הפריטים שלך מאורגנים! הוסף פריטים חדשים והם יופיעו כאן',
-    illustration: '📥',
+    title: 'הכל מסודר',
+    description: 'פריטים חדשים יופיעו כאן לפני שתארגן אותם.',
+    illustration: '□',
     color: '#10B981',
-    suggestions: ['משימה מהירה', 'הערה', 'רעיון'],
+    suggestions: ['משימה', 'הערה', 'רעיון'],
   },
   timeline: {
-    title: 'אין פריטים בציר הזמן',
-    description: 'הוסף תאריכי יעד לפריטים שלך כדי לראות אותם בציר הזמן',
-    illustration: '📅',
+    title: 'התמונה הגדולה',
+    description: 'הוסף תאריכי יעד כדי לראות את הפריטים שלך לאורך הזמן.',
+    illustration: '―',
     color: '#F59E0B',
-    suggestions: ['הוסף תאריך יעד', 'צור משימה'],
+    suggestions: ['תאריך יעד', 'משימה חדשה'],
   },
   files: {
     title: 'אין קבצים',
-    description: 'העלה קבצים או צרף אותם לפריטים קיימים',
-    illustration: '📎',
+    description: 'העלה קבצים או צרף אותם לפריטים קיימים.',
+    illustration: '◈',
     color: '#EC4899',
     suggestions: ['העלה קובץ', 'צור מסמך'],
   },
   favorites: {
-    title: 'אין מועדפים עדיין',
-    description: 'סמן פריטים חשובים כמועדפים כדי לגשת אליהם במהירות מכל מקום באפליקציה',
-    illustration: '⭐',
+    title: 'גישה מהירה',
+    description: 'סמן פריטים חשובים כמועדפים לגישה מהירה מכל מקום.',
+    illustration: '☆',
     color: '#FACC15',
-    suggestions: ['סמן משימה חשובה', 'הוסף פרויקט מועדף', 'שמור רעיון זהב'],
+    suggestions: ['משימה חשובה', 'פרויקט מועדף', 'רעיון מרכזי'],
   },
   recent: {
-    title: 'אין פעילות אחרונה',
-    description: 'כשתתחיל לעבוד עם הפריטים שלך, נראה כאן את מה שעבדת עליו לאחרונה',
-    illustration: '🕒',
+    title: 'פעילות אחרונה',
+    description: 'כשתתחיל לעבוד, הפריטים האחרונים יופיעו כאן.',
+    illustration: '◷',
     color: '#38BDF8',
-    suggestions: ['פתח פרויקט קיים', 'צור משימה חדשה', 'הוסף הערה מהירה'],
+    suggestions: ['פרויקט קיים', 'משימה חדשה', 'הערה מהירה'],
   },
   general: {
-    title: 'אין פריטים להצגה',
-    description: 'התחל ליצור תוכן כדי לראות אותו כאן',
-    illustration: '✨',
+    title: 'המקום ריק',
+    description: 'הזמן ליצור משהו חדש.',
+    illustration: '◊',
     color: 'var(--dynamic-accent-start)',
-    suggestions: ['צור פריט חדש'],
+    suggestions: ['פריט חדש'],
   },
 };
 
@@ -93,17 +93,17 @@ const PremiumLibraryEmptyState: React.FC<PremiumLibraryEmptyStateProps> = ({
   return (
     <motion.div
       className="relative flex flex-col items-center justify-center py-8 sm:py-12 md:py-16 px-4 sm:px-6 text-center"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      initial={{ opacity: 0, y: 15, filter: 'blur(8px)' }}
+      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
       <motion.div
         className="relative mb-6 sm:mb-8"
         animate={{
-          y: [0, -10, 0],
+          y: [0, -6, 0],
         }}
         transition={{
-          duration: 4,
+          duration: 6,
           repeat: Infinity,
           ease: 'easeInOut',
         }}
@@ -120,15 +120,15 @@ const PremiumLibraryEmptyState: React.FC<PremiumLibraryEmptyStateProps> = ({
           <motion.div
             className="absolute -inset-4 rounded-[2rem]"
             style={{
-              background: `radial-gradient(circle, ${config.color}30 0%, transparent 70%)`,
-              filter: 'blur(20px)',
+              background: `radial-gradient(circle, ${config.color}20 0%, transparent 70%)`,
+              filter: 'blur(24px)',
             }}
             animate={{
-              opacity: [0.3, 0.6, 0.3],
-              scale: [0.9, 1.1, 0.9],
+              opacity: [0.2, 0.35, 0.2],
+              scale: [0.95, 1.05, 0.95],
             }}
             transition={{
-              duration: 3,
+              duration: 5,
               repeat: Infinity,
               ease: 'easeInOut',
             }}
@@ -153,25 +153,27 @@ const PremiumLibraryEmptyState: React.FC<PremiumLibraryEmptyStateProps> = ({
           </motion.div>
         </div>
 
-        {[...Array(5)].map((_, i) => (
+        {/* Quiet Luxury: Reduced particle count (3 instead of 5), subtler animation */}
+        {[...Array(3)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full"
+            className="absolute w-1 h-1 rounded-full"
             style={{
               background: config.color,
-              left: `${20 + Math.random() * 60}%`,
-              top: `${20 + Math.random() * 60}%`,
+              opacity: 0.5,
+              left: `${25 + Math.random() * 50}%`,
+              top: `${25 + Math.random() * 50}%`,
             }}
             animate={{
-              y: [-20, 20, -20],
-              x: [-10, 10, -10],
-              opacity: [0, 1, 0],
+              y: [-15, 15, -15],
+              x: [-8, 8, -8],
+              opacity: [0, 0.6, 0],
               scale: [0.5, 1, 0.5],
             }}
             transition={{
-              duration: 3 + Math.random() * 2,
+              duration: 4 + Math.random() * 2,
               repeat: Infinity,
-              delay: i * 0.4,
+              delay: i * 0.6,
               ease: 'easeInOut',
             }}
           />
@@ -258,13 +260,13 @@ const PremiumLibraryEmptyState: React.FC<PremiumLibraryEmptyStateProps> = ({
             className="absolute -inset-2 rounded-2xl -z-10"
             style={{
               background: config.color,
-              filter: 'blur(20px)',
+              filter: 'blur(24px)',
             }}
             animate={{
-              opacity: [0.3, 0.5, 0.3],
+              opacity: [0.15, 0.25, 0.15],
             }}
             transition={{
-              duration: 2,
+              duration: 4,
               repeat: Infinity,
             }}
           />

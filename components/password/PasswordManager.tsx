@@ -5,7 +5,7 @@ import SetupScreen from './SetupScreen';
 import VaultScreen from './VaultScreen';
 import type { PasswordItem } from '../../types';
 import LoadingSpinner from '../LoadingSpinner';
-import useIdleTimer from '../../hooks/useIdleTimer';
+import { useIdleTimer } from '../../hooks/useIdleTimer';
 
 const AUTO_LOCK_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 

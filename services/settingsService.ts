@@ -1,55 +1,174 @@
 import type { AppSettings, HomeScreenComponent, ThemeSettings, AddableType } from '../types';
 import { LOCAL_STORAGE_KEYS as LS } from '../constants';
 
-// Updated Themes with Premium, Subtle, and Delicate Colors
+// Premium Theme Collection - $100M Quality with Stunning Gradients
 const defaultThemes: Record<string, ThemeSettings> = {
-  nebula: {
-    name: 'Nebula',
-    accentColor: '#C4B5FD',
-    font: 'marcelo',
+  // 🌌 Aurora Borealis - Ethereal Northern Lights
+  aurora: {
+    name: 'Aurora Borealis',
+    accentColor: '#4ADE80',
+    font: 'satoshi',
+    cardStyle: 'glass',
+    backgroundEffect: 'particles',
+    borderRadius: 'xl',
+    gradientStart: '#22D3EE',
+    gradientEnd: '#4ADE80',
+    glowColor: '#22D3EE',
+    secondaryAccent: '#A78BFA',
+  },
+
+  // 🌅 Sunset Glow - Warm California Vibes
+  sunset: {
+    name: 'Sunset Glow',
+    accentColor: '#FB923C',
+    font: 'clash-display',
     cardStyle: 'glass',
     backgroundEffect: 'particles',
     borderRadius: 'lg',
+    gradientStart: '#F472B6',
+    gradientEnd: '#FB923C',
+    glowColor: '#FB923C',
+    secondaryAccent: '#FBBF24',
   },
-  emerald: {
-    name: 'Sage',
-    accentColor: '#6EE7B7',
+
+  // 🌊 Deep Ocean - Mysterious Depths
+  ocean: {
+    name: 'Deep Ocean',
+    accentColor: '#22D3EE',
     font: 'marcelo',
     cardStyle: 'glass',
-    backgroundEffect: 'particles',
+    backgroundEffect: 'dark',
     borderRadius: 'lg',
+    gradientStart: '#0EA5E9',
+    gradientEnd: '#22D3EE',
+    glowColor: '#0EA5E9',
+    secondaryAccent: '#38BDF8',
   },
-  gold: {
-    name: 'Champagne',
-    accentColor: '#FDE047',
-    font: 'marcelo',
+
+  // 🌸 Cherry Blossom - Japanese Elegance
+  sakura: {
+    name: 'Cherry Blossom',
+    accentColor: '#F472B6',
+    font: 'poppins',
+    cardStyle: 'glass',
+    backgroundEffect: 'particles',
+    borderRadius: 'xl',
+    gradientStart: '#FB7185',
+    gradientEnd: '#F9A8D4',
+    glowColor: '#F472B6',
+    secondaryAccent: '#FBBF24',
+  },
+
+  // 💎 Diamond - Pure Luxury
+  diamond: {
+    name: 'Diamond',
+    accentColor: '#E0E7FF',
+    font: 'inter',
+    cardStyle: 'bordered',
+    backgroundEffect: 'dark',
+    borderRadius: 'lg',
+    gradientStart: '#C7D2FE',
+    gradientEnd: '#F1F5F9',
+    glowColor: '#818CF8',
+    secondaryAccent: '#A5B4FC',
+  },
+
+  // 🔥 Ember - Fiery Passion
+  ember: {
+    name: 'Ember',
+    accentColor: '#F87171',
+    font: 'clash-display',
     cardStyle: 'flat',
     backgroundEffect: 'dark',
     borderRadius: 'md',
+    gradientStart: '#EF4444',
+    gradientEnd: '#FBBF24',
+    glowColor: '#F87171',
+    secondaryAccent: '#FB923C',
   },
-  oceanic: {
-    name: 'Glacier',
-    accentColor: '#7DD3FC',
-    font: 'marcelo',
-    cardStyle: 'flat',
-    backgroundEffect: 'off',
+
+  // 🌿 Forest - Natural Serenity
+  forest: {
+    name: 'Forest',
+    accentColor: '#34D399',
+    font: 'rubik',
+    cardStyle: 'glass',
+    backgroundEffect: 'particles',
     borderRadius: 'lg',
+    gradientStart: '#059669',
+    gradientEnd: '#6EE7B7',
+    glowColor: '#10B981',
+    secondaryAccent: '#84CC16',
   },
-  crimson: {
-    name: 'Rose',
-    accentColor: '#FDA4AF',
-    font: 'marcelo',
-    cardStyle: 'bordered',
-    backgroundEffect: 'off',
-    borderRadius: 'md',
-  },
-  midnight: {
-    name: 'Midnight',
-    accentColor: '#818CF8',
-    font: 'marcelo',
+
+  // 🌙 Moonlight - Gentle Night
+  moonlight: {
+    name: 'Moonlight',
+    accentColor: '#A5B4FC',
+    font: 'satoshi',
     cardStyle: 'glass',
     backgroundEffect: 'dark',
     borderRadius: 'xl',
+    gradientStart: '#6366F1',
+    gradientEnd: '#C7D2FE',
+    glowColor: '#818CF8',
+    secondaryAccent: '#DDD6FE',
+  },
+
+  // 🎭 Noir - Classic Elegance
+  noir: {
+    name: 'Noir',
+    accentColor: '#FBBF24',
+    font: 'inter',
+    cardStyle: 'bordered',
+    backgroundEffect: 'dark',
+    borderRadius: 'md',
+    gradientStart: '#F59E0B',
+    gradientEnd: '#FDE047',
+    glowColor: '#FBBF24',
+    secondaryAccent: '#D4D4D8',
+  },
+
+  // 🦋 Morpho - Electric Blue
+  morpho: {
+    name: 'Morpho',
+    accentColor: '#60A5FA',
+    font: 'poppins',
+    cardStyle: 'glass',
+    backgroundEffect: 'particles',
+    borderRadius: 'xl',
+    gradientStart: '#3B82F6',
+    gradientEnd: '#A78BFA',
+    glowColor: '#60A5FA',
+    secondaryAccent: '#C084FC',
+  },
+
+  // ✨ Stardust - Magical Sparkle (Default)
+  stardust: {
+    name: 'Stardust',
+    accentColor: '#C084FC',
+    font: 'satoshi',
+    cardStyle: 'glass',
+    backgroundEffect: 'particles',
+    borderRadius: 'xl',
+    gradientStart: '#A855F7',
+    gradientEnd: '#F472B6',
+    glowColor: '#C084FC',
+    secondaryAccent: '#FB7185',
+  },
+
+  // 🍇 Grape - Rich & Bold
+  grape: {
+    name: 'Grape',
+    accentColor: '#A78BFA',
+    font: 'marcelo',
+    cardStyle: 'glass',
+    backgroundEffect: 'dark',
+    borderRadius: 'lg',
+    gradientStart: '#7C3AED',
+    gradientEnd: '#C4B5FD',
+    glowColor: '#8B5CF6',
+    secondaryAccent: '#DDD6FE',
   },
 };
 
@@ -66,10 +185,10 @@ const defaultAddScreenLayout: AddableType[] = [
 const defaultSettings: AppSettings = {
   userName: '',
   userEmoji: '👋',
-  aiModel: 'gemini-2.5-flash',
+  aiModel: 'gemini-2.0-flash',
   autoSummarize: false,
   defaultScreen: 'today',
-  themeSettings: defaultThemes.nebula!,
+  themeSettings: defaultThemes.stardust!,
   lastAddedType: 'task',
   enableIntervalTimer: true,
   uiDensity: 'comfortable',
@@ -81,7 +200,7 @@ const defaultSettings: AppSettings = {
     today: 'היום',
     add: 'הוספה',
     investments: 'השקעות',
-    library: 'המתכנן',
+    library: 'ספרייה',
     search: 'חיפוש',
     settings: 'הגדרות',
   },
@@ -168,10 +287,150 @@ const defaultSettings: AppSettings = {
     showProgressBars: true,
     compactTooltips: false,
     spinnerVariant: 'default',
+    enableGlowEffects: true,
+    statusMessageStyle: 'default',
+    enableCelebrations: true,
   },
 
   // Tooltip Settings
   tooltipDelay: 'normal',
+
+  // Extended Notification Settings
+  dailyDigestEnabled: false,
+  dailyDigestTime: '21:00',
+  weeklyReviewEnabled: true,
+  weeklyReviewDay: 0, // Sunday
+  quietHoursEnabled: false,
+  quietHoursStart: '22:00',
+  quietHoursEnd: '07:00',
+  celebrateCompletions: true,
+
+  // 📅 Calendar Settings
+  calendarSettings: {
+    weekStartsOn: 0,
+    timeFormat: '24h',
+    dateFormat: 'DD/MM/YYYY',
+    showWeekNumbers: false,
+    defaultEventDuration: 60,
+    defaultReminderTime: 15,
+    showDeclinedEvents: false,
+    workingHoursEnabled: true,
+    workingHoursStart: '09:00',
+    workingHoursEnd: '17:00',
+  },
+
+  // ✅ Task Settings
+  taskSettings: {
+    defaultPriority: 'medium',
+    defaultDueTime: '09:00',
+    autoScheduleOverdue: true,
+    showSubtaskProgress: true,
+    autoArchiveCompleted: false,
+    autoArchiveDays: 14,
+    sortCompletedToBottom: true,
+    showTaskAge: false,
+    enableNaturalLanguage: true,
+    defaultListView: 'list',
+  },
+
+  // 🧠 Smart Features
+  smartFeaturesSettings: {
+    smartReminders: true,
+    autoTagSuggestions: true,
+    duplicateDetection: true,
+    smartReschedule: false,
+    aiWritingAssist: true,
+    autoLinkDetection: true,
+    markdownEnabled: true,
+    autoBacklinks: false,
+  },
+
+  // ♿ Accessibility
+  accessibilitySettings: {
+    reduceMotion: false,
+    highContrast: false,
+    largeText: false,
+    screenReaderOptimized: false,
+    focusIndicators: true,
+    colorBlindMode: 'none',
+    keyboardShortcutsEnabled: true,
+    autoPlayMedia: true,
+  },
+
+  // 🔒 Privacy  
+  privacySettings: {
+    lockAppEnabled: false,
+    lockTimeout: 5,
+    useBiometrics: false,
+    hidePreviewsInNotifications: false,
+    hideDetailsInWidgets: false,
+    analyticsEnabled: true,
+    crashReportsEnabled: true,
+    clearDataOnLogout: false,
+    incognitoMode: false,
+  },
+
+  // 💾 Backup Settings
+  backupSettings: {
+    autoBackupEnabled: true,
+    backupFrequency: 'weekly',
+    backupLocation: 'google_drive',
+    backupRetentionDays: 30,
+    includeAttachments: true,
+    encryptBackups: false,
+  },
+
+  // ⚡ Quick Actions
+  quickAddEnabled: true,
+  defaultQuickAddType: 'task',
+  showConfirmDialogs: true,
+
+  // 📰 Feed Settings
+  feedSettings: {
+    markAsReadOnOpen: true,
+    showReadItems: true,
+    feedRefreshInterval: 30,
+    defaultFeedSort: 'newest',
+    showFeedPreviews: true,
+    showReadTime: true,
+    autoSummarizeAI: false,
+    compactFeedView: false,
+  },
+
+  // 🔁 Habits Settings
+  habitsSettings: {
+    defaultReminderTime: '09:00',
+    showStreakCounter: true,
+    weeklyGoalDays: 5,
+    showHabitStats: true,
+    resetTime: '04:00',
+    habitCompletionSound: true,
+    showMissedHabits: true,
+    groupHabitsByTime: false,
+  },
+
+  // 🏠 Home Screen Settings
+  homeSettings: {
+    showGreeting: true,
+    greetingStyle: 'detailed',
+    showDailyQuote: true,
+    showProductivityScore: true,
+    widgetSize: 'medium',
+    showCalendarPreview: true,
+    showWeatherWidget: false,
+    quickActionsEnabled: true,
+  },
+
+  // ⏱️ Focus Goals
+  focusGoalSettings: {
+    dailyGoalMinutes: 120,
+    weeklyGoalHours: 10,
+    blockNotificationsDuringFocus: true,
+    autoStartNextSession: false,
+    showFocusStats: true,
+    longBreakInterval: 4,
+    longBreakDuration: 30,
+  },
 };
 
 export { defaultSettings };
@@ -234,7 +493,7 @@ export const loadSettings = (): AppSettings => {
       // MIGRATION: from simple theme string to ThemeSettings object
       if (typeof parsed.theme === 'string' && !parsed.themeSettings) {
         parsed.themeSettings =
-          defaultThemes[parsed.theme as keyof typeof defaultThemes] || defaultThemes.nebula;
+          defaultThemes[parsed.theme as keyof typeof defaultThemes] || defaultThemes.stardust;
         delete parsed.theme;
       }
 
@@ -247,13 +506,18 @@ export const loadSettings = (): AppSettings => {
         }
       }
 
+      // MIGRATION: Rename 'המתכנן' to 'ספרייה' in screenLabels
+      if (parsed.screenLabels?.library === 'המתכנן') {
+        parsed.screenLabels.library = 'ספרייה';
+      }
+
       // Merge with defaults to ensure new settings are applied
       return {
         ...defaultSettings,
         ...parsed,
         themeSettings: {
           ...defaultSettings.themeSettings,
-          ...(parsed.themeSettings || defaultThemes.nebula),
+          ...(parsed.themeSettings || defaultThemes.stardust),
         },
         screenLabels: { ...defaultSettings.screenLabels, ...parsed.screenLabels },
         intervalTimerSettings: {
@@ -274,6 +538,18 @@ export const loadSettings = (): AppSettings => {
         pomodoroSettings: { ...defaultSettings.pomodoroSettings, ...parsed.pomodoroSettings },
         aiFeedSettings: { ...defaultSettings.aiFeedSettings, ...parsed.aiFeedSettings },
         visualSettings: { ...defaultSettings.visualSettings, ...parsed.visualSettings },
+        // New settings mergers
+        calendarSettings: { ...defaultSettings.calendarSettings, ...parsed.calendarSettings },
+        taskSettings: { ...defaultSettings.taskSettings, ...parsed.taskSettings },
+        smartFeaturesSettings: { ...defaultSettings.smartFeaturesSettings, ...parsed.smartFeaturesSettings },
+        accessibilitySettings: { ...defaultSettings.accessibilitySettings, ...parsed.accessibilitySettings },
+        privacySettings: { ...defaultSettings.privacySettings, ...parsed.privacySettings },
+        backupSettings: { ...defaultSettings.backupSettings, ...parsed.backupSettings },
+        // Additional settings mergers
+        feedSettings: { ...defaultSettings.feedSettings, ...parsed.feedSettings },
+        habitsSettings: { ...defaultSettings.habitsSettings, ...parsed.habitsSettings },
+        homeSettings: { ...defaultSettings.homeSettings, ...parsed.homeSettings },
+        focusGoalSettings: { ...defaultSettings.focusGoalSettings, ...parsed.focusGoalSettings },
       };
     }
   } catch (error) {
@@ -284,12 +560,19 @@ export const loadSettings = (): AppSettings => {
 
 export const saveSettings = (settings: AppSettings): void => {
   try {
-    // Remove deprecated properties before saving
-    const settingsToSave = { ...settings };
-    delete (settingsToSave as any).showGratitude;
-    delete (settingsToSave as any).showHabits;
-    delete (settingsToSave as any).showTasks;
-    delete (settingsToSave as any).theme;
+    // Remove deprecated properties before saving using destructuring
+    const {
+      showGratitude: _g,
+      showHabits: _h,
+      showTasks: _t,
+      theme: _theme,
+      ...settingsToSave
+    } = settings as typeof settings & {
+      showGratitude?: unknown;
+      showHabits?: unknown;
+      showTasks?: unknown;
+      theme?: unknown;
+    };
 
     localStorage.setItem(LS.SETTINGS, JSON.stringify(settingsToSave));
   } catch (error) {

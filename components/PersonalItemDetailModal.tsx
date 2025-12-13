@@ -26,6 +26,7 @@ import { TaskView, TaskEdit } from './details/TaskDetails';
 import { BookView, BookEdit } from './details/BookDetails';
 import { WorkoutView, WorkoutEdit } from './details/WorkoutDetails';
 import { HabitView, HabitEdit } from './details/HabitDetails';
+import { AntiGoalView, AntiGoalEdit } from './details/AntiGoalDetails';
 import { GenericView, GenericEdit } from './details/GenericDetails';
 import { inputStyles } from './details/common';
 
@@ -178,6 +179,8 @@ const PersonalItemDetailModal: React.FC<PersonalItemDetailModalProps> = ({
         return <WorkoutView item={item} onUpdate={onUpdate} />;
       case 'habit':
         return <HabitView item={item} onUpdate={onUpdate} />;
+      case 'antigoal':
+        return <AntiGoalView item={item} onUpdate={onUpdate} />;
       case 'roadmap': // Falls through to generic view as it's now handled by its own modal
       case 'note':
       case 'idea':
@@ -201,6 +204,8 @@ const PersonalItemDetailModal: React.FC<PersonalItemDetailModalProps> = ({
         return <WorkoutEdit editState={editState} dispatch={dispatch} />;
       case 'habit':
         return <HabitEdit editState={editState} dispatch={dispatch} />;
+      case 'antigoal':
+        return <AntiGoalEdit editState={editState} dispatch={dispatch} />;
       case 'roadmap': // Falls through to generic edit
       case 'note':
       case 'idea':
@@ -233,6 +238,7 @@ const PersonalItemDetailModal: React.FC<PersonalItemDetailModalProps> = ({
                     src={file.url}
                     alt={file.name}
                     className="max-w-full max-h-96 object-contain mx-auto"
+                    loading="lazy"
                   />
                   <div className="p-2 bg-black/50 flex justify-between items-center">
                     <span className="text-xs text-white truncate">{file.name}</span>
@@ -322,7 +328,7 @@ const PersonalItemDetailModal: React.FC<PersonalItemDetailModalProps> = ({
     settings.themeSettings.cardStyle === 'glass' ? 'glass-modal-bg' : 'bg-[var(--bg-secondary)]';
 
   // Full-screen types that need more space for content
-  const isFullScreenType = ['workout', 'learning', 'book', 'roadmap', 'habit'].includes(item.type);
+  const isFullScreenType = ['workout', 'learning', 'book', 'roadmap', 'habit', 'antigoal'].includes(item.type);
   const heightClass = isFullScreenType ? 'max-h-[95dvh] min-h-[85dvh]' : 'max-h-[90vh]';
 
   return (

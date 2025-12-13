@@ -24,16 +24,36 @@ export type HapticEffect =
 // Vibration patterns for each effect (in milliseconds)
 // Format: [vibrate, pause, vibrate, pause, ...]
 const VIBRATION_PATTERNS: Record<HapticEffect, number[]> = {
-  tap: [15],
-  success: [30, 50, 30],          // Double pulse
-  error: [80, 40, 80, 40, 80],    // Triple strong pulse
-  warning: [50, 100, 50],         // Double with longer pause
-  selection: [10],                 // Very light
-  impact: [40],                    // Medium single
-  notification: [20, 80, 20, 80, 40], // Attention-grabbing pattern
-  swipe: [5, 10, 5],              // Light sliding feel
-  longPress: [60],                // Strong confirmation
+  tap: [10],                        // Quiet Luxury: Softer tap
+  success: [15, 60, 15],            // Quiet Luxury: Gentler double pulse
+  error: [50, 50, 50, 50, 50],      // Slightly softer triple pulse
+  warning: [35, 120, 35],           // Gentler double with longer pause
+  selection: [6],                    // Very light
+  impact: [25],                      // Quieter single
+  notification: [15, 100, 15, 100, 25], // Attention-grabbing but refined
+  swipe: [4, 15, 4],                // Very light sliding feel
+  longPress: [40],                  // Confirmation
 };
+
+// Quiet Luxury: Additional refined haptic patterns for premium interactions
+export const LUXURY_HAPTIC_PATTERNS = {
+  // Soft confirmation - like a premium watch click
+  softConfirm: [8],
+  // Success - gentle double pulse
+  luxurySuccess: [10, 50, 10],
+  // Selection change - subtle tick
+  selectionTick: [5],
+  // Modal open - gentle thud
+  modalPresent: [15, 30, 8],
+  // Swipe threshold reached
+  swipeThreshold: [12, 25, 6],
+  // Button press - satisfying click
+  buttonPress: [8, 20, 4],
+  // Save complete - reassuring pulse
+  saveComplete: [6, 40, 12],
+  // Delete action - slightly heavier for importance
+  deleteAction: [18, 30, 10],
+} as const;
 
 // Intensity multipliers for vibration duration
 const INTENSITY_MULTIPLIERS: Record<HapticIntensity, number> = {

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useCallback, useState } from 'react';
-import { Screen } from '../types';
+import { useNavigationOptional } from '../src/contexts/NavigationContext';
 
 export interface ShortcutDefinition {
   key: string;
@@ -33,17 +33,16 @@ export const useKeyboardShortcuts = () => {
 
 interface KeyboardShortcutsProviderProps {
   children: React.ReactNode;
-  setActiveScreen: (screen: Screen) => void;
   onQuickAdd: () => void;
   onSearch: () => void;
 }
 
 export const KeyboardShortcutsProvider: React.FC<KeyboardShortcutsProviderProps> = ({
   children,
-  setActiveScreen,
   onQuickAdd,
   onSearch,
 }) => {
+  const navigation = useNavigationOptional();
   const [shortcuts, setShortcuts] = useState<Record<string, ShortcutDefinition>>({});
   const [showHelp, setShowHelp] = useState(false);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -66,6 +65,9 @@ export const KeyboardShortcutsProvider: React.FC<KeyboardShortcutsProviderProps>
 
   // Register global shortcuts
   useEffect(() => {
+    // Only register navigation shortcuts if navigation context is available
+    const navigate = navigation?.navigate;
+
     const globalShortcuts: Record<string, ShortcutDefinition> = {
       quick_add: {
         key: 'q',
@@ -79,36 +81,6 @@ export const KeyboardShortcutsProvider: React.FC<KeyboardShortcutsProviderProps>
         category: 'quick',
         handler: onSearch,
       },
-      goto_today: {
-        key: 'g+t',
-        description: 'Go to Today view',
-        category: 'navigation',
-        handler: () => setActiveScreen('today'),
-      },
-      goto_views: {
-        key: 'g+v',
-        description: 'Go to Smart Views',
-        category: 'navigation',
-        handler: () => setActiveScreen('views'),
-      },
-      goto_library: {
-        key: 'g+l',
-        description: 'Go to Library',
-        category: 'navigation',
-        handler: () => setActiveScreen('library'),
-      },
-      goto_feed: {
-        key: 'g+f',
-        description: 'Go to Feed',
-        category: 'navigation',
-        handler: () => setActiveScreen('feed'),
-      },
-      goto_dashboard: {
-        key: 'g+d',
-        description: 'Go to Dashboard',
-        category: 'navigation',
-        handler: () => setActiveScreen('dashboard'),
-      },
       show_help: {
         key: '?',
         description: 'Show keyboard shortcuts',
@@ -117,6 +89,42 @@ export const KeyboardShortcutsProvider: React.FC<KeyboardShortcutsProviderProps>
         modifiers: { shift: true },
       },
     };
+
+    // Add navigation shortcuts only if navigate is available
+    if (navigate) {
+      Object.assign(globalShortcuts, {
+        goto_today: {
+          key: 'g+t',
+          description: 'Go to Today view',
+          category: 'navigation',
+          handler: () => navigate('today'),
+        },
+        goto_views: {
+          key: 'g+v',
+          description: 'Go to Smart Views',
+          category: 'navigation',
+          handler: () => navigate('views'),
+        },
+        goto_library: {
+          key: 'g+l',
+          description: 'Go to Library',
+          category: 'navigation',
+          handler: () => navigate('library'),
+        },
+        goto_feed: {
+          key: 'g+f',
+          description: 'Go to Feed',
+          category: 'navigation',
+          handler: () => navigate('feed'),
+        },
+        goto_dashboard: {
+          key: 'g+d',
+          description: 'Go to Dashboard',
+          category: 'navigation',
+          handler: () => navigate('dashboard'),
+        },
+      });
+    }
 
     Object.entries(globalShortcuts).forEach(([id, shortcut]) => {
       registerShortcut(id, shortcut);
@@ -127,7 +135,7 @@ export const KeyboardShortcutsProvider: React.FC<KeyboardShortcutsProviderProps>
         unregisterShortcut(id);
       });
     };
-  }, [registerShortcut, unregisterShortcut, setActiveScreen, onQuickAdd, onSearch, toggleHelp]);
+  }, [registerShortcut, unregisterShortcut, navigation, onQuickAdd, onSearch, toggleHelp]);
 
   // Global keyboard event handler
   useEffect(() => {

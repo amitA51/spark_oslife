@@ -8,8 +8,20 @@ import { useSettings } from '../src/contexts/SettingsContext';
 const Chart: React.FC<{ data?: { time: number; price: number }[] }> = ({ data }) => {
   if (!data || data.length < 2) {
     return (
-      <div className="h-48 w-full bg-gray-800/50 rounded-lg flex items-center justify-center text-sm text-muted">
-        טוען נתוני גרף...
+      <div className="h-48 w-full bg-gray-800/50 rounded-lg overflow-hidden">
+        {/* Skeleton loader for chart */}
+        <div className="h-full w-full relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
+          <div className="absolute bottom-4 left-4 right-4 flex items-end gap-1">
+            {Array.from({ length: 20 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex-1 bg-white/10 rounded-t"
+                style={{ height: `${20 + Math.random() * 60}%` }}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -65,7 +77,16 @@ const Section: React.FC<{
 }> = ({ title, children, isLoading = false, count }) => (
   <div className="border-t border-[var(--border-primary)] pt-6 mt-6">
     <h3 className="text-sm font-semibold text-accent mb-3 uppercase tracking-wider">{title}</h3>
-    {isLoading && <p className="text-sm text-muted">טוען...</p>}
+    {isLoading && (
+      <div className="space-y-2">
+        {[1, 2].map(i => (
+          <div key={i} className="bg-white/5 rounded-lg p-3 animate-pulse">
+            <div className="h-4 w-3/4 bg-white/10 rounded mb-2" />
+            <div className="h-3 w-1/2 bg-white/5 rounded" />
+          </div>
+        ))}
+      </div>
+    )}
     {!isLoading && count === 0 && (
       <p className="text-sm text-muted text-center py-4">אין פריטים רלוונטיים.</p>
     )}
@@ -170,6 +191,16 @@ const AssetDetailModal: React.FC<AssetDetailModalProps> = ({ asset, onClose }) =
           {asset.marketCap && (
             <p className="text-sm text-muted">שווי שוק: ${asset.marketCap.toLocaleString()}</p>
           )}
+
+          <a
+            href={`https://www.google.com/finance?q=${asset.ticker}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-colors font-medium text-sm"
+          >
+            <span className="text-lg">G</span>
+            פתח ב-Google Finance
+          </a>
 
           <div className="mt-4 -mx-4">
             <Chart data={chartData} />

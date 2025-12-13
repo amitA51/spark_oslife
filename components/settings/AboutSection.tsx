@@ -9,14 +9,25 @@ import {
 } from '../../components/icons';
 import {
     SettingsSection,
-    SettingsCard,
+    SettingsGroupCard,
     SettingsLinkRow,
     SettingsInfoBanner,
 } from './SettingsComponents';
 import ChangelogModal from '../ChangelogModal';
+import LegalModals from '../LegalModals';
 
 const AboutSection: React.FC = () => {
     const [isChangelogOpen, setIsChangelogOpen] = useState(false);
+    const [legalModalConfig, setLegalModalConfig] = useState<{
+        isOpen: boolean;
+        title: string;
+        type: 'terms' | 'privacy';
+    }>({
+        isOpen: false,
+        title: '',
+        type: 'terms'
+    });
+
     const appVersion = '2.0.0';
     const buildNumber = '2024.12.05';
 
@@ -68,7 +79,7 @@ const AboutSection: React.FC = () => {
                 </div>
             </div>
 
-            <SettingsCard title="פעולות">
+            <SettingsGroupCard title="פעולות">
                 <div className="space-y-2">
                     <SettingsLinkRow
                         title="דרג את האפליקציה"
@@ -93,9 +104,9 @@ const AboutSection: React.FC = () => {
                         badgeColor="accent"
                     />
                 </div>
-            </SettingsCard>
+            </SettingsGroupCard>
 
-            <SettingsCard title="קהילה ותמיכה">
+            <SettingsGroupCard title="קהילה ותמיכה">
                 <div className="space-y-2">
                     <SettingsLinkRow
                         title="מרכז העזרה"
@@ -116,7 +127,7 @@ const AboutSection: React.FC = () => {
                         onClick={() => window.open('https://github.com/sparkos', '_blank')}
                     />
                 </div>
-            </SettingsCard>
+            </SettingsGroupCard>
 
             <SettingsInfoBanner variant="tip">
                 <strong>Spark OS</strong> נבנה באהבה כדי לעזור לך להגשים יותר ולחיות טוב יותר.
@@ -129,9 +140,19 @@ const AboutSection: React.FC = () => {
                     © 2024 Spark OS. כל הזכויות שמורות.
                 </p>
                 <div className="flex items-center justify-center gap-4 text-xs text-[var(--text-secondary)]">
-                    <button className="hover:text-white transition-colors">תנאי שימוש</button>
+                    <button
+                        onClick={() => setLegalModalConfig({ isOpen: true, title: 'תנאי שימוש', type: 'terms' })}
+                        className="hover:text-white transition-colors"
+                    >
+                        תנאי שימוש
+                    </button>
                     <span>•</span>
-                    <button className="hover:text-white transition-colors">מדיניות פרטיות</button>
+                    <button
+                        onClick={() => setLegalModalConfig({ isOpen: true, title: 'מדיניות פרטיות', type: 'privacy' })}
+                        className="hover:text-white transition-colors"
+                    >
+                        מדיניות פרטיות
+                    </button>
                 </div>
             </div>
 
@@ -139,8 +160,17 @@ const AboutSection: React.FC = () => {
                 isOpen={isChangelogOpen}
                 onClose={() => setIsChangelogOpen(false)}
             />
+
+            <LegalModals
+                isOpen={legalModalConfig.isOpen}
+                onClose={() => setLegalModalConfig(prev => ({ ...prev, isOpen: false }))}
+                title={legalModalConfig.title}
+                type={legalModalConfig.type}
+            />
         </SettingsSection>
     );
 };
 
 export default AboutSection;
+
+

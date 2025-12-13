@@ -12,13 +12,14 @@ import {
   SparklesIcon,
 } from '../../components/icons';
 import ToggleSwitch from '../../components/ToggleSwitch';
+import { RadixSwitchDemo } from '@/components/RadixSwitchDemo';
 import { useSettings } from '../../src/contexts/SettingsContext';
 import { AddableType, Screen, SwipeAction } from '../../types';
 import { StatusMessageType } from '../../components/StatusMessage';
 import ProfileCard from './ProfileCard';
 import {
   SettingsSection,
-  SettingsCard,
+  SettingsGroupCard,
   SettingsRow,
   SegmentedControl,
 } from './SettingsComponents';
@@ -62,8 +63,15 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({ setStatusMessage }) => 
     <SettingsSection title="כללי וטיימר" id="general">
       <ProfileCard setStatusMessage={setStatusMessage} />
 
+      {/* Demo Section */}
+      <SettingsGroupCard title="רכיבים חדשים (Demo)" icon={<SparklesIcon className="w-5 h-5" />}>
+        <div className="p-4 flex justify-center">
+          <RadixSwitchDemo />
+        </div>
+      </SettingsGroupCard>
+
       {/* User Experience */}
-      <SettingsCard title="חווית משתמש" icon={<SparklesIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="חווית משתמש" icon={<SparklesIcon className="w-5 h-5" />}>
         <SettingsRow
           title="אפקטים קוליים"
           description="הפעל צלילי משוב בעת לחיצות ואירועים."
@@ -129,10 +137,10 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({ setStatusMessage }) => 
             ]}
           />
         </SettingsRow>
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Visual Settings for Enhanced Components */}
-      <SettingsCard title="הגדרות ויזואליות" icon={<EyeIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="הגדרות ויזואליות" icon={<EyeIcon className="w-5 h-5" />}>
         <SettingsRow
           title="הצג רצפים"
           description="הצג מונה ימים רצופים בהרגלים והכרת תודה."
@@ -170,6 +178,30 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({ setStatusMessage }) => 
           />
         </SettingsRow>
         <SettingsRow
+          title="אפקטי זוהר"
+          description="הפעל אפקטי זוהר ברכיבים שונים."
+        >
+          <ToggleSwitch
+            checked={settings.visualSettings?.enableGlowEffects ?? true}
+            onChange={v => handleSettingChange('visualSettings', {
+              ...settings.visualSettings,
+              enableGlowEffects: v
+            })}
+          />
+        </SettingsRow>
+        <SettingsRow
+          title="חגיגות באנימציה"
+          description="הצג אפקט קונפטי בהשלמת משימות."
+        >
+          <ToggleSwitch
+            checked={settings.visualSettings?.enableCelebrations ?? true}
+            onChange={v => handleSettingChange('visualSettings', {
+              ...settings.visualSettings,
+              enableCelebrations: v
+            })}
+          />
+        </SettingsRow>
+        <SettingsRow
           title="סגנון ספינר טעינה"
           description="בחר את סגנון אנימציית הטעינה."
         >
@@ -177,20 +209,39 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({ setStatusMessage }) => 
             value={settings.visualSettings?.spinnerVariant ?? 'default'}
             onChange={v => handleSettingChange('visualSettings', {
               ...settings.visualSettings,
-              spinnerVariant: v as 'default' | 'dots' | 'pulse' | 'orbit'
+              spinnerVariant: v as 'default' | 'dots' | 'pulse' | 'orbit' | 'gradient' | 'wave'
             })}
             options={[
               { label: 'רגיל', value: 'default' },
               { label: 'נקודות', value: 'dots' },
               { label: 'פעימה', value: 'pulse' },
               { label: 'מסלול', value: 'orbit' },
+              { label: 'גרדיאנט', value: 'gradient' },
+              { label: 'גלים', value: 'wave' },
             ]}
           />
         </SettingsRow>
-      </SettingsCard>
+        <SettingsRow
+          title="סגנון הודעות"
+          description="בחר את המראה של הודעות המערכת."
+        >
+          <SegmentedControl
+            value={settings.visualSettings?.statusMessageStyle ?? 'default'}
+            onChange={v => handleSettingChange('visualSettings', {
+              ...settings.visualSettings,
+              statusMessageStyle: v as 'default' | 'minimal' | 'premium'
+            })}
+            options={[
+              { label: 'רגיל', value: 'default' },
+              { label: 'מינימלי', value: 'minimal' },
+              { label: 'פרימיום', value: 'premium' },
+            ]}
+          />
+        </SettingsRow>
+      </SettingsGroupCard>
 
       {/* Navigation & Display */}
-      <SettingsCard title="ניווט ותצוגה" icon={<LayoutIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="ניווט ותצוגה" icon={<LayoutIcon className="w-5 h-5" />}>
         <SettingsRow
           title="מסך ברירת מחדל"
           description="המסך שייפתח בהפעלת האפליקציה."
@@ -264,10 +315,10 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({ setStatusMessage }) => 
             })}
           </div>
         </div>
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Swipe Actions */}
-      <SettingsCard title="פעולות החלקה" icon={<SwipeIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
+      <SettingsGroupCard title="פעולות החלקה" icon={<SwipeIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
         <p className="text-sm text-[var(--text-secondary)] mb-4">
           הגדר מה קורה כאשר אתה מחליק משימה ימינה או שמאלה.
         </p>
@@ -311,10 +362,10 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({ setStatusMessage }) => 
             ))}
           </div>
         </SettingsRow>
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Home Screen Layout */}
-      <SettingsCard title="מסך הבית (היום)" icon={<HomeIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
+      <SettingsGroupCard title="מסך הבית (היום)" icon={<HomeIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
         <p className="text-sm text-[var(--text-secondary)] mb-4">
           בחר אילו אזורים יוצגו במסך הבית.
         </p>
@@ -342,10 +393,10 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({ setStatusMessage }) => 
             </div>
           ))}
         </div>
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Add Menu */}
-      <SettingsCard title="תפריט הוספה" icon={<PlusIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
+      <SettingsGroupCard title="תפריט הוספה" icon={<PlusIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
         <p className="text-sm text-[var(--text-secondary)] mb-4">
           בחר אילו פריטים יופיעו במסך ההוספה.
         </p>
@@ -383,10 +434,10 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({ setStatusMessage }) => 
             );
           })}
         </div>
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Focus Timer */}
-      <SettingsCard title="טיימר פוקוס" icon={<TimerIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="טיימר פוקוס" icon={<TimerIcon className="w-5 h-5" />}>
         <SettingsRow title="זמן עבודה (דקות)" description="משך סשן עבודה רגיל.">
           <input
             type="number"
@@ -424,9 +475,175 @@ const GeneralSection: React.FC<GeneralSectionProps> = ({ setStatusMessage }) => 
             }
           />
         </SettingsRow>
-      </SettingsCard>
+      </SettingsGroupCard>
+
+      {/* Feed Settings */}
+      <SettingsGroupCard title="פיד ותוכן" icon={<LayoutIcon className="w-5 h-5" />}>
+        <SettingsRow title="סמן כנקרא בפתיחה" description="סמן פריט כנקרא כשאתה פותח אותו.">
+          <ToggleSwitch
+            checked={settings.feedSettings.markAsReadOnOpen}
+            onChange={v =>
+              handleSettingChange('feedSettings', {
+                ...settings.feedSettings,
+                markAsReadOnOpen: v,
+              })
+            }
+          />
+        </SettingsRow>
+        <SettingsRow title="הצג פריטים שנקראו" description="הצג גם פריטים שכבר קראת.">
+          <ToggleSwitch
+            checked={settings.feedSettings.showReadItems}
+            onChange={v =>
+              handleSettingChange('feedSettings', {
+                ...settings.feedSettings,
+                showReadItems: v,
+              })
+            }
+          />
+        </SettingsRow>
+        <SettingsRow title="תצוגה מקדימה" description="הצג תקציר תוכן ברשימה.">
+          <ToggleSwitch
+            checked={settings.feedSettings.showFeedPreviews}
+            onChange={v =>
+              handleSettingChange('feedSettings', {
+                ...settings.feedSettings,
+                showFeedPreviews: v,
+              })
+            }
+          />
+        </SettingsRow>
+        <SettingsRow title="זמן קריאה משוער" description="הצג כמה זמן ייקח לקרוא.">
+          <ToggleSwitch
+            checked={settings.feedSettings.showReadTime}
+            onChange={v =>
+              handleSettingChange('feedSettings', {
+                ...settings.feedSettings,
+                showReadTime: v,
+              })
+            }
+          />
+        </SettingsRow>
+      </SettingsGroupCard>
+
+      {/* Habits Settings */}
+      <SettingsGroupCard title="הרגלים" icon={<CheckCircleIcon className="w-5 h-5" />}>
+        <SettingsRow title="הצג רצף ימים" description="הצג מונה רצף להרגלים.">
+          <ToggleSwitch
+            checked={settings.habitsSettings.showStreakCounter}
+            onChange={v =>
+              handleSettingChange('habitsSettings', {
+                ...settings.habitsSettings,
+                showStreakCounter: v,
+              })
+            }
+          />
+        </SettingsRow>
+        <SettingsRow title="צליל בהשלמה" description="נגן צליל כשמשלימים הרגל.">
+          <ToggleSwitch
+            checked={settings.habitsSettings.habitCompletionSound}
+            onChange={v =>
+              handleSettingChange('habitsSettings', {
+                ...settings.habitsSettings,
+                habitCompletionSound: v,
+              })
+            }
+          />
+        </SettingsRow>
+        <SettingsRow title="הצג הרגלים שהוחמצו" description="סמן הרגלים שלא הושלמו.">
+          <ToggleSwitch
+            checked={settings.habitsSettings.showMissedHabits}
+            onChange={v =>
+              handleSettingChange('habitsSettings', {
+                ...settings.habitsSettings,
+                showMissedHabits: v,
+              })
+            }
+          />
+        </SettingsRow>
+        <SettingsRow title="יעד שבועי" description="כמה ימים בשבוע לשאוף.">
+          <SegmentedControl
+            value={settings.habitsSettings.weeklyGoalDays.toString()}
+            onChange={v =>
+              handleSettingChange('habitsSettings', {
+                ...settings.habitsSettings,
+                weeklyGoalDays: parseInt(v),
+              })
+            }
+            options={[
+              { label: '3', value: '3' },
+              { label: '5', value: '5' },
+              { label: '7', value: '7' },
+            ]}
+          />
+        </SettingsRow>
+      </SettingsGroupCard>
+
+      {/* Home Screen Settings */}
+      <SettingsGroupCard title="מסך בית" icon={<HomeIcon className="w-5 h-5" />}>
+        <SettingsRow title="ברכה אישית" description="הצג ברכה עם השם שלך.">
+          <ToggleSwitch
+            checked={settings.homeSettings.showGreeting}
+            onChange={v =>
+              handleSettingChange('homeSettings', {
+                ...settings.homeSettings,
+                showGreeting: v,
+              })
+            }
+          />
+        </SettingsRow>
+        <SettingsRow title="ציטוט יומי" description="הצג ציטוט מעורר השראה.">
+          <ToggleSwitch
+            checked={settings.homeSettings.showDailyQuote}
+            onChange={v =>
+              handleSettingChange('homeSettings', {
+                ...settings.homeSettings,
+                showDailyQuote: v,
+              })
+            }
+          />
+        </SettingsRow>
+        <SettingsRow title="ציון פרודקטיביות" description="הצג ציון יומי.">
+          <ToggleSwitch
+            checked={settings.homeSettings.showProductivityScore}
+            onChange={v =>
+              handleSettingChange('homeSettings', {
+                ...settings.homeSettings,
+                showProductivityScore: v,
+              })
+            }
+          />
+        </SettingsRow>
+        <SettingsRow title="תצוגת לוח שנה" description="הצג אירועים קרובים.">
+          <ToggleSwitch
+            checked={settings.homeSettings.showCalendarPreview}
+            onChange={v =>
+              handleSettingChange('homeSettings', {
+                ...settings.homeSettings,
+                showCalendarPreview: v,
+              })
+            }
+          />
+        </SettingsRow>
+        <SettingsRow title="גודל ווידג'טים" description="גודל ברירת מחדל.">
+          <SegmentedControl
+            value={settings.homeSettings.widgetSize}
+            onChange={v =>
+              handleSettingChange('homeSettings', {
+                ...settings.homeSettings,
+                widgetSize: v as 'small' | 'medium' | 'large',
+              })
+            }
+            options={[
+              { label: 'קטן', value: 'small' },
+              { label: 'בינוני', value: 'medium' },
+              { label: 'גדול', value: 'large' },
+            ]}
+          />
+        </SettingsRow>
+      </SettingsGroupCard>
     </SettingsSection>
   );
 };
 
 export default GeneralSection;
+

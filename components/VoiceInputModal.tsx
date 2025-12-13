@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as geminiService from '../services/geminiService';
 import { MicrophoneIcon, CloseIcon, SparklesIcon } from './icons';
 import { ERRORS } from '../utils/errorMessages';
-import { Screen, NlpResult, PersonalItem, PersonalItemType } from '../types';
+import { NlpResult, PersonalItem, PersonalItemType } from '../types';
 import { useData } from '../src/contexts/DataContext';
+import { useNavigation } from '../src/contexts/NavigationContext';
 
 // --- Web Speech API Type Definitions ---
 interface SpeechRecognitionResult {
@@ -65,7 +66,6 @@ declare global {
 interface VoiceInputModalProps {
   isOpen: boolean;
   onClose: () => void;
-  setActiveScreen: (screen: Screen) => void;
 }
 
 type VoiceStatus = 'idle' | 'listening' | 'processing' | 'success' | 'error' | 'unsupported';
@@ -101,8 +101,9 @@ const STATUS_CONFIG: Record<VoiceStatus, { text: string; buttonClass: string }> 
   },
 };
 
-const VoiceInputModal: React.FC<VoiceInputModalProps> = ({ isOpen, onClose, setActiveScreen }) => {
+const VoiceInputModal: React.FC<VoiceInputModalProps> = ({ isOpen, onClose }) => {
   const { addPersonalItem, personalItems, spaces } = useData();
+  const { navigate } = useNavigation();
   const [status, setStatus] = useState<VoiceStatus>('idle');
   const [transcript, setTranscript] = useState('');
   const [finalTranscript, setFinalTranscript] = useState('');
@@ -187,14 +188,14 @@ const VoiceInputModal: React.FC<VoiceInputModalProps> = ({ isOpen, onClose, setA
       setStatus('success');
       setTimeout(() => {
         handleClose();
-        setActiveScreen(newItem.type === 'task' ? 'today' : 'library');
+        navigate(newItem.type === 'task' ? 'today' : 'library');
       }, 1200);
     } catch (e) {
       console.error('Failed to create item from voice smart capture:', e);
       setError('שגיאה ביצירת הפריט.');
       setStatus('error');
     }
-  }, [aiSuggestion, addPersonalItem, setActiveScreen]);
+  }, [aiSuggestion, addPersonalItem, navigate]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -360,7 +361,7 @@ const VoiceInputModal: React.FC<VoiceInputModalProps> = ({ isOpen, onClose, setA
                   // לאפשר למשתמש להעתיק/להמשיך לעריכה טקסטואלית במודאל Smart Capture (עתידי)
                   // לעת עתה רק סוגרים את המודאל ומשאירים את החוויה פשוטה.
                   handleClose();
-                  setActiveScreen('add');
+                  navigate('add');
                 }}
                 className="flex-1 py-2 px-3 rounded-xl bg-[var(--bg-secondary)] text-white font-semibold"
               >

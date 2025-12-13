@@ -8,7 +8,7 @@
  * Ensures a function is called at most once per animation frame
  * Performance optimization for scroll/resize handlers
  */
-export const rafThrottle = <T extends (...args: any[]) => any>(callback: T) => {
+export const rafThrottle = <T extends (...args: unknown[]) => void>(callback: T) => {
     let rafId: number | null = null;
     let lastArgs: Parameters<T> | null = null;
 
@@ -41,7 +41,7 @@ export const rafThrottle = <T extends (...args: any[]) => any>(callback: T) => {
  * Debounce function
  * Delays execution until after wait milliseconds have elapsed since the last call
  */
-export const debounce = <T extends (...args: any[]) => any>(
+export const debounce = <T extends (...args: unknown[]) => void>(
     callback: T,
     wait: number
 ): ((...args: Parameters<T>) => void) & { cancel: () => void } => {
@@ -72,7 +72,7 @@ export const debounce = <T extends (...args: any[]) => any>(
  * Simple throttle function
  * Limits function calls to once per specified time period
  */
-export const throttle = <T extends (...args: any[]) => any>(
+export const throttle = <T extends (...args: unknown[]) => void>(
     callback: T,
     limit: number
 ): ((...args: Parameters<T>) => void) => {

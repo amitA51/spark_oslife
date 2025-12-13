@@ -274,15 +274,16 @@ export const FocusProvider: React.FC<FocusProviderProps> = ({ children }) => {
 
   const timeElapsed = useMemo(() => {
     if (!activeSession) return 0;
-    const now = Date.now();
-    const elapsed = now - activeSession.startTime - activeSession.totalPausedTime;
-    return Math.max(0, elapsed);
-  }, [activeSession, timeRemaining]); // timeRemaining dependency for updates
+    // Calculate elapsed time based on targetDuration - timeRemaining for consistency
+    return Math.max(0, activeSession.targetDuration - timeRemaining);
+  }, [activeSession, timeRemaining]);
 
   const progress = useMemo(() => {
     if (!activeSession || activeSession.targetDuration === 0) return 0;
-    return Math.min(1, timeElapsed / activeSession.targetDuration);
-  }, [activeSession, timeElapsed]);
+    // Calculate progress based on timeRemaining for accurate updates
+    const elapsed = activeSession.targetDuration - timeRemaining;
+    return Math.min(1, Math.max(0, elapsed / activeSession.targetDuration));
+  }, [activeSession, timeRemaining]);
 
   const pomodorosUntilLongBreak = settings.sessionsUntilLongBreak - (pomodorosCompleted % settings.sessionsUntilLongBreak);
 
@@ -362,18 +363,21 @@ export const FocusProvider: React.FC<FocusProviderProps> = ({ children }) => {
       lastTickRef.current = Date.now();
 
       timerRef.current = setInterval(() => {
+        if (!activeSession) return;
+
         const now = Date.now();
-        const delta = now - lastTickRef.current;
-        lastTickRef.current = now;
+        // Calculate elapsed time based on wall clock
+        const elapsed = now - activeSession.startTime - activeSession.totalPausedTime;
+        const nextTimeRemaining = Math.max(0, activeSession.targetDuration - elapsed);
 
         setTimeRemaining(prev => {
-          const next = prev - delta;
-          if (next <= 0) {
-            // Timer completed - handle in effect below
-            return 0;
+          // Log occasionally for debugging
+          if (activeSession.targetDuration - elapsed <= 0 && prev > 0) {
+            console.log('[FocusContext] Timer natural finish');
           }
-          return next;
+          return nextTimeRemaining;
         });
+
       }, 100); // Update every 100ms for smooth display
     }
 
@@ -383,31 +387,22 @@ export const FocusProvider: React.FC<FocusProviderProps> = ({ children }) => {
         timerRef.current = null;
       }
     };
-  }, [mode]);
+  }, [mode, activeSession]);
 
-  // Handle timer completion
+  // Handle timer completion - using a ref to avoid block-scoped variable issues
+  const timerCompletedRef = useRef(false);
+
+  // Check if timer just completed
+  if (timeRemaining === 0 && !timerCompletedRef.current && (mode === 'focusing' || mode === 'break' || mode === 'longBreak')) {
+    timerCompletedRef.current = true;
+  }
+
+  // Reset flag when timer restarts
   useEffect(() => {
-    if (timeRemaining === 0 && (mode === 'focusing' || mode === 'break' || mode === 'longBreak')) {
-      if (mode === 'focusing') {
-        endSession('completed');
-        // Play completion sound if enabled
-        if (settings.enableSounds) {
-          playSound('complete');
-        }
-      } else {
-        // Break ended
-        if (settings.autoStartFocus) {
-          // Auto-start next focus session - would need the item
-          setMode('idle');
-        } else {
-          setMode('idle');
-        }
-        if (settings.enableSounds) {
-          playSound('breakEnd');
-        }
-      }
+    if (timeRemaining > 0) {
+      timerCompletedRef.current = false;
     }
-  }, [timeRemaining, mode, settings.enableSounds, settings.autoStartFocus]);
+  }, [timeRemaining]);
 
   // ========================================================================
   // Sound Effects
@@ -450,7 +445,15 @@ export const FocusProvider: React.FC<FocusProviderProps> = ({ children }) => {
   // ========================================================================
 
   const startSession = useCallback((item: PersonalItem, durationMinutes?: number) => {
-    const duration = (durationMinutes ?? settings.focusDuration) * 60 * 1000;
+    let duration = (durationMinutes ?? settings.focusDuration) * 60 * 1000;
+
+    // Safety check: Ensure minimum duration of 1 minute
+    if (duration < 60 * 1000) {
+      console.warn('Focus duration too short, defaulting to 25 minutes');
+      duration = 25 * 60 * 1000;
+    }
+
+    console.log('[FocusContext] Starting session:', { item, duration, durationMinutes });
 
     // Update item status if needed
     if (item.status === 'todo') {
@@ -642,6 +645,27 @@ export const FocusProvider: React.FC<FocusProviderProps> = ({ children }) => {
   const setDailyGoal = useCallback((targetMinutes: number) => {
     setDailyGoalState(prev => ({ ...prev, targetMinutes }));
   }, []);
+
+  // ========================================================================
+  // Timer Completion Handler (placed after endSession and playSound are defined)
+  // ========================================================================
+
+  useEffect(() => {
+    if (timerCompletedRef.current && timeRemaining === 0) {
+      if (mode === 'focusing') {
+        endSession('completed');
+        if (settings.enableSounds) {
+          playSound('complete');
+        }
+      } else if (mode === 'break' || mode === 'longBreak') {
+        setMode('idle');
+        if (settings.enableSounds) {
+          playSound('breakEnd');
+        }
+      }
+      timerCompletedRef.current = false;
+    }
+  }, [timerCompletedRef.current, timeRemaining, mode, endSession, playSound, settings.enableSounds]);
 
   // ========================================================================
   // Utilities

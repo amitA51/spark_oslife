@@ -7,7 +7,7 @@ import { useCalendar } from '../src/contexts/CalendarContext';
 import { useUser } from '../src/contexts/UserContext';
 import * as googleCalendarService from '../services/googleCalendarService';
 import { hasGoogleApiAccess, signInWithGoogle, clearGoogleAccessToken } from '../services/authService';
-import { StatusMessageType } from '../components/StatusMessage';
+import { StatusMessageType } from '../types';
 
 export const useGoogleCalendar = (showStatus?: (type: StatusMessageType, text: string) => void) => {
   const { setGoogleAuthState } = useCalendar();

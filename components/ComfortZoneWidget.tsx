@@ -13,6 +13,7 @@ import { useHaptics } from '../hooks/useHaptics';
 import { todayKey } from '../utils/dateUtils';
 import LoadingSpinner from './LoadingSpinner';
 import { toDateKey } from '../utils/dateUtils';
+import { UltraCard } from './ui/UltraCard';
 
 const HOURS_24 = 24 * 60 * 60 * 1000;
 
@@ -142,27 +143,33 @@ const ComfortZoneWidget: React.FC<ComfortZoneWidgetProps> = ({ title }) => {
       <button
         onClick={generateChallenge}
         disabled={isLoading}
-        className="w-full spark-card p-6 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-[var(--border-primary)] hover:border-[var(--dynamic-accent-start)] hover:bg-white/5 transition-all group"
+        className="w-full text-left p-0"
       >
-        {isLoading ? (
-          <LoadingSpinner />
-        ) : (
-          <>
-            <ShieldExclamationIcon className="w-12 h-12 text-[var(--text-secondary)] group-hover:text-[var(--dynamic-accent-highlight)] transition-colors" />
-            <div className="text-center">
-              <h3 className="font-bold text-white">{title || "שובר הנוחות"}</h3>
-              <p className="text-sm text-[var(--text-secondary)]">האם יש לך אומץ לאתגר יומי?</p>
-            </div>
-          </>
-        )}
+        <UltraCard
+          variant="glass"
+          className="w-full flex flex-col items-center justify-center gap-3 border-2 border-dashed border-[var(--border-primary)] hover:border-[var(--dynamic-accent-start)] transition-all group min-h-[160px]"
+          isHoverable
+        >
+          {isLoading ? (
+            <LoadingSpinner />
+          ) : (
+            <>
+              <ShieldExclamationIcon className="w-12 h-12 text-[var(--text-secondary)] group-hover:text-[var(--dynamic-accent-highlight)] transition-colors" />
+              <div className="text-center">
+                <h3 className="font-bold text-white">{title || "שובר הנוחות"}</h3>
+                <p className="text-sm text-[var(--text-secondary)]">האם יש לך אומץ לאתגר יומי?</p>
+              </div>
+            </>
+          )}
+        </UltraCard>
       </button>
     );
   }
 
   if (challenge.status === 'hidden') {
     return (
-      <div
-        className={`spark-card relative overflow-hidden p-8 text-center select-none cursor-pointer transition-all duration-500 ${isHolding ? 'scale-[0.98] ring-4 ring-[var(--dynamic-accent-start)]/50' : ''}`}
+      <UltraCard
+        className={`relative overflow-hidden text-center select-none cursor-pointer transition-all duration-500 min-h-[160px] flex flex-col items-center justify-center ${isHolding ? 'scale-[0.98] ring-4 ring-[var(--dynamic-accent-start)]/50' : ''}`}
         onMouseDown={handleTouchStart}
         onMouseUp={handleTouchEnd}
         onMouseLeave={handleTouchEnd}
@@ -170,8 +177,9 @@ const ComfortZoneWidget: React.FC<ComfortZoneWidgetProps> = ({ title }) => {
         onTouchEnd={handleTouchEnd}
         style={{
           background: 'linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)', // Indigo to Slate
-          borderColor: 'var(--dynamic-accent-start)',
+          // borderColor: 'var(--dynamic-accent-start)',
         }}
+        glowColor="cyan"
       >
         {/* Glitch/Noise overlay */}
         <div
@@ -207,13 +215,13 @@ const ComfortZoneWidget: React.FC<ComfortZoneWidgetProps> = ({ title }) => {
           </svg>
         )}
         <style>{`@keyframes dash { to { stroke-dashoffset: 0; } }`}</style>
-      </div>
+      </UltraCard>
     );
   }
 
   if (challenge.status === 'active') {
     return (
-      <div className="spark-card p-5 border-l-4 border-l-[var(--dynamic-accent-start)] relative overflow-hidden animate-flip-in">
+      <UltraCard className="border-l-4 border-l-[var(--dynamic-accent-start)] relative overflow-hidden animate-flip-in" variant="elevated">
         <div className="flex justify-between items-start mb-3">
           <span className="text-xs font-bold uppercase tracking-wider text-[var(--dynamic-accent-highlight)] flex items-center gap-1">
             <ShieldExclamationIcon className="w-4 h-4" />
@@ -241,13 +249,14 @@ const ComfortZoneWidget: React.FC<ComfortZoneWidgetProps> = ({ title }) => {
             וותר
           </button>
         </div>
-      </div>
+      </UltraCard>
     );
   }
 
   return (
-    <div
-      className={`spark-card p-5 flex items-center gap-4 ${challenge.status === 'completed' ? 'bg-green-900/10 border-green-500/30' : 'bg-red-900/10 border-red-500/30 opacity-60'}`}
+    <UltraCard
+      className={`flex items-center gap-4 ${challenge.status === 'completed' ? 'bg-green-900/10 border-green-500/30' : 'bg-red-900/10 border-red-500/30 opacity-60'}`}
+      variant="sunken"
     >
       <div
         className={`w-12 h-12 rounded-full flex items-center justify-center ${challenge.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}
@@ -264,7 +273,7 @@ const ComfortZoneWidget: React.FC<ComfortZoneWidgetProps> = ({ title }) => {
         </h3>
         <p className="text-xs text-[var(--text-secondary)]">{challenge.text}</p>
       </div>
-    </div>
+    </UltraCard>
   );
 };
 

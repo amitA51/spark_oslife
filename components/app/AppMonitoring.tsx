@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { performanceService } from '../../services/performanceService';
 import { updateAppBadge } from '../../services/notificationsService';
 import { StatusMessageType } from '../StatusMessage';
+import { rafThrottle } from '../../utils/performance';
 import type { FeedItem } from '../../types';
 
 interface AppMonitoringProps {
@@ -45,16 +46,20 @@ const AppMonitoring: React.FC<AppMonitoringProps> = ({ feedItems, showStatus }) 
     };
   }, [showStatus]);
 
-  // Global Mouse Tracker for Spotlight Effect
+  // Global Mouse Tracker for Spotlight Effect - Optimized with RAF
   useEffect(() => {
-    const updateMousePosition = (e: MouseEvent) => {
+    const updateMousePosition = rafThrottle((e: any) => {
       // Update CSS variables on body for the spotlight effect
       document.body.style.setProperty('--mouse-x', `${e.clientX}px`);
       document.body.style.setProperty('--mouse-y', `${e.clientY}px`);
-    };
+    });
 
     window.addEventListener('mousemove', updateMousePosition);
-    return () => window.removeEventListener('mousemove', updateMousePosition);
+
+    return () => {
+      window.removeEventListener('mousemove', updateMousePosition);
+      updateMousePosition.cancel();
+    };
   }, []);
 
   // Update app badge whenever unread feed items change

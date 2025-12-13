@@ -6,7 +6,7 @@ import { AiPersonality } from '../../types';
 import { defaultMentors } from '../../services/mockData';
 import {
   SettingsSection,
-  SettingsCard,
+  SettingsGroupCard,
   SettingsRow,
   SegmentedControl,
   SettingsInfoBanner,
@@ -26,33 +26,49 @@ const AISection: React.FC = () => {
   return (
     <SettingsSection title="בינה מלאכותית" id="ai">
       {/* Model Selection */}
-      <SettingsCard title="מודל ואישיות" icon={<BrainCircuitIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="מודל ואישיות" icon={<BrainCircuitIcon className="w-5 h-5" />}>
         <SettingsRow
           title="מודל AI"
-          description="בחר את המודל שישמש לסיכומים ויצירת תוכן."
+          description="בחר מודל מוכן או הזן שם מודל מותאם אישית."
         >
-          <div className="flex gap-2">
-            {([
-              { value: 'gemini-2.5-flash', label: 'Flash', desc: 'מהיר', color: 'cyan' },
-              { value: 'gemini-2.5-pro', label: 'Pro', desc: 'חכם', color: 'violet' },
-            ] as const).map(model => (
-              <button
-                key={model.value}
-                onClick={() => handleSettingChange('aiModel', model.value)}
-                className={`
-                  flex flex-col items-center px-5 py-3 rounded-xl transition-all
-                  ${settings.aiModel === model.value
-                    ? 'bg-gradient-to-br from-[var(--dynamic-accent-start)]/20 to-[var(--dynamic-accent-end)]/10 border border-[var(--dynamic-accent-start)]/50 shadow-lg shadow-[var(--dynamic-accent-glow)]/20'
-                    : 'bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06]'
-                  }
-                `}
-              >
-                <span className={`text-sm font-bold ${settings.aiModel === model.value ? 'text-white' : 'text-[var(--text-secondary)]'}`}>
+          <div className="space-y-3">
+            {/* Preset Models */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: 'gemini-2.0-flash', label: 'Flash 2.0' },
+                { value: 'gemini-2.5-flash', label: 'Flash 2.5' },
+                { value: 'gemini-2.5-pro', label: 'Pro 2.5' },
+              ].map(model => (
+                <button
+                  key={model.value}
+                  onClick={() => handleSettingChange('aiModel', model.value)}
+                  className={`
+                    px-4 py-2 rounded-lg text-sm font-medium transition-all
+                    ${settings.aiModel === model.value
+                      ? 'bg-gradient-to-br from-[var(--dynamic-accent-start)]/30 to-[var(--dynamic-accent-end)]/20 border border-[var(--dynamic-accent-start)]/50 text-white'
+                      : 'bg-white/[0.03] border border-white/[0.08] text-[var(--text-secondary)] hover:bg-white/[0.06]'
+                    }
+                  `}
+                >
                   {model.label}
-                </span>
-                <span className="text-xs text-[var(--text-secondary)] mt-0.5">{model.desc}</span>
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
+
+            {/* Custom Model Input */}
+            <div>
+              <label className="block text-xs text-[var(--text-secondary)] mb-1.5">או הזן שם מודל:</label>
+              <input
+                type="text"
+                value={settings.aiModel}
+                onChange={e => handleSettingChange('aiModel', e.target.value)}
+                placeholder="gemini-2.0-flash"
+                className={inputStyles}
+              />
+              <p className="text-xs text-[var(--text-secondary)] mt-1">
+                לדוגמה: gemini-2.0-flash, gemini-2.5-pro, gemini-2.0-flash-exp
+              </p>
+            </div>
           </div>
         </SettingsRow>
 
@@ -84,10 +100,10 @@ const AISection: React.FC = () => {
             </div>
           </div>
         </div>
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Smart Feed Settings */}
-      <SettingsCard title="הגדרות פיד חכם" icon={<SparklesIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="הגדרות פיד חכם" icon={<SparklesIcon className="w-5 h-5" />}>
         <SettingsRow
           title="ייצור תוכן אוטומטי"
           description="האם לאפשר ל-AI לייצר 'ספארקים' יומיים?"
@@ -143,10 +159,10 @@ const AISection: React.FC = () => {
             </div>
           </div>
         )}
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Active Mentors */}
-      <SettingsCard title="מנטורים פעילים" icon={<UserIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="מנטורים פעילים" icon={<UserIcon className="w-5 h-5" />}>
         <p className="text-sm text-[var(--text-secondary)] mb-4">
           בחר מאילו מנטורים לקבל ציטוטים בפיד היומי.
         </p>
@@ -203,7 +219,7 @@ const AISection: React.FC = () => {
             );
           })}
         </div>
-      </SettingsCard>
+      </SettingsGroupCard>
 
       <SettingsInfoBanner variant="info">
         ה-AI משתמש במידע שלך כדי לספק תוכן מותאם אישית. המידע נשמר בצורה מאובטחת ולא משותף עם צד שלישי.
@@ -213,3 +229,4 @@ const AISection: React.FC = () => {
 };
 
 export default AISection;
+

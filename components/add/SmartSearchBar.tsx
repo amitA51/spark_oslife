@@ -5,7 +5,7 @@ import { useHaptics } from '../../hooks/useHaptics';
 import { toDateKey, todayKey } from '../../utils/dateUtils';
 
 interface SmartSearchBarProps {
-  onCreateItem: (type: AddableType, data?: any) => void;
+  onCreateItem: (type: AddableType, data?: Record<string, unknown>) => void;
   onVoiceInput: () => void;
   isExpanded: boolean;
   onToggleExpand: (expanded: boolean) => void;
@@ -182,6 +182,7 @@ const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
       roadmap: 'מפת דרכים',
       ticker: 'מניה/מטבע',
       gratitude: 'הכרת תודה',
+      antigoal: 'אנטי-יעד',
     };
     return labels[type] || type;
   };
@@ -202,6 +203,7 @@ const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
       roadmap: 'from-blue-500 to-indigo-600',
       ticker: 'from-gray-400 to-gray-600',
       gratitude: 'from-amber-500 to-orange-500',
+      antigoal: 'from-red-500 to-red-700',
     };
     return colors[type] || 'from-cyan-500 to-violet-500';
   };

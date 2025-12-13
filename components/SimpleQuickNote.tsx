@@ -79,31 +79,31 @@ const SimpleQuickNote: React.FC = () => {
                     onClick={handleClose}
                 >
                     {/* Backdrop */}
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
 
                     {/* Modal */}
                     <motion.div
-                        initial={{ y: 100, opacity: 0, scale: 0.9 }}
-                        animate={{ y: 0, opacity: 1, scale: 1 }}
-                        exit={{ y: 100, opacity: 0, scale: 0.9 }}
+                        initial={{ y: 100, opacity: 0, scale: 0.9, filter: 'blur(8px)' }}
+                        animate={{ y: 0, opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                        exit={{ y: 100, opacity: 0, scale: 0.9, filter: 'blur(8px)' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                         onClick={(e) => e.stopPropagation()}
                         className="relative w-[90vw] max-w-md rounded-2xl overflow-hidden"
                         style={{
-                            background: 'rgba(30, 30, 40, 0.95)',
-                            backdropFilter: 'blur(20px)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            background: 'rgba(12, 12, 18, 0.95)',
+                            backdropFilter: 'blur(24px)',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
                             boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)',
                         }}
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between p-3 border-b border-white/10">
-                            <span className="text-white/60 text-sm font-medium">📝 פתק מהיר</span>
+                        <div className="flex items-center justify-between p-3 border-b border-white/[0.04]">
+                            <span className="text-white/50 text-sm font-medium">📝 פתק מהיר</span>
                             <button
                                 onClick={handleClose}
-                                className="p-1.5 rounded-full hover:bg-white/10 transition-colors"
+                                className="p-1.5 rounded-full hover:bg-white/[0.06] transition-colors duration-300"
                             >
-                                <CloseIcon className="w-5 h-5 text-white/60" />
+                                <CloseIcon className="w-5 h-5 text-white/40" />
                             </button>
                         </div>
 
@@ -123,15 +123,16 @@ const SimpleQuickNote: React.FC = () => {
 
                         {/* Footer */}
                         <div className="flex items-center justify-between p-3 pt-0">
-                            <span className="text-[10px] text-white/30">Ctrl+Enter לשמירה</span>
+                            <span className="text-[10px] text-white/25">Ctrl+Enter לשמירה</span>
                             <motion.button
                                 onClick={handleSubmit}
                                 disabled={!text.trim() || isSubmitting}
-                                whileTap={{ scale: 0.95 }}
-                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-medium text-sm disabled:opacity-40 transition-all"
+                                whileTap={{ scale: 0.98 }}
+                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-medium text-sm disabled:opacity-40 transition-all duration-300"
                                 style={{
-                                    background: text.trim() ? 'var(--accent-gradient)' : 'rgba(255,255,255,0.1)',
+                                    background: text.trim() ? 'linear-gradient(135deg, var(--dynamic-accent-start), var(--dynamic-accent-end))' : 'rgba(255,255,255,0.04)',
                                     color: 'white',
+                                    boxShadow: text.trim() ? '0 4px 12px rgba(var(--dynamic-accent-glow), 0.2)' : 'none',
                                 }}
                             >
                                 <CheckCircleIcon className="w-4 h-4" />

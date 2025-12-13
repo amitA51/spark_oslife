@@ -127,8 +127,9 @@ const ManageSpacesModal: React.FC<ManageSpacesModalProps> = ({ isOpen, onClose }
       try {
         const newFeed = await dataService.addFeed(url);
         setFeeds(currentFeeds => [...currentFeeds, newFeed]);
-      } catch (error: any) {
-        alert(`שגיאה בהוספת פיד: ${error.message}`);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'שגיאה לא ידועה';
+        alert(`שגיאה בהוספת פיד: ${message}`);
       }
     }
   };

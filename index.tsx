@@ -5,11 +5,8 @@ import './src/index.css';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // Extend window interface for service worker registration
-declare global {
-  interface Window {
-    swRegistration?: ServiceWorkerRegistration;
-  }
-}
+// Extend window interface for service worker registration
+// Note: This is already declared in global.d.ts with strict ServiceWorkerRegistrationWithSync type
 
 const rootElement = document.getElementById('root');
 if (rootElement) {

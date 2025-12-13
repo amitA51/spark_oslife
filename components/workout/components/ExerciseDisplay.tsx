@@ -22,6 +22,9 @@ interface ExerciseDisplayProps {
     onOpenNumpad: (target: 'weight' | 'reps') => void;
     onRenameExercise: (name: string) => void;
     nameSuggestions?: string[];
+    // Phase 3: Notes & RPE
+    onUpdateNotes?: (notes: string) => void;
+    onUpdateRPE?: (rpe: number | null) => void;
 }
 
 // ============================================================
@@ -48,6 +51,8 @@ const ExerciseDisplay = memo<ExerciseDisplayProps>(({
     onOpenNumpad,
     onRenameExercise,
     nameSuggestions = [],
+    onUpdateNotes,
+    onUpdateRPE,
 }) => {
     const [isEditingName, setIsEditingName] = useState(false);
     const [tempName, setTempName] = useState(exercise.name || '');
@@ -246,6 +251,55 @@ const ExerciseDisplay = memo<ExerciseDisplayProps>(({
                         onDecrement={() => onUpdateSet('weight', Math.max(0, (currentSet.weight || 0) - 2.5))}
                     />
                 </div>
+
+                {/* Notes & RPE Quick Actions */}
+                {(onUpdateNotes || onUpdateRPE) && (
+                    <div className="flex gap-3 w-full max-w-md">
+                        {onUpdateNotes && (
+                            <motion.button
+                                type="button"
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => {
+                                    const note = prompt('הערה לסט:', currentSet.notes || '');
+                                    if (note !== null) onUpdateNotes(note);
+                                }}
+                                className={`flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all ${currentSet.notes
+                                        ? 'bg-purple-500/15 border border-purple-500/30 text-purple-400'
+                                        : 'bg-white/5 border border-white/10 text-white/50 hover:text-white hover:border-white/20'
+                                    }`}
+                            >
+                                <span>📝</span>
+                                <span className="text-xs font-medium">
+                                    {currentSet.notes ? 'יש הערה' : 'הוסף הערה'}
+                                </span>
+                            </motion.button>
+                        )}
+                        {onUpdateRPE && (
+                            <motion.button
+                                type="button"
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => {
+                                    const rpeStr = prompt('דרג מאמץ (1-10):', currentSet.rpe?.toString() || '');
+                                    if (rpeStr !== null) {
+                                        const rpe = parseInt(rpeStr, 10);
+                                        onUpdateRPE(isNaN(rpe) ? null : Math.min(10, Math.max(1, rpe)));
+                                    }
+                                }}
+                                className={`flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all ${currentSet.rpe
+                                        ? 'bg-orange-500/15 border border-orange-500/30 text-orange-400'
+                                        : 'bg-white/5 border border-white/10 text-white/50 hover:text-white hover:border-white/20'
+                                    }`}
+                            >
+                                <span>💪</span>
+                                <span className="text-xs font-medium">
+                                    {currentSet.rpe ? `RPE ${currentSet.rpe}` : 'RPE'}
+                                </span>
+                            </motion.button>
+                        )}
+                    </div>
+                )}
 
                 {/* Copy Last Set Button */}
                 {lastCompletedSet && (

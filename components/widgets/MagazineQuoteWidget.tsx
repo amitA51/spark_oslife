@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, useSpring } from 'framer-motion';
 import { SparklesIcon, RefreshIcon, PlusIcon, ShareIcon, HeartIcon } from '../icons';
 import AddQuoteModal from '../AddQuoteModal';
 import * as dataService from '../../services/dataService';
 import type { Quote, QuoteCategory } from '../../types';
-import { INITIAL_QUOTES } from '../../data/quotesData';
+import { getAllQuotes } from '../../data/quotesData';
 import { useHaptics } from '../../hooks/useHaptics';
 import { useSound } from '../../hooks/useSound';
+
+// Key for persisting liked quotes
+const LIKED_QUOTES_KEY = 'spark_liked_quotes';
 const CATEGORY_LABELS: Record<QuoteCategory, string> = {
   motivation: 'מוטיבציה',
   stoicism: 'סטואיות',
@@ -56,6 +59,12 @@ const MagazineQuoteWidget: React.FC<MagazineQuoteWidgetProps> = ({ title }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [likedQuoteIds, setLikedQuoteIds] = useState<Set<string>>(new Set());
+
+  // Throttle ref to prevent rapid clicking
+  const lastLikeTime = useRef(0);
+  const LIKE_THROTTLE_MS = 300;
+
   // Enhanced haptics and sounds
   const { hapticTap, hapticSelection, triggerEffect } = useHaptics();
   const { playClick, playSwipe } = useSound();
@@ -63,18 +72,36 @@ const MagazineQuoteWidget: React.FC<MagazineQuoteWidgetProps> = ({ title }) => {
   const likeScale = useSpring(1, { stiffness: 400, damping: 15 });
   const likeRotation = useSpring(0, { stiffness: 400, damping: 15 });
 
+  // Load liked quotes from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(LIKED_QUOTES_KEY);
+      if (stored) {
+        setLikedQuoteIds(new Set(JSON.parse(stored)));
+      }
+    } catch (e) {
+      console.warn('Failed to load liked quotes:', e);
+    }
+  }, []);
+
+  // Load quotes on mount
   useEffect(() => {
     loadQuotes();
   }, []);
 
+  // Check if current quote is liked when quote changes
+  useEffect(() => {
+    if (currentQuote) {
+      setIsLiked(likedQuoteIds.has(currentQuote.id));
+    }
+  }, [currentQuote, likedQuoteIds]);
+
   const loadQuotes = async () => {
     try {
+      // Load built-in quotes using lazy loading (525 quotes across 15 categories)
+      const builtInQuotes = await getAllQuotes();
+      // Load custom quotes from storage
       const customQuotes = await dataService.getCustomQuotes();
-      const builtInQuotes: Quote[] = INITIAL_QUOTES.map((q, index) => ({
-        id: `builtin-${index}`,
-        ...q,
-        isCustom: false,
-      }));
       const combined = [...builtInQuotes, ...customQuotes];
       setAllQuotes(combined);
       if (combined.length > 0) {
@@ -82,7 +109,7 @@ const MagazineQuoteWidget: React.FC<MagazineQuoteWidgetProps> = ({ title }) => {
         setCurrentQuote(combined[randomIdx] || null);
       }
     } catch (error) {
-      console.error('Failed to load custom quotes:', error);
+      console.error('Failed to load quotes:', error);
     }
   };
 
@@ -110,16 +137,39 @@ const MagazineQuoteWidget: React.FC<MagazineQuoteWidgetProps> = ({ title }) => {
   }, [filteredQuotes, isAnimating, hapticTap, playSwipe]);
 
   const handleLike = useCallback(() => {
-    setIsLiked(prev => !prev);
+    // Throttle rapid clicks
+    const now = Date.now();
+    if (now - lastLikeTime.current < LIKE_THROTTLE_MS) return;
+    lastLikeTime.current = now;
+
+    if (!currentQuote) return;
+
+    const newIsLiked = !isLiked;
+    setIsLiked(newIsLiked);
+
+    // Persist to localStorage
+    const newLikedIds = new Set(likedQuoteIds);
+    if (newIsLiked) {
+      newLikedIds.add(currentQuote.id);
+    } else {
+      newLikedIds.delete(currentQuote.id);
+    }
+    setLikedQuoteIds(newLikedIds);
+    try {
+      localStorage.setItem(LIKED_QUOTES_KEY, JSON.stringify([...newLikedIds]));
+    } catch (e) {
+      console.warn('Failed to save liked quotes:', e);
+    }
+
     triggerEffect('success', 'medium');
     playClick();
     likeScale.set(1.4);
-    likeRotation.set(isLiked ? 0 : 15);
+    likeRotation.set(newIsLiked ? 15 : 0);
     setTimeout(() => {
       likeScale.set(1);
       likeRotation.set(0);
     }, 200);
-  }, [isLiked, triggerEffect, playClick, likeScale, likeRotation]);
+  }, [isLiked, currentQuote, likedQuoteIds, triggerEffect, playClick, likeScale, likeRotation]);
 
   const handleShare = useCallback(async () => {
     if (!currentQuote) return;
@@ -204,29 +254,29 @@ const MagazineQuoteWidget: React.FC<MagazineQuoteWidgetProps> = ({ title }) => {
 
             <div className="flex items-center gap-2">
               <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={handleShare}
-                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-gray-400 hover:text-white transition-colors"
+                className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] text-white/50 hover:text-white transition-colors"
                 title="שתף"
               >
                 <ShareIcon className="w-4 h-4" />
               </motion.button>
               <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setIsAddModalOpen(true)}
-                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-gray-400 hover:text-white transition-colors"
+                className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] text-white/50 hover:text-white transition-colors"
                 title="הוסף ציטוט"
               >
                 <PlusIcon className="w-4 h-4" />
               </motion.button>
               <motion.button
-                whileHover={{ scale: 1.1, rotate: 180 }}
-                whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.05, rotate: 180 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={handleRefresh}
                 disabled={isAnimating}
-                className="p-2.5 rounded-xl bg-white/5 hover:bg-accent-cyan/10 border border-white/5 text-gray-400 hover:text-accent-cyan transition-colors disabled:opacity-50"
+                className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-accent-cyan/10 text-white/50 hover:text-accent-cyan transition-colors disabled:opacity-50"
                 title="ציטוט חדש"
               >
                 <RefreshIcon className={`w-4 h-4 ${isAnimating ? 'animate-spin' : ''}`} />
@@ -237,9 +287,9 @@ const MagazineQuoteWidget: React.FC<MagazineQuoteWidgetProps> = ({ title }) => {
           <div className="mb-6 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <button
               onClick={() => handleCategoryChange('all')}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-medium transition-all ${selectedCategory === 'all'
-                ? 'bg-gradient-to-r from-accent-cyan to-accent-violet text-cosmos-black'
-                : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/5'
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 ${selectedCategory === 'all'
+                ? 'bg-white/[0.08] text-white shadow-sm'
+                : 'bg-white/[0.02] text-white/40 hover:bg-white/[0.05] hover:text-white/80'
                 }`}
             >
               הכל
@@ -248,9 +298,9 @@ const MagazineQuoteWidget: React.FC<MagazineQuoteWidgetProps> = ({ title }) => {
               <button
                 key={cat}
                 onClick={() => handleCategoryChange(cat)}
-                className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-medium transition-all ${selectedCategory === cat
-                  ? 'bg-gradient-to-r from-accent-cyan to-accent-violet text-cosmos-black'
-                  : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/5'
+                className={`flex-shrink-0 px-4 py-2 rounded-full text-xs font-medium transition-all duration-300 ${selectedCategory === cat
+                  ? 'bg-white/[0.08] text-white shadow-sm'
+                  : 'bg-white/[0.02] text-white/40 hover:bg-white/[0.05] hover:text-white/80'
                   }`}
               >
                 {CATEGORY_LABELS[cat]}
@@ -273,7 +323,7 @@ const MagazineQuoteWidget: React.FC<MagazineQuoteWidgetProps> = ({ title }) => {
                 </div>
 
                 <blockquote className="relative">
-                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-relaxed mb-6 font-serif" style={{ fontFamily: 'Georgia, serif' }}>
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-relaxed mb-6 font-serif line-clamp-6" style={{ fontFamily: 'Georgia, serif' }}>
                     {currentQuote.text}
                   </p>
 

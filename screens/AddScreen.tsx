@@ -540,7 +540,6 @@ const AddScreen: React.FC<AddScreenProps> = ({ setActiveScreen }) => {
           <VoiceInputModal
             isOpen={isVoiceModalOpen}
             onClose={() => setIsVoiceModalOpen(false)}
-            setActiveScreen={setActiveScreen}
           />
         )}
       </Suspense>

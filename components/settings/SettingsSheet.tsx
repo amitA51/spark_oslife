@@ -129,7 +129,7 @@ const SettingsSheet: React.FC<SettingsSheetProps> = ({
                             stiffness: 300,
                         }}
                         className="absolute left-0 right-0 bottom-0 flex flex-col
-                                   bg-[var(--bg-primary)]
+                                   bg-[var(--bg-primary)]/90 backdrop-blur-3xl
                                    rounded-t-3xl
                                    shadow-[0_-10px_50px_rgba(0,0,0,0.6)]
                                    border-t border-white/10"

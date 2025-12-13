@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { StarIcon, ClockIcon, ChevronLeftIcon } from '../icons';
-import { SettingItem, CATEGORIES, SettingsCategory, getCategoryInfo } from './settingsRegistry';
+import { SettingItem, SettingsCategory, getCategoryInfo } from './settingsRegistry';
 
 interface SettingsFavoritesProps {
     onSelectSetting: (setting: SettingItem) => void;

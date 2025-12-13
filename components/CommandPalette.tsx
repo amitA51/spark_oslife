@@ -10,12 +10,11 @@ import {
   BrainCircuitIcon,
   SunIcon,
 } from './icons';
-import type { Screen } from '../types';
+import { useNavigation } from '../src/contexts/NavigationContext';
 
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
-  setActiveScreen: (screen: Screen) => void;
 }
 
 type ActionItem = {
@@ -26,10 +25,11 @@ type ActionItem = {
   group: string;
 };
 
-const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, setActiveScreen }) => {
+const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { navigate, navigateToAdd } = useNavigation();
 
   const actions: ActionItem[] = [
     // Navigation
@@ -38,42 +38,42 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, setAct
       label: 'עבור להיום',
       group: 'ניווט',
       icon: <TargetIcon className="w-4 h-4" />,
-      action: () => setActiveScreen('today'),
+      action: () => navigate('today'),
     },
     {
       id: 'nav-feed',
       label: 'עבור לפיד',
       group: 'ניווט',
       icon: <FeedIcon className="w-4 h-4" />,
-      action: () => setActiveScreen('feed'),
+      action: () => navigate('feed'),
     },
     {
       id: 'nav-library',
-      label: 'עבור למתכנן',
+      label: 'עבור לספרייה',
       group: 'ניווט',
       icon: <LayoutDashboardIcon className="w-4 h-4" />,
-      action: () => setActiveScreen('library'),
+      action: () => navigate('library'),
     },
     {
       id: 'nav-investments',
       label: 'עבור להשקעות',
       group: 'ניווט',
       icon: <ChartBarIcon className="w-4 h-4" />,
-      action: () => setActiveScreen('investments'),
+      action: () => navigate('investments'),
     },
     {
       id: 'nav-assistant',
       label: 'שאל את היועץ',
       group: 'ניווט',
       icon: <BrainCircuitIcon className="w-4 h-4" />,
-      action: () => setActiveScreen('assistant'),
+      action: () => navigate('assistant'),
     },
     {
       id: 'nav-settings',
       label: 'הגדרות',
       group: 'ניווט',
       icon: <SettingsIcon className="w-4 h-4" />,
-      action: () => setActiveScreen('settings'),
+      action: () => navigate('settings'),
     },
 
     // Actions
@@ -82,20 +82,14 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, setAct
       label: 'משימה חדשה',
       group: 'פעולות',
       icon: <AddIcon className="w-4 h-4" />,
-      action: () => {
-        sessionStorage.setItem('preselect_add', 'task');
-        setActiveScreen('add');
-      },
+      action: () => navigateToAdd('task'),
     },
     {
       id: 'act-add-spark',
       label: 'ספארק חדש',
       group: 'פעולות',
       icon: <AddIcon className="w-4 h-4" />,
-      action: () => {
-        sessionStorage.setItem('preselect_add', 'spark');
-        setActiveScreen('add');
-      },
+      action: () => navigateToAdd('spark'),
     },
 
     // System
@@ -105,7 +99,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, setAct
       group: 'מערכת',
       icon: <SunIcon className="w-4 h-4" />,
       action: () => {
-        /* Cycle theme logic could go here */ setActiveScreen('settings');
+        /* Cycle theme logic could go here */ navigate('settings');
       },
     },
   ];
@@ -151,15 +145,15 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, setAct
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-start justify-center pt-[15vh] animate-fade-in"
+      className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100] flex items-start justify-center pt-[15vh] animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-xl shadow-2xl overflow-hidden flex flex-col animate-slide-up-small"
+        className="w-full max-w-xl bg-[rgba(12,12,18,0.95)] border border-white/[0.06] rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-slide-up-small backdrop-blur-xl"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center px-4 py-3 border-b border-[var(--border-primary)]">
-          <SearchIcon className="w-5 h-5 text-[var(--text-secondary)]" />
+        <div className="flex items-center px-4 py-3 border-b border-white/[0.04]">
+          <SearchIcon className="w-5 h-5 text-white/40" />
           <input
             ref={inputRef}
             type="text"
@@ -169,16 +163,16 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, setAct
               setSelectedIndex(0);
             }}
             placeholder="הקלד פקודה..."
-            className="flex-1 bg-transparent text-lg text-white px-3 focus:outline-none placeholder:text-muted"
+            className="flex-1 bg-transparent text-lg text-white px-3 focus:outline-none placeholder:text-white/30"
           />
-          <span className="text-xs text-[var(--text-secondary)] bg-white/5 px-2 py-1 rounded">
+          <span className="text-xs text-white/40 bg-white/[0.04] px-2 py-1 rounded">
             ESC
           </span>
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto p-2">
           {filteredActions.length === 0 ? (
-            <div className="p-4 text-center text-[var(--text-secondary)]">לא נמצאו פקודות</div>
+            <div className="p-4 text-center text-white/40">לא נמצאו פקודות</div>
           ) : (
             filteredActions.map((action, index) => (
               <button
@@ -188,23 +182,22 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, setAct
                   onClose();
                 }}
                 onMouseEnter={() => setSelectedIndex(index)}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  index === selectedIndex
-                    ? 'bg-[var(--dynamic-accent-start)] text-white shadow-lg shadow-[var(--dynamic-accent-start)]/20'
-                    : 'text-[var(--text-secondary)] hover:bg-white/5'
-                }`}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-all duration-300 ${index === selectedIndex
+                  ? 'bg-white/[0.08] text-white'
+                  : 'text-white/50 hover:bg-white/[0.04] hover:text-white/80'
+                  }`}
               >
                 <div className="flex items-center gap-3">
                   {action.icon}
                   <span className="font-medium">{action.label}</span>
                 </div>
-                {index === selectedIndex && <span className="text-xs opacity-70">Enter ↵</span>}
+                {index === selectedIndex && <span className="text-xs text-white/40">Enter ↵</span>}
               </button>
             ))
           )}
         </div>
 
-        <div className="px-4 py-2 bg-[var(--bg-secondary)] border-t border-[var(--border-primary)] flex justify-between items-center text-[10px] text-[var(--text-secondary)]">
+        <div className="px-4 py-2 bg-white/[0.02] border-t border-white/[0.04] flex justify-between items-center text-[10px] text-white/30">
           <span>Spark OS Command</span>
           <div className="flex gap-2">
             <span>↑↓ לניווט</span>

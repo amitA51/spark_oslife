@@ -53,7 +53,12 @@ interface AppRouterProps {
     id: number;
     onUndo?: () => Promise<void> | void;
   } | null;
-  setStatusMessage: (message: any) => void;
+  setStatusMessage: (message: {
+    type: StatusMessageType;
+    text: string;
+    id: number;
+    onUndo?: () => Promise<void> | void;
+  } | null) => void;
   isCommandPaletteOpen: boolean;
   setIsCommandPaletteOpen: (open: boolean) => void;
   updateAvailable: boolean;
@@ -244,14 +249,13 @@ const AppRouter: React.FC<AppRouterProps> = ({
       {/* New Smart Capture FAB */}
       {activeScreen !== 'add' && (
         <Suspense fallback={null}>
-          <SmartCaptureFAB setActiveScreen={setActiveScreen} showStatus={showStatus} />
+          <SmartCaptureFAB showStatus={showStatus} />
         </Suspense>
       )}
 
       <CommandPalette
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
-        setActiveScreen={setActiveScreen}
       />
       <ActiveWorkoutOverlay />
     </div>

@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import type { PersonalItem } from '../types';
 import { duplicatePersonalItem, reAddPersonalItem } from '../services/dataService';
 import { useData } from '../src/contexts/DataContext';
-import { StatusMessageType } from '../components/StatusMessage';
+import { StatusMessageType } from '../types';
 import { useModal } from '../state/ModalContext';
 import { useFocusSession } from '../src/contexts/FocusContext';
 

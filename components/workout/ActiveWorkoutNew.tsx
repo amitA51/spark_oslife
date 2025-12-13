@@ -364,6 +364,7 @@ const WorkoutContent: React.FC<{
 
             const session: WorkoutSession = {
                 id: `session_${Date.now()}`,
+                userId: 'local_user', // Single user local-first app
                 workoutItemId: item.id,
                 startTime: new Date(state.startTimestamp).toISOString(),
                 endTime: new Date().toISOString(),

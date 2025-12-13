@@ -20,7 +20,7 @@ import PasswordPromptModal from '../../components/PasswordPromptModal';
 import { StatusMessageType } from '../../components/StatusMessage';
 import {
   SettingsSection,
-  SettingsCard,
+  SettingsGroupCard,
   SettingsLinkRow,
   SettingsInfoBanner,
 } from './SettingsComponents';
@@ -132,17 +132,17 @@ const DataSection: React.FC<DataSectionProps> = ({ setActiveScreen, setStatusMes
   return (
     <SettingsSection title="ניהול נתונים" id="data">
       {/* Organization */}
-      <SettingsCard title="ארגון" icon={<FolderIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="ארגון" icon={<FolderIcon className="w-5 h-5" />}>
         <SettingsLinkRow
           title="ניהול מרחבים ופידים"
           description="נהל את מרחבי התוכן האישיים שלך"
           icon={<FolderIcon className="w-5 h-5" />}
           onClick={() => setIsManageSpacesOpen(true)}
         />
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Security */}
-      <SettingsCard title="אבטחה ופרטיות" icon={<ShieldIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="אבטחה ופרטיות" icon={<ShieldIcon className="w-5 h-5" />}>
         <SettingsLinkRow
           title="מנהל סיסמאות"
           description="נהל את הסיסמאות שלך בצורה מאובטחת"
@@ -151,10 +151,10 @@ const DataSection: React.FC<DataSectionProps> = ({ setActiveScreen, setStatusMes
           badge="מאובטח"
           badgeColor="success"
         />
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Backup & Sync */}
-      <SettingsCard title="גיבוי ושחזור" icon={<DatabaseIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="גיבוי ושחזור" icon={<DatabaseIcon className="w-5 h-5" />}>
         <div className="space-y-3">
           {/* Restore from Google Drive */}
           <button
@@ -242,10 +242,10 @@ const DataSection: React.FC<DataSectionProps> = ({ setActiveScreen, setStatusMes
             </span>
           </button>
         </div>
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Danger Zone */}
-      <SettingsCard title="אזור מסוכן" danger icon={<WarningIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="אזור מסוכן" danger icon={<WarningIcon className="w-5 h-5" />}>
         <SettingsInfoBanner variant="warning">
           פעולות באזור זה הן בלתי הפיכות. וודא שיש לך גיבוי לפני שתמשיך.
         </SettingsInfoBanner>
@@ -265,7 +265,7 @@ const DataSection: React.FC<DataSectionProps> = ({ setActiveScreen, setStatusMes
           </div>
           <ChevronLeftIcon className="w-5 h-5 text-red-400/50" />
         </button>
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {isManageSpacesOpen && <ManageSpacesModal isOpen={true} onClose={() => setIsManageSpacesOpen(false)} />}
       {isImportWizardOpen && (
@@ -301,3 +301,4 @@ const DataSection: React.FC<DataSectionProps> = ({ setActiveScreen, setStatusMes
 };
 
 export default DataSection;
+

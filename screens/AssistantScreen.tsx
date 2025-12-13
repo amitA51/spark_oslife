@@ -138,7 +138,7 @@ const AssistantScreen: React.FC<AssistantScreenProps> = ({ setActiveScreen }) =>
           <button
             onClick={() => setActiveScreen('library')}
             className="p-2 rounded-full text-secondary hover:bg-bg-secondary hover:text-white transition-colors"
-            aria-label="חזור למתכנן"
+            aria-label="חזור לספרייה"
           >
             <ChevronLeftIcon className="w-6 h-6" />
           </button>

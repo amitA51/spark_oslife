@@ -25,15 +25,7 @@ export const getTagColor = (tagName: string): { backgroundColor: string; textCol
   };
 };
 
-export const getFileIcon = (mimeType: string) => {
-  const cls = 'h-5 w-5';
-  if (mimeType.startsWith('image/')) return <ImageIcon className={`${cls} text-purple-400`} />;
-  if (mimeType.startsWith('audio/')) return <AudioFileIcon className={`${cls} text-teal-400`} />;
-  if (mimeType === 'application/pdf') return <PdfIcon className={`${cls} text-red-400`} />;
-  if (mimeType.includes('document') || mimeType.includes('msword'))
-    return <DocIcon className={`${cls} text-blue-400`} />;
-  return <FileIcon className={`${cls} text-gray-400`} />;
-};
+// NOTE: getFileIcon moved to end of file - it uses icons defined below
 
 // --- Premium Icon Set (Consistent Stroke 1.5px & Geometry) ---
 
@@ -55,6 +47,82 @@ export const SparklesIcon: React.FC<IconProps> = ({
   >
     <path d="M12 3L14.5 8.5L20 11L14.5 13.5L12 19L9.5 13.5L4 11L9.5 8.5L12 3Z" />
     <path d="M19 18L20 20L22 21L20 22L19 24L18 22L16 21L18 20L19 18Z" opacity="0.6" />
+  </svg>
+);
+
+export const SendIcon: React.FC<IconProps> = ({ className, style }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <line x1="22" y1="2" x2="11" y2="13" />
+    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+  </svg>
+);
+
+export const AlertOctagonIcon: React.FC<IconProps> = ({
+  className,
+  filled,
+  style,
+  strokeWidth = 1.5,
+}) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill={filled ? 'currentColor' : 'none'}
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+);
+
+export const MessageCircleIcon: React.FC<IconProps> = ({ className, style }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+  </svg>
+);
+
+export const BugIcon: React.FC<IconProps> = ({ className, style }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <rect width="8" height="14" x="8" y="6" rx="4" />
+    <path d="m19 7-3 2" />
+    <path d="m5 7 3 2" />
+    <path d="m19 19-3-2" />
+    <path d="m5 19 3-2" />
+    <path d="M20 13h-4" />
+    <path d="M4 13h4" />
+    <path d="m10 4 1 2" />
+    <path d="m14 4-1 2" />
   </svg>
 );
 
@@ -811,6 +879,39 @@ export const DragHandleIcon: React.FC<IconProps> = ({ className, style }) => (
   </svg>
 );
 
+export const BanIcon: React.FC<IconProps> = ({ className, style, strokeWidth = 1.5 }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+  </svg>
+);
+
+export const AlertTriangleIcon: React.FC<IconProps> = ({ className, style, strokeWidth = 1.5 }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+
 export const ChevronLeftIcon: React.FC<IconProps> = ({ className, style }) => (
   <svg
     viewBox="0 0 24 24"
@@ -1187,21 +1288,7 @@ export const MicrophoneIcon: React.FC<IconProps> = ({ className, style }) => (
   </svg>
 );
 
-export const SendIcon: React.FC<IconProps> = ({ className, style }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-    style={style}
-  >
-    <line x1="22" y1="2" x2="11" y2="13" />
-    <polygon points="22 2 15 22 11 13 2 9 22 2" />
-  </svg>
-);
+
 
 export const InboxIcon: React.FC<IconProps> = ({ className, style }) => (
   <svg
@@ -1762,11 +1849,7 @@ export const ZoomInIcon: React.FC<IconProps> = ({ className, style }) => (
   </svg>
 );
 
-export const MessageCircleIcon: React.FC<IconProps> = ({ className, style }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-  </svg>
-);
+
 
 export const BookmarkIcon: React.FC<IconProps> = ({ className, filled, style }) => (
   <svg viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
@@ -1779,3 +1862,128 @@ export const LayersIcon: React.FC<IconProps> = ({ className, style }) => (
     <polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" />
   </svg>
 );
+
+// --- Added for $100M Workout Overhaul ---
+
+export const ArrowRightIcon: React.FC<IconProps> = ({ className, style }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="12 5 19 12 12 19" />
+  </svg>
+);
+
+export const FastForwardIcon: React.FC<IconProps> = ({ className, style }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <polygon points="13 19 22 12 13 5 13 19" />
+    <polygon points="2 19 11 12 2 5 2 19" />
+  </svg>
+);
+
+export const CheckIconNew: React.FC<IconProps> = ({ className, style }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+export const TrophyIconNew: React.FC<IconProps> = ({ className, filled, style }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill={filled ? 'currentColor' : 'none'}
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+    <path d="M4 22h16" />
+    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+  </svg>
+);
+
+export const SortAscIcon: React.FC<IconProps> = ({ className, style }) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+    <path d="M11 5h10" />
+    <path d="M11 9h7" />
+    <path d="M11 13h4" />
+    <path d="M3 17l3 3 3-3" />
+    <path d="M6 18V4" />
+  </svg>
+);
+
+export const PinIcon: React.FC<IconProps> = ({ className, style, filled }) => (
+  <svg viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+    <path d="M16 4v1l-2 2v9l3 3H7l3-3V7L8 5V4h8z" />
+  </svg>
+);
+
+export const WifiOffIcon: React.FC<IconProps> = ({ className, style }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={style}
+  >
+    <line x1="1" y1="1" x2="23" y2="23" />
+    <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
+    <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
+    <path d="M10.71 5.05A16 16 0 0 1 22.58 9" />
+    <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" />
+    <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+    <line x1="12" y1="20" x2="12.01" y2="20" />
+  </svg>
+);
+
+// ============================================================================
+// UTILITY FUNCTION - Must be at the end because it uses icons defined above
+// ============================================================================
+
+/**
+ * Returns the appropriate icon component for a file based on its MIME type.
+ * This function is placed at the end of the file because it references
+ * icons that are defined above. Moving it earlier causes TDZ errors in production.
+ */
+export const getFileIcon = (mimeType: string) => {
+  const cls = 'h-5 w-5';
+  if (mimeType.startsWith('image/')) return <ImageIcon className={`${cls} text-purple-400`} />;
+  if (mimeType.startsWith('audio/')) return <AudioFileIcon className={`${cls} text-teal-400`} />;
+  if (mimeType === 'application/pdf') return <PdfIcon className={`${cls} text-red-400`} />;
+  if (mimeType.includes('document') || mimeType.includes('msword'))
+    return <DocIcon className={`${cls} text-blue-400`} />;
+  return <FileIcon className={`${cls} text-gray-400`} />;
+};

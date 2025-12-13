@@ -1,38 +1,74 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // =========================================================================
+    // SECURITY HELPER FUNCTIONS
+    // =========================================================================
+    
+    // Validates that personal item has required fields and valid types
+    function isValidPersonalItem(data) {
+      return data.keys().hasAll(['title', 'type', 'createdAt']) &&
+             data.title is string &&
+             data.title.size() > 0 && 
+             data.title.size() <= 500 &&
+             data.type in ['task', 'habit', 'note', 'learning', 'project', 'workout', 'journal', 'roadmap', 'anti-goal', 'idea', 'gratitude', 'password'];
+    }
+    
+    // Prevents oversized documents (max ~100KB of string data)
+    function isValidDocumentSize(data) {
+      return request.resource.size() < 100000;
+    }
+    
+    // Ensures the user is authenticated and owns the resource
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // =========================================================================
+    // USER DATA RULES
+    // =========================================================================
+    
     // User data - only accessible by the authenticated user
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isValidDocumentSize(request.resource.data);
       
-      // Personal Items collection
+      // Personal Items collection - with schema validation
       match /personalItems/{itemId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && 
+                         isValidPersonalItem(request.resource.data) &&
+                         isValidDocumentSize(request.resource.data);
+        allow update: if isOwner(userId) && 
+                         isValidPersonalItem(request.resource.data) &&
+                         isValidDocumentSize(request.resource.data);
+        allow delete: if isOwner(userId);
       }
       
       // Body Weight collection
       match /bodyWeight/{entryId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
       
       // Workout Sessions collection
       match /workoutSessions/{sessionId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
       
       // Workout Templates collection
       match /workoutTemplates/{templateId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
       
       // Event Log collection
       match /eventLog/{eventId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
       
       // Settings (stored in user document)
       match /settings/{doc} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isOwner(userId);
       }
     }
   }

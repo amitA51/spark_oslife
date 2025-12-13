@@ -8,13 +8,13 @@ export interface ParsedMarkdownItem {
   dueDate?: string;
   isCompleted?: boolean;
   subTasks?: Array<{ title: string; isCompleted: boolean }>;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
  * Parse Obsidian-style frontmatter (YAML)
  */
-const parseFrontmatter = (text: string): { metadata: Record<string, any>; content: string } => {
+const parseFrontmatter = (text: string): { metadata: Record<string, unknown>; content: string } => {
   const frontmatterRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
   const match = text.match(frontmatterRegex);
 
@@ -23,14 +23,14 @@ const parseFrontmatter = (text: string): { metadata: Record<string, any>; conten
   }
 
   const [, frontmatter, content] = match;
-  const metadata: Record<string, any> = {};
+  const metadata: Record<string, unknown> = {};
 
   // Parse YAML-like frontmatter
   (frontmatter || '').split('\n').forEach(line => {
     const colonIndex = line.indexOf(':');
     if (colonIndex > 0) {
       const key = line.substring(0, colonIndex).trim();
-      let value: any = line.substring(colonIndex + 1).trim();
+      let value: string | string[] = line.substring(colonIndex + 1).trim();
 
       // Handle arrays [tag1, tag2]
       if (value.startsWith('[') && value.endsWith(']')) {
@@ -132,7 +132,7 @@ export const parseMarkdownFile = (filename: string, content: string): ParsedMark
     content: cleanContent,
     type: isTask ? 'task' : 'note',
     tags: allTags,
-    dueDate: metadata.due || metadata.dueDate || metadata.created,
+    dueDate: (metadata.due || metadata.dueDate || metadata.created) as string | undefined,
     isCompleted: metadata.completed === true || metadata.status === 'done',
     subTasks: tasks.length > 0 ? tasks : undefined,
     metadata: {

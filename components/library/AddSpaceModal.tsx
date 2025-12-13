@@ -47,17 +47,19 @@ const backdropVariants = {
 };
 
 const modalVariants = {
-    hidden: { opacity: 0, scale: 0.9, y: 20 },
+    hidden: { opacity: 0, scale: 0.9, y: 20, filter: 'blur(8px)' },
     visible: {
         opacity: 1,
         scale: 1,
         y: 0,
+        filter: 'blur(0px)',
         transition: { type: 'spring' as const, stiffness: 300, damping: 25 },
     },
     exit: {
         opacity: 0,
         scale: 0.9,
         y: 20,
+        filter: 'blur(8px)',
         transition: { duration: 0.2 },
     },
 };
@@ -66,6 +68,8 @@ const AddSpaceModal: React.FC<AddSpaceModalProps> = ({ isOpen, onClose, onAdd })
     const [name, setName] = useState('');
     const [selectedIcon, setSelectedIcon] = useState(ICON_OPTIONS[0]!.icon);
     const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]!.color);
+    const [selectedCategory, setSelectedCategory] = useState<string>('אישי');
+    const [tags, setTags] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = useCallback(async () => {
@@ -78,6 +82,8 @@ const AddSpaceModal: React.FC<AddSpaceModalProps> = ({ isOpen, onClose, onAdd })
                 icon: selectedIcon,
                 color: selectedColor,
                 type: 'personal',
+                category: selectedCategory,
+                tags: tags.split(',').map(t => t.trim()).filter(Boolean),
                 order: Date.now(), // Will be sorted properly
             });
             // Reset form
@@ -112,7 +118,7 @@ const AddSpaceModal: React.FC<AddSpaceModalProps> = ({ isOpen, onClose, onAdd })
                 >
                     {/* Backdrop */}
                     <motion.div
-                        className="absolute inset-0 bg-black/70 backdrop-blur-md"
+                        className="absolute inset-0 bg-black/70 backdrop-blur-lg"
                         onClick={onClose}
                     />
 
@@ -124,20 +130,20 @@ const AddSpaceModal: React.FC<AddSpaceModalProps> = ({ isOpen, onClose, onAdd })
                         animate="visible"
                         exit="exit"
                         style={{
-                            background: 'linear-gradient(135deg, rgba(30,30,40,0.98) 0%, rgba(20,20,30,0.98) 100%)',
-                            border: '1px solid rgba(255,255,255,0.1)',
+                            background: 'linear-gradient(135deg, rgba(12,12,18,0.98) 0%, rgba(8,8,14,0.98) 100%)',
+                            border: '1px solid rgba(255,255,255,0.06)',
                             boxShadow: '0 25px 80px rgba(0,0,0,0.6)',
                         }}
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between p-5 border-b border-white/10">
-                            <h2 className="text-xl font-bold text-white font-heading">
+                        <div className="flex items-center justify-between p-5 border-b border-white/[0.04]">
+                            <h2 className="text-xl font-bold text-white/90 font-heading">
                                 מרחב חדש
                             </h2>
                             <motion.button
                                 onClick={onClose}
-                                className="p-2 rounded-xl transition-colors text-gray-400 hover:text-white"
-                                style={{ background: 'rgba(255,255,255,0.05)' }}
+                                className="p-2 rounded-xl transition-colors text-white/40 hover:text-white"
+                                style={{ background: 'rgba(255,255,255,0.03)' }}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                             >
@@ -192,6 +198,41 @@ const AddSpaceModal: React.FC<AddSpaceModalProps> = ({ isOpen, onClose, onAdd })
                                 </div>
                             </div>
 
+                            {/* Category Picker */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    קטגוריה
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                    {['אישי', 'עבודה', 'לימודים', 'פרויקטים', 'אחר'].map((cat) => (
+                                        <button
+                                            key={cat}
+                                            onClick={() => setSelectedCategory(cat)}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${selectedCategory === cat
+                                                ? 'bg-white text-black'
+                                                : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                                                }`}
+                                        >
+                                            {cat}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Tags Input */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    תגיות (מופרדות בפסיק)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={tags}
+                                    onChange={(e) => setTags(e.target.value)}
+                                    placeholder="דחוף, בבית, רעיונות..."
+                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all text-sm"
+                                />
+                            </div>
+
                             {/* Color Picker */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -235,7 +276,7 @@ const AddSpaceModal: React.FC<AddSpaceModalProps> = ({ isOpen, onClose, onAdd })
                         </div>
 
                         {/* Footer */}
-                        <div className="p-5 border-t border-white/10 flex gap-3">
+                        <div className="p-5 border-t border-white/[0.04] flex gap-3">
                             <motion.button
                                 onClick={onClose}
                                 className="flex-1 py-3 rounded-xl font-medium text-gray-400 transition-colors"

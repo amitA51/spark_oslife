@@ -9,6 +9,17 @@
 
 html {
     font-size: calc(16px * var(--ui-scale, 1));
+    /* Prevent pull-to-refresh on entire app */
+    overscroll-behavior: none;
+}
+
+/* Global touch optimization */
+button,
+a,
+[role="button"],
+.touch-target {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 body {
@@ -23,6 +34,16 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
+
+    /* Mobile Native Experience */
+    overscroll-behavior: none;
+    overscroll-behavior-y: contain;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+
+    /* Safe area insets for notch/Dynamic Island */
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
 }
 
 
@@ -94,39 +115,92 @@ input:-webkit-autofill:active {
 
     /* Density-aware container spacing - Mobile-first */
     .app-container {
-        padding-inline: var(--mobile-gutter);
-        padding-top: 1rem;
+        padding-inline: 0;
+        padding-top: 0;
         min-height: 100dvh;
         min-height: -webkit-fill-available;
         overflow-x: hidden;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Screen content wrapper that adds the padding back for content */
+    .screen-content-safe {
+        padding-inline: var(--mobile-gutter);
     }
 
     @media (min-width: 640px) {
-        .app-container {
+        .screen-content-safe {
             padding-inline: var(--tablet-gutter);
-            padding-top: 1.25rem;
         }
     }
 
     @media (min-width: 1024px) {
-        .app-container {
+        .screen-content-safe {
             padding-inline: var(--desktop-gutter);
         }
     }
 
-    body.density-compact .app-container {
+    body.density-compact .screen-content-safe {
         padding-inline: 0.5rem;
-        padding-top: 0.75rem;
     }
 
-    body.density-comfortable .app-container {
+    body.density-comfortable .screen-content-safe {
         padding-inline: var(--mobile-gutter);
-        padding-top: 1rem;
     }
 
-    body.density-spacious .app-container {
+    body.density-spacious .screen-content-safe {
         padding-inline: 1rem;
-        padding-top: 1.5rem;
+    }
+
+    /* Touch Target Utilities - Apple/Google Guidelines (44px min) */
+    .touch-target {
+        min-height: var(--touch-target-min, 44px);
+        min-width: var(--touch-target-min, 44px);
+    }
+
+    .touch-target-lg {
+        min-height: var(--touch-target-comfortable, 48px);
+        min-width: var(--touch-target-comfortable, 48px);
+    }
+
+    /* Invisible touch expansion (keeps visual size, expands tap area) */
+    .touch-target-expand {
+        position: relative;
+    }
+
+    .touch-target-expand::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        min-width: var(--touch-target-min, 44px);
+        min-height: var(--touch-target-min, 44px);
+    }
+
+    /* Safe area utilities for edge-to-edge screens */
+    .safe-area-top {
+        padding-top: env(safe-area-inset-top, 0px);
+    }
+
+    .safe-area-bottom {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .safe-area-left {
+        padding-left: env(safe-area-inset-left, 0px);
+    }
+
+    .safe-area-right {
+        padding-right: env(safe-area-inset-right, 0px);
+    }
+
+    .safe-area-all {
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-right: env(safe-area-inset-right, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        padding-left: env(safe-area-inset-left, 0px);
     }
 
     .glass-morphism {
@@ -314,29 +388,84 @@ input:-webkit-autofill:active {
     outline: none;
 }
 
+/* Enhanced spark-card - Quiet Luxury Refinement */
+.spark-card {
+    background: var(--ql-surface-base);
+    border: 1px solid var(--ql-border-subtle);
+    border-radius: var(--radius-2xl);
+    backdrop-filter: blur(var(--ql-blur-medium));
+    -webkit-backdrop-filter: blur(var(--ql-blur-medium));
+    box-shadow:
+        var(--ql-shadow-subtle),
+        inset 0 1px 0 rgba(255, 255, 255, 0.02);
+    transition: all var(--ql-duration-smooth) var(--ql-ease-luxe);
+}
+
+.spark-card:hover {
+    background: var(--ql-surface-elevated);
+    border-color: var(--ql-border-default);
+    transform: translateY(-2px);
+    box-shadow:
+        var(--ql-shadow-medium),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* New Quiet Luxury Card Pattern */
+.ql-card {
+    background: var(--ql-surface-base);
+    border: 1px solid var(--ql-border-invisible);
+    border-radius: var(--radius-2xl);
+    backdrop-filter: blur(var(--ql-blur-medium));
+    -webkit-backdrop-filter: blur(var(--ql-blur-medium));
+    box-shadow: var(--ql-shadow-soft);
+    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ql-card:hover {
+    background: var(--ql-surface-subtle);
+    border-color: var(--ql-border-subtle);
+    transform: translateY(-2px) scale(1.002);
+    box-shadow: var(--ql-shadow-medium);
+}
+
 @layer components {
 
     /* Standard screen layout - Mobile-first */
     .screen-shell {
-        padding-top: 1rem;
+        /* Remove top padding here, let header handle spacing or individual screens */
+        padding-top: 0;
         padding-bottom: var(--content-bottom-spacing);
+        /* Content padding applied here now since app-container is full width */
+        padding-inline: var(--mobile-gutter);
     }
 
+    /* For full-width headers that extend to edges */
     .screen-header {
         position: sticky;
         top: 0;
         z-index: 20;
+        /* No negative margins needed */
         margin-inline: calc(-1 * var(--mobile-gutter));
+        /* Keep negative margin ONLY if we want it to bleed out of screen-shell padding */
         padding-inline: var(--mobile-gutter);
-        padding-top: calc(1rem + env(safe-area-inset-top, 0px));
+        padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+        /* Adjusted padding */
         padding-bottom: 0.75rem;
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
         background: linear-gradient(to bottom, rgba(10, 10, 15, 0.95), rgba(10, 10, 15, 0.85), transparent);
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+        /* Ensure it takes full width of the screen-shell's offset if needed, 
+           but since screen-shell has padding now, we DO need negative margins 
+           to make the header 100% width of the VIEWPORT */
     }
 
     @media (min-width: 640px) {
+        .screen-shell {
+            padding-inline: var(--tablet-gutter);
+        }
+
         .screen-header {
             margin-inline: calc(-1 * var(--tablet-gutter));
             padding-inline: var(--tablet-gutter);

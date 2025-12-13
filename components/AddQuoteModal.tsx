@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { QuoteCategory } from '../types';
-import { CloseIcon, UploadIcon, AlertIcon } from './icons';
+import { CloseIcon, UploadIcon, AlertIcon, WifiOffIcon } from './icons';
 import { PremiumButton, PremiumInput, PremiumTextarea } from './premium/PremiumComponents';
 import { useFocusTrap } from '../hooks/useFocusTrap';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
+
+// Character limits matching backend validation
+const MAX_QUOTE_TEXT_LENGTH = 500;
+const MAX_QUOTE_AUTHOR_LENGTH = 100;
 
 interface AddQuoteModalProps {
   onClose: () => void;
@@ -41,6 +46,9 @@ const AddQuoteModal: React.FC<AddQuoteModalProps> = ({ onClose, onSave }) => {
   const [imageError, setImageError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+
+  // Network status for offline warning
+  const { isOnline } = useNetworkStatus();
 
   const handleClose = useCallback(() => {
     setIsClosing(true);
@@ -148,23 +156,43 @@ const AddQuoteModal: React.FC<AddQuoteModalProps> = ({ onClose, onSave }) => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Offline Warning */}
+            {!isOnline && (
+              <div className="flex items-center gap-2 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400">
+                <WifiOffIcon className="w-4 h-4 flex-shrink-0" />
+                <span className="text-sm font-medium">אתה במצב אופליין. הציטוט יישמר מקומית ויסונכרן כשהחיבור יחזור.</span>
+              </div>
+            )}
+
             {/* Quote Text */}
-            <PremiumTextarea
-              label="טקסט הציטוט"
-              value={text}
-              onChange={e => setText(e.target.value)}
-              required
-              className="h-32"
-            />
+            <div className="space-y-1">
+              <PremiumTextarea
+                label="טקסט הציטוט"
+                value={text}
+                onChange={e => setText(e.target.value.slice(0, MAX_QUOTE_TEXT_LENGTH))}
+                required
+                className="h-32"
+                maxLength={MAX_QUOTE_TEXT_LENGTH}
+              />
+              <div className={`text-xs text-left ${text.length > MAX_QUOTE_TEXT_LENGTH * 0.9 ? 'text-amber-400' : 'text-gray-500'}`}>
+                {text.length}/{MAX_QUOTE_TEXT_LENGTH}
+              </div>
+            </div>
 
             {/* Author */}
-            <PremiumInput
-              label="מחבר"
-              type="text"
-              value={author}
-              onChange={e => setAuthor(e.target.value)}
-              required
-            />
+            <div className="space-y-1">
+              <PremiumInput
+                label="מחבר"
+                type="text"
+                value={author}
+                onChange={e => setAuthor(e.target.value.slice(0, MAX_QUOTE_AUTHOR_LENGTH))}
+                required
+                maxLength={MAX_QUOTE_AUTHOR_LENGTH}
+              />
+              <div className={`text-xs text-left ${author.length > MAX_QUOTE_AUTHOR_LENGTH * 0.9 ? 'text-amber-400' : 'text-gray-500'}`}>
+                {author.length}/{MAX_QUOTE_AUTHOR_LENGTH}
+              </div>
+            </div>
 
             {/* Category */}
             <div className="relative space-y-2">
@@ -216,6 +244,7 @@ const AddQuoteModal: React.FC<AddQuoteModalProps> = ({ onClose, onSave }) => {
                         src={backgroundImage}
                         alt="תצוגה מקדימה"
                         className="w-full h-full object-cover"
+                        loading="lazy"
                       />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-base backdrop-blur-sm">
                         <span className="text-white text-sm font-medium flex items-center gap-2">

@@ -1,16 +1,15 @@
-import { useCallback, useState, type FC, type PropsWithChildren } from 'react';
+import { useCallback, type FC, type PropsWithChildren } from 'react';
 import { AppProviders } from './src/contexts/AppProviders';
 import { ModalProvider } from './state/ModalContext';
 import ModalRoot from './components/ModalRoot';
 import { KeyboardShortcutsProvider } from './components/KeyboardShortcutsProvider';
 import { useModal } from './state/ModalContext';
-import { useSettings } from './src/contexts/SettingsContext';
-import type { Screen } from './types';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient';
 import ErrorBoundary from './components/ErrorBoundary';
 import AppCore from './components/app/AppCore';
 import { OfflineBanner } from './components/OfflineBanner';
+import OnboardingTour from './components/onboarding/OnboardingTour';
 
 /**
  * App Component
@@ -27,6 +26,7 @@ const App: FC = () => {
             <KeyboardShortcutsProviderWrapper>
               {/* Offline connectivity banner */}
               <OfflineBanner position="top" />
+              <OnboardingTour />
               <AppCore />
               <ModalRoot />
             </KeyboardShortcutsProviderWrapper>
@@ -45,8 +45,6 @@ const App: FC = () => {
 const KeyboardShortcutsProviderWrapper: FC<PropsWithChildren> = ({
   children,
 }) => {
-  const { settings } = useSettings();
-  const [, setActiveScreen] = useState<Screen>(settings.defaultScreen);
   const { openModal } = useModal();
 
   const handleQuickAdd = useCallback(() => {
@@ -54,12 +52,12 @@ const KeyboardShortcutsProviderWrapper: FC<PropsWithChildren> = ({
   }, [openModal]);
 
   const handleSearch = useCallback(() => {
-    setActiveScreen('search');
+    // Search can be handled via navigation context
+    // This is a no-op for now until search modal is implemented
   }, []);
 
   return (
     <KeyboardShortcutsProvider
-      setActiveScreen={setActiveScreen}
       onQuickAdd={handleQuickAdd}
       onSearch={handleSearch}
     >

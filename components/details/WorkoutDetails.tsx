@@ -142,8 +142,8 @@ export const WorkoutView: React.FC<ViewProps> = ({ item, onUpdate }) => {
                   <div
                     key={setIndex}
                     className={`p-3 rounded-xl transition-all ${set.completedAt
-                        ? 'bg-green-500/10 border-2 border-green-500/50'
-                        : 'bg-[var(--surface-secondary)] border-2 border-transparent'
+                      ? 'bg-green-500/10 border-2 border-green-500/50'
+                      : 'bg-[var(--surface-secondary)] border-2 border-transparent'
                       }`}
                   >
                     <div className="flex items-center justify-between">
@@ -207,9 +207,11 @@ export const WorkoutView: React.FC<ViewProps> = ({ item, onUpdate }) => {
 };
 
 export const WorkoutEdit: React.FC<EditProps> = ({ editState, dispatch }) => {
-  const handleUpdateExercise = (exIndex: number, field: keyof Exercise, value: any) => {
+  const handleUpdateExercise = <K extends keyof Exercise>(exIndex: number, field: K, value: Exercise[K]) => {
     const newExercises = [...(editState.exercises || [])];
-    (newExercises[exIndex] as any)[field] = value;
+    if (newExercises[exIndex]) {
+      newExercises[exIndex][field] = value;
+    }
     dispatch({ type: 'SET_FIELD', payload: { field: 'exercises', value: newExercises } });
   };
 

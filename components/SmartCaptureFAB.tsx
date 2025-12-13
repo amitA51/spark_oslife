@@ -1,16 +1,14 @@
 import React, { useState, Suspense, lazy } from 'react';
 import { SparklesIcon } from './icons';
-import { Screen } from '../types';
 import { StatusMessageType } from './StatusMessage';
 
 const SmartCaptureModal = lazy(() => import('./SmartCaptureModal'));
 
 interface SmartCaptureFABProps {
-  setActiveScreen: (screen: Screen) => void;
   showStatus: (type: StatusMessageType, text: string, onUndo?: () => void) => void;
 }
 
-const SmartCaptureFAB: React.FC<SmartCaptureFABProps> = ({ setActiveScreen, showStatus }) => {
+const SmartCaptureFAB: React.FC<SmartCaptureFABProps> = ({ showStatus }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
@@ -28,7 +26,6 @@ const SmartCaptureFAB: React.FC<SmartCaptureFABProps> = ({ setActiveScreen, show
           <SmartCaptureModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
-            setActiveScreen={setActiveScreen}
             showStatus={showStatus}
           />
         )}
@@ -38,3 +35,4 @@ const SmartCaptureFAB: React.FC<SmartCaptureFABProps> = ({ setActiveScreen, show
 };
 
 export default SmartCaptureFAB;
+

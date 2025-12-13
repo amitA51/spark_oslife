@@ -9,18 +9,18 @@ import {
   ClipboardListIcon,
   FlameIcon,
 } from './icons';
-import type { NlpResult, PersonalItemType, Screen } from '../types';
+import type { NlpResult, PersonalItemType } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import { useHaptics } from '../hooks/useHaptics';
 import { StatusMessageType } from './StatusMessage';
 import DraggableModalWrapper from './DraggableModalWrapper';
 import { useData } from '../src/contexts/DataContext';
 import { useUI } from '../src/contexts/UIContext';
+import { useNavigation } from '../src/contexts/NavigationContext';
 
 interface SmartCaptureModalProps {
   isOpen: boolean;
   onClose: () => void;
-  setActiveScreen: (screen: Screen) => void;
   showStatus: (type: StatusMessageType, text: string) => void;
 }
 
@@ -34,11 +34,11 @@ const typeMap: Record<string, { icon: React.ReactNode; label: string }> = {
 const SmartCaptureModal: React.FC<SmartCaptureModalProps> = ({
   isOpen,
   onClose,
-  setActiveScreen,
   showStatus,
 }) => {
   const { personalItems, spaces, addPersonalItem } = useData();
   const { setHasUnsavedChanges } = useUI();
+  const { navigate } = useNavigation();
   const { triggerHaptic } = useHaptics();
   const [inputValue, setInputValue] = useState('');
   const debouncedValue = useDebounce(inputValue, 500);
@@ -84,7 +84,7 @@ const SmartCaptureModal: React.FC<SmartCaptureModalProps> = ({
     triggerHaptic('heavy');
 
     try {
-      const newItemData: any = {
+      const newItemData: Record<string, unknown> = {
         type: aiSuggestion.type as PersonalItemType,
         title: aiSuggestion.title,
         content: '',
@@ -98,11 +98,11 @@ const SmartCaptureModal: React.FC<SmartCaptureModalProps> = ({
         newItemData.frequency = 'daily';
       }
 
-      const newItem = await addPersonalItem(newItemData as any);
+      const newItem = await addPersonalItem(newItemData as Parameters<typeof addPersonalItem>[0]);
 
       showStatus('success', 'הפריט נוצר בהצלחה!');
       onClose();
-      setActiveScreen(newItem.type === 'task' ? 'today' : 'library');
+      navigate(newItem.type === 'task' ? 'today' : 'library');
     } catch (e) {
       console.error('Failed to create item from smart capture:', e);
       showStatus('error', 'שגיאה ביצירת הפריט.');

@@ -1,9 +1,10 @@
 import React from 'react';
 import ProfileCard from './ProfileCard';
-import { SettingsSection, SettingsCard, SettingsRow } from './SettingsComponents';
+import { SettingsSection, SettingsGroupCard, SettingsRow } from './SettingsComponents';
 import { useSettings } from '../../src/contexts/SettingsContext';
 import { StatusMessageType } from '../../components/StatusMessage';
-import { UserIcon, SparklesIcon } from '../../components/icons';
+import { UserIcon, SparklesIcon, TrashIcon, AlertOctagonIcon } from '../../components/icons';
+import { deleteUserAccount } from '../../services/authService';
 
 interface ProfileSectionProps {
     setStatusMessage: (msg: { type: StatusMessageType; text: string; id: number } | null) => void;
@@ -18,7 +19,7 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ setStatusMessage }) => 
             <ProfileCard setStatusMessage={setStatusMessage} />
 
             {/* Additional Profile Settings */}
-            <SettingsCard title="התאמה אישית" icon={<SparklesIcon className="w-5 h-5" />}>
+            <SettingsGroupCard title="התאמה אישית" icon={<SparklesIcon className="w-5 h-5" />}>
                 <SettingsRow
                     title="אימוג'י אישי"
                     description="בחר אימוג'י שמייצג אותך בממשק"
@@ -54,9 +55,49 @@ const ProfileSection: React.FC<ProfileSectionProps> = ({ setStatusMessage }) => 
                         dir="rtl"
                     />
                 </SettingsRow>
-            </SettingsCard>
-        </SettingsSection>
+            </SettingsGroupCard>
+
+            {/* Danger Zone */}
+            <div className="mt-8 relative overflow-hidden rounded-2xl border border-red-500/30 bg-red-500/5">
+                <div className="p-4 border-b border-red-500/10 flex items-center gap-3">
+                    <AlertOctagonIcon className="w-5 h-5 text-red-400" />
+                    <h3 className="text-red-100 font-semibold">אזור סכנה</h3>
+                </div>
+
+                <div className="p-4">
+                    <p className="text-xs text-red-200/70 mb-4 leading-relaxed">
+                        מחיקת החשבון היא פעולה בלתי הפיכה. כל המידע שלך, כולל יומנים, משימות והגדרות יימחקו לצמיתות ולא ניתן יהיה לשחזר אותם.
+                    </p>
+
+                    <button
+                        onClick={async () => {
+                            if (window.confirm('האם אתה בטוח שברצונך למחוק את החשבון לצמיתות? פעולה זו אינה הפיכה.')) {
+                                const doubleCheck = window.prompt('כדי לאשר מחיקה, הקלד "מחק" בתיבה למטה:');
+                                if (doubleCheck === 'מחק') {
+                                    try {
+                                        await deleteUserAccount();
+                                        // Force reload to trigger auth state change and redirect
+                                        window.location.reload();
+                                    } catch (err) {
+                                        const msg = err instanceof Error ? err.message : 'אירעה שגיאה במחיקת החשבון';
+                                        setStatusMessage({ type: 'error', text: msg, id: Date.now() });
+                                    }
+                                }
+                            }
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl 
+                                 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 
+                                 border border-red-500/20 transition-all text-sm font-medium"
+                    >
+                        <TrashIcon className="w-4 h-4" />
+                        מחק את החשבון שלי
+                    </button>
+                </div>
+            </div>
+        </SettingsSection >
     );
 };
 
 export default ProfileSection;
+
+

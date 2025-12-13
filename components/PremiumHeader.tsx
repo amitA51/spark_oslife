@@ -19,7 +19,12 @@ const PremiumHeader: React.FC<PremiumHeaderProps> = ({
     icon,
 }) => {
     return (
-        <header className={`sticky top-0 z-30 pt-[max(env(safe-area-inset-top,20px),1.5rem)] pb-5 px-4 bg-[var(--bg-primary)]/85 backdrop-blur-2xl border-b border-white/[0.06] ${className}`}>
+        <header className={`sticky top-0 z-30 pt-[max(env(safe-area-inset-top,20px),1.5rem)] pb-5 -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6 bg-[var(--bg-primary)]/85 backdrop-blur-2xl border-b border-white/[0.06] ${className}`}
+            style={{
+                backdropFilter: 'blur(var(--blur-xl))',
+                WebkitBackdropFilter: 'blur(var(--blur-xl))',
+            }}
+        >
             {/* Ambient gradient overlay */}
             <div
                 className="absolute inset-0 -z-10 opacity-30 pointer-events-none"
@@ -64,11 +69,11 @@ const PremiumHeader: React.FC<PremiumHeaderProps> = ({
                                     className="absolute -inset-6 blur-3xl rounded-full -z-10"
                                     style={{ backgroundColor: 'var(--dynamic-accent-glow)' }}
                                     animate={{
-                                        opacity: [0.3, 0.5, 0.3],
-                                        scale: [1, 1.1, 1],
+                                        opacity: [0.15, 0.25, 0.15],
+                                        scale: [1, 1.05, 1],
                                     }}
                                     transition={{
-                                        duration: 4,
+                                        duration: 6,
                                         repeat: Infinity,
                                         ease: 'easeInOut',
                                     }}
@@ -84,9 +89,9 @@ const PremiumHeader: React.FC<PremiumHeaderProps> = ({
                                         x: ['-100%', '100%'],
                                     }}
                                     transition={{
-                                        duration: 3,
+                                        duration: 4,
                                         repeat: Infinity,
-                                        repeatDelay: 5,
+                                        repeatDelay: 8,
                                         ease: 'easeInOut',
                                     }}
                                 />
@@ -101,8 +106,8 @@ const PremiumHeader: React.FC<PremiumHeaderProps> = ({
                                 style={{ color: 'var(--dynamic-accent-start)' }}
                             >
                                 <span
-                                    className="w-1.5 h-1.5 rounded-full animate-pulse"
-                                    style={{ backgroundColor: 'var(--dynamic-accent-start)' }}
+                                    className="w-1 h-1 rounded-full animate-pulse"
+                                    style={{ backgroundColor: 'var(--dynamic-accent-start)', opacity: 0.7 }}
                                 />
                                 {subtitle}
                             </motion.div>

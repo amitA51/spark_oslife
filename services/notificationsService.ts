@@ -73,11 +73,11 @@ export const showTestNotification = async (): Promise<{ success: boolean; messag
 export const updateAppBadge = (count: number): void => {
   if ('setAppBadge' in navigator && 'clearAppBadge' in navigator) {
     if (count > 0) {
-      (navigator as any).setAppBadge(count).catch((error: Error) => {
+      navigator.setAppBadge(count).catch((error: Error) => {
         console.error('Failed to set app badge:', error);
       });
     } else {
-      (navigator as any).clearAppBadge().catch((error: Error) => {
+      navigator.clearAppBadge().catch((error: Error) => {
         console.error('Failed to clear app badge:', error);
       });
     }
@@ -88,14 +88,14 @@ export const updateAppBadge = (count: number): void => {
  * Registers for periodic background sync to check for new feed items.
  */
 export const registerPeriodicSync = async (): Promise<void> => {
-  const registration = (window as any).swRegistration;
-  if (!registration || !('periodicSync' in registration)) {
+  const registration = window.swRegistration;
+  if (!registration || !registration.periodicSync) {
     console.warn('Periodic Background Sync is not supported.');
     return;
   }
 
   try {
-    await (registration as any).periodicSync.register('feed-sync', {
+    await registration.periodicSync.register('feed-sync', {
       minInterval: 12 * 60 * 60 * 1000, // 12 hours
     });
   } catch (error) {
@@ -107,12 +107,12 @@ export const registerPeriodicSync = async (): Promise<void> => {
  * Unregisters from periodic background sync.
  */
 export const unregisterPeriodicSync = async (): Promise<void> => {
-  const registration = (window as any).swRegistration;
-  if (!registration || !('periodicSync' in registration)) {
+  const registration = window.swRegistration;
+  if (!registration || !registration.periodicSync) {
     return;
   }
   try {
-    await (registration as any).periodicSync.unregister('feed-sync');
+    await registration.periodicSync.unregister('feed-sync');
   } catch (error) {
     console.error('Periodic sync unregistration failed:', error);
   }

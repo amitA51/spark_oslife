@@ -13,8 +13,8 @@ const shimmerStyle: React.CSSProperties = {
 
 const ShimmerOverlay: React.FC<{ className?: string }> = ({ className = '' }) => (
   <div
-    className={`absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/10 to-transparent ${className}`}
-    style={{ animationDuration: '1.5s' }}
+    className={`absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/[0.06] to-transparent ${className}`}
+    style={{ animationDuration: '2s' }}
   />
 );
 
@@ -38,7 +38,7 @@ export const SkeletonBox: React.FC<SkeletonProps> = ({
   shimmer = true,
 }) => (
   <div
-    className={`bg-gradient-to-r from-white/[0.06] to-white/[0.03] ${className}`}
+    className={`bg-gradient-to-r from-white/[0.03] to-white/[0.015] ${className}`}
     style={{
       ...shimmerStyle,
       width: typeof width === 'number' ? `${width}px` : width,
@@ -56,7 +56,7 @@ export const SkeletonCircle: React.FC<{ size?: number; className?: string; shimm
   shimmer = true,
 }) => (
   <div
-    className={`bg-gradient-to-r from-white/[0.06] to-white/[0.03] rounded-full ${className}`}
+    className={`bg-gradient-to-r from-white/[0.03] to-white/[0.015] rounded-full ${className}`}
     style={{ ...shimmerStyle, width: `${size}px`, height: `${size}px` }}
   >
     {shimmer && <ShimmerOverlay />}
@@ -422,9 +422,8 @@ export const SkeletonChatMessage: React.FC<{ isUser?: boolean }> = ({ isUser = f
     <SkeletonCircle size={36} />
     <div className={`flex-1 max-w-[80%] space-y-2 ${isUser ? 'items-end' : ''}`}>
       <div
-        className={`rounded-2xl p-4 space-y-2 ${
-          isUser ? 'bg-[var(--dynamic-accent-start)]/20' : 'bg-white/5'
-        }`}
+        className={`rounded-2xl p-4 space-y-2 ${isUser ? 'bg-[var(--dynamic-accent-start)]/20' : 'bg-white/5'
+          }`}
       >
         <SkeletonBox height={16} width="100%" />
         <SkeletonBox height={16} width="85%" />

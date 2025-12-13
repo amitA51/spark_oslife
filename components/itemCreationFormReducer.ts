@@ -6,7 +6,7 @@
  * - Clearer separation of concerns
  * - Reduced main component size
  */
-import type { Exercise, RoadmapPhase, WorkoutSet, Attachment, SubTask, Template, PersonalItem } from '../types';
+import type { Exercise, RoadmapPhase, WorkoutSet, Attachment, SubTask, Template, PersonalItem, AntiGoalData } from '../types';
 import { todayKey } from '../utils/dateUtils';
 
 // --- Types ---
@@ -35,6 +35,8 @@ export interface FormState {
     habitType: 'good' | 'bad';
     reminderEnabled: boolean;
     reminderTime: string;
+    // Anti-Goal specific
+    antiGoalData: AntiGoalData;
     // Compatibility fields for HabitEdit
     subTasks: SubTask[];
     quotes: string[];
@@ -51,6 +53,7 @@ export type FormFieldValue =
     | Attachment[]
     | SubTask[]
     | string[]
+    | AntiGoalData
     | 'low' | 'medium' | 'high'
     | 'todo' | 'doing' | 'done'
     | 'good' | 'bad';
@@ -121,6 +124,14 @@ export const createInitialState = (): FormState => ({
     habitType: 'good',
     reminderEnabled: false,
     reminderTime: '09:00',
+    antiGoalData: {
+        triggers: [],
+        alternativeActions: [],
+        slipHistory: [],
+        longestStreak: 0,
+        totalAvoidedDays: 0,
+        dailyCheckIn: true,
+    },
     subTasks: [],
     quotes: [],
     autoDeleteAfter: 0,

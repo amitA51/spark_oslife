@@ -18,10 +18,13 @@ const getFaviconUrl = (link: string) => {
     }
 };
 
+import DOMPurify from 'dompurify';
+
 const calculateReadingTime = (content: string): number => {
     if (!content) return 1;
-    const text = content.replace(/<[^>]*>/g, '');
-    const words = text.split(/\s+/).filter(Boolean).length;
+    // Sanitize and strip HTML tags to get pure text
+    const clean = DOMPurify.sanitize(content, { ALLOWED_TAGS: [] });
+    const words = clean.split(/\s+/).filter(Boolean).length;
     return Math.max(1, Math.ceil(words / 200));
 };
 
@@ -61,7 +64,7 @@ const QuickReadCard: React.FC<QuickReadCardProps> = ({ item, index, onSelect }) 
                 {/* Favicon */}
                 <div className="relative flex-shrink-0 mt-0.5">
                     {faviconUrl ? (
-                        <img src={faviconUrl} alt="" className="w-5 h-5 rounded" />
+                        <img src={faviconUrl} alt="" className="w-5 h-5 rounded" loading="lazy" />
                     ) : (
                         <div className="w-5 h-5 rounded bg-white/10 flex items-center justify-center">
                             <FeedIcon className="w-3 h-3 text-white/40" />

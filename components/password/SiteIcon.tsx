@@ -54,6 +54,7 @@ const SiteIcon: React.FC<SiteIconProps> = ({ site, className = 'w-10 h-10' }) =>
       alt={`${site} favicon`}
       className={`rounded-lg bg-gray-700 object-contain ${className}`}
       onError={() => setUseFallback(true)}
+      loading="lazy"
     />
   );
 };

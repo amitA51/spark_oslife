@@ -199,3 +199,5 @@ const GoogleTasksSection: React.FC<GoogleTasksSectionProps> = ({ accentColor }) 
 };
 
 export default GoogleTasksSection;
+
+

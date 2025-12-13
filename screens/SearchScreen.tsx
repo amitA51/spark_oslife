@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { Screen, PersonalItem, UniversalSearchResult, SearchFilters } from '../types';
-import { universalAiSearch } from '../services/geminiService';
+import { universalAiSearch, isAiAvailable } from '../services/geminiService';
 import { useDebounce } from '../hooks/useDebounce';
 import { SearchIcon, SparklesIcon, SettingsIcon, FilterIcon } from '../components/icons';
 import MarkdownRenderer from '../components/MarkdownRenderer';
@@ -83,6 +83,22 @@ export default function SearchScreen({ setActiveScreen }: SearchScreenProps) {
 
   const handleAiSearch = async () => {
     if (!query || isAiLoading) return;
+
+    // Check if AI is available before starting
+    if (!isAiAvailable()) {
+      setIsAiSearch(true);
+      setAiAnswer('שירות AI לא זמין. הגדר את מפתח ה-API בהגדרות.');
+      // Fall back to local search
+      const lowerCaseQuery = query.toLowerCase();
+      const fallbackResults = allSearchableData.filter(
+        item =>
+          item.title.toLowerCase().includes(lowerCaseQuery) ||
+          item.content.toLowerCase().includes(lowerCaseQuery)
+      );
+      setLocalResults(fallbackResults);
+      return;
+    }
+
     setIsAiLoading(true);
     setIsAiSearch(true);
     setAiAnswer(null);
@@ -100,9 +116,38 @@ export default function SearchScreen({ setActiveScreen }: SearchScreenProps) {
       const result = await universalAiSearch(query, searchCorpus);
       setAiAnswer(result.answer);
       setAiSourceIds(new Set(result.sourceIds));
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('AI Search failed', e);
-      setAiAnswer('התנצלותי, נתקלתי בשגיאה בעת ביצוע החיפוש החכם.');
+
+      // Determine specific error message based on error type
+      const errorMessage = e instanceof Error ? e.message : '';
+      let userMessage = '';
+
+      if (errorMessage.includes('API Key') || errorMessage.includes('not configured')) {
+        userMessage = 'מפתח AI לא מוגדר. הגדר את המפתח בהגדרות.';
+      } else if (errorMessage.includes('429') || errorMessage.includes('rate')) {
+        userMessage = 'יותר מדי בקשות. המתן מספר שניות ונסה שוב.';
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('Failed to fetch')) {
+        userMessage = 'בעיית חיבור לאינטרנט. בדוק את החיבור ונסה שוב.';
+      } else if (errorMessage.includes('empty')) {
+        userMessage = 'לא התקבלה תשובה. נסה לנסח את השאילה אחרת.';
+      } else {
+        userMessage = 'חיפוש ה-AI נכשל. מציג תוצאות מקומיות במקום.';
+      }
+
+      setAiAnswer(userMessage);
+
+      // Fallback to local search when AI fails
+      if (query.length > 1) {
+        const lowerCaseQuery = query.toLowerCase();
+        const fallbackResults = allSearchableData.filter(
+          item =>
+            item.title.toLowerCase().includes(lowerCaseQuery) ||
+            item.content.toLowerCase().includes(lowerCaseQuery)
+        );
+        setLocalResults(fallbackResults);
+        setIsAiSearch(false);
+      }
     } finally {
       setIsAiLoading(false);
     }
@@ -201,15 +246,15 @@ export default function SearchScreen({ setActiveScreen }: SearchScreenProps) {
             <>
               <button
                 onClick={() => setIsFilterPanelOpen(true)}
-                className="p-2 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-white transition-colors"
+                className="p-2.5 rounded-xl bg-white/[0.03] text-white/50 hover:bg-white/[0.08] hover:text-white transition-all duration-300"
               >
-                <FilterIcon className="w-6 h-6" />
+                <FilterIcon className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setActiveScreen('settings')}
-                className="p-2 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-white transition-colors"
+                className="p-2.5 rounded-xl bg-white/[0.03] text-white/50 hover:bg-white/[0.08] hover:text-white transition-all duration-300"
               >
-                <SettingsIcon className="w-6 h-6" />
+                <SettingsIcon className="w-5 h-5" />
               </button>
             </>
           }
@@ -224,16 +269,16 @@ export default function SearchScreen({ setActiveScreen }: SearchScreenProps) {
                 value={query}
                 onChange={e => handleQueryChange(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAiSearch()}
-                placeholder="חפש או שאל את AI..."
-                className={`w-full border text-[var(--text-primary)] rounded-2xl py-3 pr-11 pl-4 focus:outline-none focus:ring-2 focus:ring-[var(--dynamic-accent-start)]/50 focus:border-[var(--dynamic-accent-start)] transition-all ${settings.themeSettings.cardStyle === 'glass' ? 'bg-white/10 border-white/10 backdrop-blur-sm' : 'bg-[var(--bg-secondary)] border-[var(--border-primary)]'}`}
+                placeholder="חפש, או שאל שאלה..."
+                className="w-full bg-white/[0.02] border border-white/[0.04] text-white rounded-2xl py-3 pr-11 pl-4 focus:outline-none focus:ring-1 focus:ring-[var(--dynamic-accent-start)]/30 focus:border-white/[0.08] transition-all duration-300 placeholder:text-white/30"
               />
             </div>
             <button
               onClick={handleAiSearch}
               disabled={isAiLoading || query.length < 2}
-              className="p-3 bg-[var(--accent-gradient)] text-white rounded-2xl transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
+              className="p-3 bg-gradient-to-br from-[var(--dynamic-accent-start)] to-[var(--dynamic-accent-end)] text-white rounded-2xl transition-all duration-300 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 active:scale-95 shadow-lg shadow-[var(--dynamic-accent-glow)]/20"
             >
-              <SparklesIcon className={`h-6 w-6 ${isAiLoading ? 'animate-pulse' : ''}`} />
+              <SparklesIcon className={`h-5 w-5 ${isAiLoading ? 'animate-pulse' : ''}`} />
             </button>
           </div>
         </PremiumHeader>
@@ -257,7 +302,7 @@ export default function SearchScreen({ setActiveScreen }: SearchScreenProps) {
           {!isAiLoading && debouncedQuery && displayedResults.length === 0 && !aiAnswer && (
             <div className="text-center text-secondary mt-16 flex flex-col items-center">
               <SearchIcon className="w-16 h-16 text-muted mb-4" />
-              <p className="max-w-xs">לא נמצאו תוצאות עבור "{debouncedQuery}"</p>
+              <p className="max-w-xs">לא נמצאו תוצאות. נסה מונח אחר.</p>
             </div>
           )}
 

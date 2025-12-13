@@ -14,7 +14,7 @@ interface LoginScreenProps {
   onLoginSuccess: (items: PasswordItem[], mainKey: CryptoKey, sensitiveKey: CryptoKey) => void;
 }
 
-const isEncryptedField = (field: any): field is EncryptedField => {
+const isEncryptedField = (field: unknown): field is EncryptedField => {
   return typeof field === 'object' && field !== null && 'iv' in field && 'data' in field;
 };
 

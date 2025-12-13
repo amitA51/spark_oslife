@@ -116,8 +116,8 @@ class PerformanceService {
    * Logs memory usage if supported (Chrome only).
    */
   logMemoryUsage() {
-    if ((performance as any).memory) {
-      const memory = (performance as any).memory;
+    if (performance.memory) {
+      const memory = performance.memory;
       const usedJSHeapSize = memory.usedJSHeapSize / 1048576; // Convert to MB
       this.logMetric('Memory Usage', usedJSHeapSize, 'MB');
     }

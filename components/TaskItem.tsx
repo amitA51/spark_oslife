@@ -5,6 +5,7 @@ import { toDateKey } from '../utils/dateUtils';
 import { useHaptics } from '../hooks/useHaptics';
 import { useSound } from '../hooks/useSound';
 import { useSettings } from '../src/contexts/SettingsContext';
+import { UltraCard } from './ui/UltraCard';
 
 interface TaskItemProps {
   item: PersonalItem;
@@ -220,7 +221,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
       )}
 
       {/* Main Item Content */}
-      <div
+      <UltraCard
+        variant="glass"
         onClick={e => {
           if (!(e.target as HTMLElement).closest('button') && swipeOffset === 0) {
             onSelect(item, e);
@@ -232,17 +234,18 @@ const TaskItem: React.FC<TaskItemProps> = ({
         onTouchEnd={handleTouchEnd}
         className={`
           relative p-4 flex items-start gap-4 
-          bg-cosmos-depth/60 backdrop-blur-md border border-white/5 
           transition-all duration-300 ease-spring-soft
-          hover:bg-cosmos-depth/80 hover:border-white/10 hover:shadow-lg hover:-translate-y-1
+          hover:shadow-lg hover:-translate-y-1
           active:scale-[0.98] cursor-pointer
           ${item.isCompleted ? 'opacity-60 grayscale-[0.5]' : ''}
           rounded-2xl
         `}
+        glowColor="neutral"
+        noPadding
         style={{
-          transform: `translateX(${swipeOffset}px)`,
+          x: swipeOffset,
           animationDelay: `${index * 50}ms`,
-        }}
+        } as any}
         role="button"
         tabIndex={0}
       >
@@ -307,7 +310,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
             <TrashIcon className="h-4 w-4" />
           </button>
         </div>
-      </div>
+      </UltraCard>
     </div>
   );
 };

@@ -64,14 +64,14 @@ const QuickNoteModal: React.FC<QuickNoteModalProps> = ({ date, onClose }) => {
   return (
     <DraggableModalWrapper
       onClose={onClose}
-      className="w-[95vw] max-w-md bg-[var(--bg-card)] rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.6)] border border-[var(--border-primary)] overflow-hidden animate-scale-in"
+      className="w-[95vw] max-w-md bg-[rgba(12,12,18,0.95)] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/[0.06] overflow-hidden animate-scale-in backdrop-blur-xl"
     >
-      <div className="p-4 border-b border-[var(--border-primary)] flex justify-between items-center bg-[var(--bg-secondary)]/50">
-        <h3 className="font-bold text-white flex items-center gap-2">
+      <div className="p-4 border-b border-white/[0.04] flex justify-between items-center bg-white/[0.02]">
+        <h3 className="font-bold text-white/90 flex items-center gap-2">
           <CalendarIcon className="w-5 h-5 text-[var(--dynamic-accent-highlight)]" />
           פתק ל-{new Date(date).toLocaleDateString('he-IL')}
         </h3>
-        <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-white">
+        <button onClick={onClose} className="text-white/40 hover:text-white transition-colors duration-300">
           <CloseIcon className="w-6 h-6" />
         </button>
       </div>
@@ -84,7 +84,7 @@ const QuickNoteModal: React.FC<QuickNoteModalProps> = ({ date, onClose }) => {
             value={title}
             onChange={e => setTitle(e.target.value)}
             placeholder="כותרת הפתק..."
-            className="w-full bg-transparent text-lg font-bold text-white placeholder:text-muted focus:outline-none border-b border-[var(--border-primary)] focus:border-[var(--dynamic-accent-start)] pb-2 transition-colors"
+            className="w-full bg-transparent text-lg font-bold text-white placeholder:text-white/30 focus:outline-none border-b border-white/[0.06] focus:border-white/[0.15] pb-2 transition-all duration-300"
             required
           />
         </div>
@@ -95,18 +95,18 @@ const QuickNoteModal: React.FC<QuickNoteModalProps> = ({ date, onClose }) => {
             onChange={e => setContent(e.target.value)}
             placeholder="תוכן (אופציונלי)..."
             rows={4}
-            className="w-full bg-[var(--bg-secondary)]/50 rounded-xl p-3 text-sm text-[var(--text-primary)] placeholder:text-muted focus:outline-none resize-none"
+            className="w-full bg-white/[0.02] rounded-xl p-3 text-sm text-white/90 placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/[0.08] resize-none border border-white/[0.04] transition-all duration-300"
           />
         </div>
 
-        <div className="flex items-center gap-3 p-3 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-primary)]">
-          <StopwatchIcon className="w-5 h-5 text-[var(--text-secondary)]" />
-          <span className="text-sm text-[var(--text-secondary)]">שעת תזכורת:</span>
+        <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+          <StopwatchIcon className="w-5 h-5 text-white/40" />
+          <span className="text-sm text-white/50">שעת תזכורת:</span>
           <input
             type="time"
             value={time}
             onChange={e => setTime(e.target.value)}
-            className="bg-transparent text-white font-mono focus:outline-none ml-auto"
+            className="bg-transparent text-white/90 font-mono focus:outline-none ml-auto"
             style={{ colorScheme: 'dark' }}
           />
         </div>
@@ -114,7 +114,7 @@ const QuickNoteModal: React.FC<QuickNoteModalProps> = ({ date, onClose }) => {
         <button
           type="submit"
           disabled={isSubmitting || !title.trim()}
-          className="w-full bg-[var(--accent-gradient)] text-white font-bold py-3 rounded-xl shadow-[0_4px_15px_var(--dynamic-accent-glow)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-transform active:scale-95"
+          className="w-full bg-gradient-to-br from-[var(--dynamic-accent-start)] to-[var(--dynamic-accent-end)] text-white font-bold py-3 rounded-xl shadow-lg shadow-[var(--dynamic-accent-glow)]/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all duration-300 active:scale-[0.98]"
         >
           {isSubmitting ? (
             <LoadingSpinner className="w-5 h-5" />

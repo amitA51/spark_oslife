@@ -11,6 +11,9 @@ import {
   onAuthStateChanged,
   User,
   AuthError,
+  deleteUser,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from 'firebase/auth';
 import { getAuthInstance } from '../config/firebase';
 
@@ -20,7 +23,7 @@ import { getAuthInstance } from '../config/firebase';
 const isPWAorMobile = (): boolean => {
   // Check if running as installed PWA
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true;
+    navigator.standalone === true;
 
   // Check if mobile device
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -92,13 +95,14 @@ export const signInWithGoogle = async (additionalScopes: string[] = []): Promise
       try {
         const result = await signInWithPopup(auth, provider);
         if (result?.user) {
-          console.log('[Auth] Popup sign-in successful:', result.user.email);
+          console.log('[Auth] Popup sign-in successful');
           return handleGoogleAuthResult(result);
         }
         return null;
-      } catch (popupError: any) {
+      } catch (popupError: unknown) {
         // If popup is blocked, fall back to redirect as last resort
-        if (popupError?.code === 'auth/popup-blocked') {
+        const authError = popupError as AuthError;
+        if (authError?.code === 'auth/popup-blocked') {
           console.warn('[Auth] Popup blocked, falling back to redirect...');
           await signInWithRedirect(auth, provider);
           return null;
@@ -139,12 +143,12 @@ export const checkGoogleRedirectResult = async (): Promise<User | null> => {
     } catch { /* ignore */ }
 
     if (result && result.user) {
-      console.log('Google redirect result found, user:', result.user.email);
+      console.log('Google redirect result found');
       return handleGoogleAuthResult(result);
     }
 
     return null;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Google redirect result error:', error);
     try {
       sessionStorage.removeItem('google_auth_pending');
@@ -152,8 +156,9 @@ export const checkGoogleRedirectResult = async (): Promise<User | null> => {
 
     // Don't throw for redirect errors - just return null
     // Common error: popup_closed_by_user when user cancels
-    if (error?.code === 'auth/popup-closed-by-user' ||
-      error?.code === 'auth/cancelled-popup-request') {
+    const authError = error as AuthError;
+    if (authError?.code === 'auth/popup-closed-by-user' ||
+      authError?.code === 'auth/cancelled-popup-request') {
       return null;
     }
 
@@ -256,9 +261,44 @@ export const clearGoogleAccessToken = (): void => {
 };
 
 /**
+ * מחיקת חשבון משתמש
+ * דורש אימות מחדש למען האבטחה
+ */
+export const deleteUserAccount = async (password?: string) => {
+  try {
+    const auth = getAuthInstance();
+    const user = auth.currentUser;
+
+    if (!user) {
+      throw new Error('לא נמצא משתמש מחובר');
+    }
+
+    // אם נדרשת סיסמה לאימות מחדש (עבור משתמשי אימייל/סיסמה)
+    if (password && user.email) {
+      const credential = EmailAuthProvider.credential(user.email, password);
+      await reauthenticateWithCredential(user, credential);
+    } else {
+      // עבור משתמשי Google - נסה למחוק, ואם נכשל נבקש התחברות מחדש (יטופל ברמת ה-UI)
+      // הערה: ב-Firebase מחיקת משתמש רגישה דורשת אימות טרי (ב-5 דקות האחרונות)
+    }
+
+    clearGoogleAccessToken(); // נקה טוקנים
+    await deleteUser(user);
+  } catch (error) {
+    const authError = error as AuthError;
+    // אם נדרש אימות מחדש
+    if (authError.code === 'auth/requires-recent-login') {
+      throw new Error('פעולה זו דורשת התחברות מחדש. אנא התנתק והתחבר שוב לפני המחיקה.');
+    }
+    throw new Error(getErrorMessage(authError));
+  }
+};
+
+/**
  * התנתקות
  */
 export const logout = async () => {
+
   try {
     const auth = getAuthInstance();
     clearGoogleAccessToken(); // Clear Google API token on logout

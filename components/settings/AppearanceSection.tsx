@@ -1,83 +1,17 @@
 import React from 'react';
-import { PaletteIcon, SunIcon, TypeIcon, ImageIcon, ZoomInIcon } from '../../components/icons';
+import { SunIcon, TypeIcon, ImageIcon, ZoomInIcon } from '../../components/icons';
 import FileUploader from '../../components/FileUploader';
 import { useSettings } from '../../src/contexts/SettingsContext';
-import { AppFont, BorderRadius, CardStyle, ThemeSettings } from '../../types';
+import { AppFont, BorderRadius, CardStyle } from '../../types';
 import {
   SettingsSection,
-  SettingsCard,
+  SettingsGroupCard,
   SettingsRow,
   SegmentedControl,
-  ThemePreviewCard,
   SettingsInfoBanner,
 } from './SettingsComponents';
 
-const THEMES: Record<string, ThemeSettings> = {
-  nebula: {
-    name: 'Nebula',
-    accentColor: '#8B5CF6',
-    font: 'marcelo',
-    cardStyle: 'glass',
-    backgroundEffect: 'particles',
-    borderRadius: 'lg',
-  },
-  emerald: {
-    name: 'Emerald',
-    accentColor: '#10B981',
-    font: 'marcelo',
-    cardStyle: 'glass',
-    backgroundEffect: 'particles',
-    borderRadius: 'lg',
-  },
-  gold: {
-    name: 'Gold',
-    accentColor: '#F59E0B',
-    font: 'marcelo',
-    cardStyle: 'flat',
-    backgroundEffect: 'dark',
-    borderRadius: 'md',
-  },
-  oceanic: {
-    name: 'Oceanic',
-    accentColor: '#0EA5E9',
-    font: 'marcelo',
-    cardStyle: 'flat',
-    backgroundEffect: 'off',
-    borderRadius: 'lg',
-  },
-  crimson: {
-    name: 'Crimson',
-    accentColor: '#F43F5E',
-    font: 'marcelo',
-    cardStyle: 'bordered',
-    backgroundEffect: 'off',
-    borderRadius: 'md',
-  },
-  midnight: {
-    name: 'Midnight',
-    accentColor: '#6366f1',
-    font: 'marcelo',
-    cardStyle: 'glass',
-    backgroundEffect: 'dark',
-    borderRadius: 'xl',
-  },
-  neon: {
-    name: 'Neon',
-    accentColor: '#FF006E',
-    font: 'satoshi',
-    cardStyle: 'glass',
-    backgroundEffect: 'dark',
-    borderRadius: 'lg',
-  },
-  aurora: {
-    name: 'Aurora',
-    accentColor: '#10B981',
-    font: 'clash-display',
-    cardStyle: 'glass',
-    backgroundEffect: 'particles',
-    borderRadius: 'xl',
-  },
-};
+import ThemeSelector from './ThemeSelector';
 
 const AppearanceSection: React.FC = () => {
   const { settings, updateSettings } = useSettings();
@@ -90,59 +24,10 @@ const AppearanceSection: React.FC = () => {
   return (
     <SettingsSection title="מראה ותצוגה" id="appearance">
       {/* Theme Selection */}
-      <SettingsCard title="ערכות נושא" icon={<PaletteIcon className="w-5 h-5" />}>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {Object.entries(THEMES).map(([key, theme]) => (
-            <ThemePreviewCard
-              key={key}
-              theme={theme}
-              isSelected={
-                settings.themeSettings.name === theme.name &&
-                settings.themeSettings.name !== 'Custom'
-              }
-              onClick={() => handleSettingChange('themeSettings', theme)}
-            />
-          ))}
-          {/* Custom Theme Card */}
-          <button
-            onClick={() =>
-              handleSettingChange('themeSettings', {
-                ...settings.themeSettings,
-                name: 'Custom',
-              })
-            }
-            className="text-center group w-full"
-          >
-            <div
-              className={`
-                relative w-full aspect-[4/3] rounded-2xl flex items-center justify-center transition-all duration-300 overflow-hidden
-                ${settings.themeSettings.name === 'Custom'
-                  ? 'ring-2 ring-[var(--dynamic-accent-start)] shadow-[0_0_30px_var(--dynamic-accent-glow)]'
-                  : 'ring-1 ring-white/10 hover:ring-white/20'
-                }
-                bg-gradient-to-br from-white/[0.03] to-white/[0.01]
-                group-hover:scale-[1.02] group-active:scale-[0.98]
-              `}
-            >
-              <div className="flex flex-col items-center gap-2">
-                <PaletteIcon className="w-8 h-8 text-[var(--text-secondary)] group-hover:text-[var(--dynamic-accent-start)] transition-colors" />
-                <span className="text-xs text-[var(--text-secondary)] group-hover:text-white transition-colors">התאמה אישית</span>
-              </div>
-            </div>
-            <span
-              className={`
-                text-sm mt-2 font-semibold block transition-colors
-                ${settings.themeSettings.name === 'Custom' ? 'text-[var(--dynamic-accent-start)]' : 'text-[var(--text-secondary)] group-hover:text-white'}
-              `}
-            >
-              מותאם אישית
-            </span>
-          </button>
-        </div>
-      </SettingsCard>
+      <ThemeSelector />
 
       {/* Interface Design */}
-      <SettingsCard title="ממשק ועיצוב" icon={<SunIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="ממשק ועיצוב" icon={<SunIcon className="w-5 h-5" />}>
         <SettingsRow
           title="עיצוב פינות"
           description="בחר את סגנון הפינות של כרטיסים וכפתורים."
@@ -203,10 +88,10 @@ const AppearanceSection: React.FC = () => {
             </div>
           </SettingsRow>
         )}
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Advanced Customization */}
-      <SettingsCard title="התאמה מתקדמת" icon={<ImageIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
+      <SettingsGroupCard title="התאמה מתקדמת" icon={<ImageIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
         <SettingsRow title="תמונת רקע" description="העלה תמונה שתופיע ברקע האפליקציה.">
           <div className="w-full max-w-xs">
             <FileUploader
@@ -274,10 +159,10 @@ const AppearanceSection: React.FC = () => {
             <span className="text-xs text-[var(--text-secondary)]">120%</span>
           </div>
         </SettingsRow>
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Typography & Background */}
-      <SettingsCard title="טיפוגרפיה ורקע" icon={<TypeIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
+      <SettingsGroupCard title="טיפוגרפיה ורקע" icon={<TypeIcon className="w-5 h-5" />} collapsible defaultOpen={false}>
         <SettingsRow title="סוג גופן" description="בחר את הפונט הראשי של האפליקציה.">
           <select
             value={settings.themeSettings.font}
@@ -335,7 +220,7 @@ const AppearanceSection: React.FC = () => {
             <option value="off">ללא אפקט</option>
           </select>
         </SettingsRow>
-      </SettingsCard>
+      </SettingsGroupCard>
 
       <SettingsInfoBanner variant="tip">
         <strong>טיפ:</strong> אם רק הטקסט קטן מדי, השתמש בהגדרת "גודל גופן".
@@ -346,3 +231,4 @@ const AppearanceSection: React.FC = () => {
 };
 
 export default AppearanceSection;
+

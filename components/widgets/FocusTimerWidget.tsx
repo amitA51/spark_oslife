@@ -51,38 +51,53 @@ const FocusTimerWidget: React.FC<FocusTimerWidgetProps> = ({ title = 'טיימר
     }, [isActive, triggerHaptic]);
 
     const handleStart = useCallback(() => {
-        triggerHaptic('medium');
-        // Create a dummy quick focus task
-        const quickTask: PersonalItem = {
-            id: `quick-focus-${Date.now()}`,
-            title: title,
-            type: 'task',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            isCompleted: false,
-            priority: 'medium'
-        };
-        startSession(quickTask, currentPreset.minutes);
+        try {
+            triggerHaptic('medium');
+            // Create a dummy quick focus task
+            const quickTask: PersonalItem = {
+                id: `quick-focus-${Date.now()}`,
+                title: title,
+                type: 'task',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                isCompleted: false,
+                priority: 'medium'
+            };
+            console.log('FocusTimerWidget: Starting session', quickTask);
+            startSession(quickTask, currentPreset.minutes);
+        } catch (e) {
+            console.error('FocusTimerWidget: Error starting session', e);
+        }
     }, [triggerHaptic, startSession, currentPreset.minutes, title]);
 
     const handlePause = useCallback(() => {
-        triggerHaptic('light');
-        pauseSession();
+        try {
+            triggerHaptic('light');
+            pauseSession();
+        } catch (e) {
+            console.error('FocusTimerWidget: Error pausing', e);
+        }
     }, [triggerHaptic, pauseSession]);
 
     const handleResume = useCallback(() => {
-        triggerHaptic('light');
-        resumeSession();
+        try {
+            triggerHaptic('light');
+            resumeSession();
+        } catch (e) {
+            console.error('FocusTimerWidget: Error resuming', e);
+        }
     }, [triggerHaptic, resumeSession]);
 
     const handleStop = useCallback(() => {
-        triggerHaptic('medium');
-        cancelSession(); // Or endSession() depending on desire to save
+        try {
+            triggerHaptic('medium');
+            cancelSession();
+        } catch (e) {
+            console.error('FocusTimerWidget: Error stopping', e);
+        }
     }, [triggerHaptic, cancelSession]);
 
     const circumference = 2 * Math.PI * 54;
-    // strokeDashoffset: full (C) when progress 0? No, usually empty at start?
-    // If progress 0 -> offset C (empty). If progress 1 -> offset 0 (full).
     const strokeDashoffset = circumference * (1 - validProgress);
 
     return (
@@ -190,6 +205,10 @@ const FocusTimerWidget: React.FC<FocusTimerWidgetProps> = ({ title = 'טיימר
                         </>
                     )}
                 </AnimatePresence>
+            </div>
+            {/* DEBUG INFO: Remove this after verifying fix */}
+            <div className="text-[10px] text-gray-600 mt-2 text-center font-mono">
+                {isActive ? 'Active' : 'Idle'} | {Math.round(validTimeRemaining / 1000)}s | {(validProgress * 100).toFixed(0)}%
             </div>
         </div>
     );

@@ -41,6 +41,7 @@ import {
   PremiumQuickActionsFAB,
   PremiumLibraryEmptyState,
   AddSpaceModal,
+  SpaceFilterBar,
 } from '../components/library';
 
 type HubView = 'dashboard' | 'timeline' | 'board' | 'calendar' | 'vault' | 'investments' | 'files';
@@ -91,15 +92,15 @@ const FileGallery: React.FC<{ items: PersonalItem[]; onSelect: (item: PersonalIt
             key={`${parentItem.id}-${index}`}
             onClick={() => onSelect(parentItem)}
             className="group relative aspect-square rounded-2xl overflow-hidden"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, scale: 0.95, filter: 'blur(8px)' }}
+            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
             // PERF: Cap stagger delay to prevent 5s+ animation with 100+ items
-            transition={{ delay: index < 12 ? index * 0.05 : 0 }}
-            whileHover={{ scale: 1.03, y: -4 }}
+            transition={{ delay: index < 12 ? index * 0.04 : 0, duration: 0.4 }}
+            whileHover={{ scale: 1.02, y: -3 }}
             whileTap={{ scale: 0.98 }}
             style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--ql-surface-base)',
+              border: '1px solid var(--ql-border-invisible)',
             }}
           >
             {isImage ? (
@@ -107,6 +108,7 @@ const FileGallery: React.FC<{ items: PersonalItem[]; onSelect: (item: PersonalIt
                 src={attachment.url}
                 alt={attachment.name}
                 className="w-full h-full object-cover"
+                loading="lazy"
               />
             ) : isVideo ? (
               <div className="w-full h-full bg-black flex items-center justify-center relative">
@@ -195,6 +197,12 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedQuery = useDebounce(searchQuery, 200);
 
+  // Space filter state
+  const [spaceSearchQuery, setSpaceSearchQuery] = useState('');
+  const [spaceSortBy, setSpaceSortBy] = useState<'order' | 'name' | 'itemCount' | 'updated'>('order');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [spaceViewMode, setSpaceViewMode] = useState<'grid' | 'list'>('grid');
+
   // Space drag & drop state
   const dragSpace = useRef<Space | null>(null);
   const dragOverSpace = useRef<Space | null>(null);
@@ -214,6 +222,18 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
     sessionStorage.setItem('preselect_add_defaults', JSON.stringify(defaults));
     setActiveScreen('add');
   };
+
+  // Check for space redirect on mount/activeView change
+  React.useEffect(() => {
+    const redirectSpaceId = sessionStorage.getItem('library_redirect_space');
+    if (redirectSpaceId) {
+      const spaceToOpen = spaces.find(s => s.id === redirectSpaceId);
+      if (spaceToOpen) {
+        setActiveView({ type: 'space', item: spaceToOpen });
+      }
+      sessionStorage.removeItem('library_redirect_space');
+    }
+  }, [spaces]);
 
   const handleCalendarQuickAdd = (date: string) => {
     setQuickNoteDate(date);
@@ -460,6 +480,16 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
     };
   }, [childItemsByProject]);
 
+  const handleTogglePinSpace = useCallback(async (space: Space, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await updateSpace(space.id, { isPinned: !space.isPinned });
+    } catch (error) {
+      console.error('Failed to toggle pin space:', error);
+      showStatus('error', 'שגיאה בעדכון המרחב');
+    }
+  }, [updateSpace, showStatus]);
+
   // PERF: Use pre-computed lookup instead of filtering all items per space
   const getSpaceData = useCallback((space: Space) => {
     return {
@@ -472,15 +502,48 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
     };
   }, [itemCountBySpace]);
 
+  // Filter and sort spaces
+  const { filteredSpaces, availableTags } = useMemo(() => {
+    let result = [...personalSpaces];
+
+    // Filter by search
+    if (spaceSearchQuery) {
+      const query = spaceSearchQuery.toLowerCase();
+      result = result.filter(s => s.name.toLowerCase().includes(query));
+    }
+
+    // Filter by tag
+    if (selectedTag) {
+      result = result.filter(s => s.tags?.includes(selectedTag));
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      // Pinned items always first
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+
+      if (spaceSortBy === 'name') return a.name.localeCompare(b.name);
+      if (spaceSortBy === 'itemCount') return (itemCountBySpace.get(b.id) || 0) - (itemCountBySpace.get(a.id) || 0);
+      // if (spaceSortBy === 'updated') return ... (needs lastUpdated in Space model, skipping for now or defaulting)
+      return a.order - b.order;
+    });
+
+    // Collect tags
+    const tags = new Set<string>();
+    personalSpaces.forEach(s => s.tags?.forEach(t => tags.add(t)));
+
+    return { filteredSpaces: result, availableTags: Array.from(tags) };
+  }, [personalSpaces, spaceSearchQuery, selectedTag, spaceSortBy, itemCountBySpace]);
+
   const renderMainHub = () => {
     const hasTimelineItems = personalItems.some(i => i.dueDate);
     const shouldShowProjectsEmpty = !isLoading && projectItems.length === 0;
-    const shouldShowSpacesEmpty = !isLoading && personalSpaces.length === 0;
 
     return (
       <div className="relative min-h-screen">
         <PremiumLibraryHeader
-          title={settings.screenLabels?.library || 'המתכנן'}
+          title={settings.screenLabels?.library === 'המתכנן' ? 'ספרייה' : (settings.screenLabels?.library || 'ספרייה')}
           stats={libraryStats}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -582,11 +645,11 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
                                 animate={{
                                   boxShadow: [
                                     '0 0 0px rgba(16, 185, 129, 0)',
-                                    '0 0 30px rgba(16, 185, 129, 0.6)',
+                                    '0 0 20px rgba(16, 185, 129, 0.3)',
                                     '0 0 0px rgba(16, 185, 129, 0)',
                                   ],
                                 }}
-                                transition={{ duration: 2.5, repeat: Infinity }}
+                                transition={{ duration: 6, repeat: Infinity }}
                               >
                                 <InboxIcon className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-300" />
                               </motion.div>
@@ -646,8 +709,21 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
                         >
                           מרחבים
                         </h2>
-                        <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:gap-4">
-                          {personalSpaces.map((space, index) => (
+
+                        <SpaceFilterBar
+                          searchQuery={spaceSearchQuery}
+                          onSearchChange={setSpaceSearchQuery}
+                          sortBy={spaceSortBy}
+                          onSortChange={setSpaceSortBy}
+                          selectedTag={selectedTag}
+                          onTagSelect={setSelectedTag}
+                          availableTags={availableTags}
+                          viewMode={spaceViewMode}
+                          onViewChange={setSpaceViewMode}
+                        />
+
+                        <div className={`grid gap-3 sm:gap-4 ${spaceViewMode === 'grid' ? 'grid-cols-1 xs:grid-cols-2' : 'grid-cols-1'}`}>
+                          {filteredSpaces.map((space, index) => (
                             <PremiumSpaceCard
                               key={space.id}
                               space={getSpaceData(space)}
@@ -657,6 +733,8 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
                               onDragStart={() => handleSpaceDragStart(space)}
                               onDragOver={() => handleSpaceDragOver(space)}
                               onDrop={handleSpaceDrop}
+                              viewMode={spaceViewMode}
+                              onTogglePin={(e) => handleTogglePinSpace(space, e)}
                             />
                           ))}
 
@@ -665,13 +743,13 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
                             onClick={() => setIsAddSpaceModalOpen(true)}
                             className="group relative rounded-2xl p-4 flex flex-col items-center justify-center gap-2 min-h-[100px] transition-all"
                             style={{
-                              background: 'rgba(255,255,255,0.03)',
-                              border: '1px dashed rgba(255,255,255,0.15)',
+                              background: 'rgba(255,255,255,0.02)',
+                              border: '1px solid rgba(255,255,255,0.06)',
                             }}
                             whileHover={{
                               scale: 1.02,
-                              borderColor: 'var(--dynamic-accent-start)',
-                              background: 'rgba(255,255,255,0.06)',
+                              borderColor: 'rgba(var(--dynamic-accent-rgb), 0.3)',
+                              background: 'rgba(255,255,255,0.04)',
                             }}
                             whileTap={{ scale: 0.98 }}
                           >
@@ -1024,6 +1102,7 @@ const LibraryScreen: React.FC<{ setActiveScreen: (screen: Screen) => void }> = (
         space={activeView.item}
         onBack={() => setActiveView({ type: 'dashboard' })}
         onSelectItem={handleSelectItem}
+        setActiveScreen={setActiveScreen}
       />
     );
   }

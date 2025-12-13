@@ -60,8 +60,9 @@ export default defineConfig(({ mode }) => {
           ],
         },
         devOptions: {
-          enabled: false, // Disabled in dev - injectManifest strategy doesn't support dev SW properly
-          type: 'module',
+          enabled: true,
+          type: 'classic', // Use classic type to support importScripts in sw-custom.js when developing
+          navigateFallback: 'index.html',
         },
       }),
     ],
@@ -81,8 +82,8 @@ export default defineConfig(({ mode }) => {
     build: {
       // Performance optimizations
       target: 'es2020',
-      minify: 'esbuild',
-      sourcemap: !isProd,
+      minify: false, // TEMP: Disabled for debugging TDZ error
+      sourcemap: true, // Temporarily enabled for debugging
 
       // Bundle splitting for better caching
       rollupOptions: {
@@ -90,7 +91,29 @@ export default defineConfig(({ mode }) => {
           manualChunks: (id) => {
             // Vendor chunks for better caching
             if (id.includes('node_modules')) {
-              return 'vendor';
+              if (id.includes('react') || id.includes('react-dom')) {
+                return 'vendor-react';
+              }
+              if (id.includes('firebase')) {
+                // Split Firebase into smaller chunks
+                if (id.includes('auth')) return 'vendor-firebase-auth';
+                if (id.includes('firestore')) return 'vendor-firebase-db';
+                if (id.includes('storage')) return 'vendor-firebase-storage';
+                return 'vendor-firebase-core';
+              }
+              if (id.includes('@google/genai')) {
+                return 'vendor-genai';
+              }
+              if (id.includes('framer-motion')) {
+                return 'vendor-framer';
+              }
+              if (id.includes('date-fns') || id.includes('react-big-calendar')) {
+                return 'vendor-calendar';
+              }
+              if (id.includes('@radix-ui') || id.includes('clsx') || id.includes('tailwind-merge')) {
+                return 'vendor-ui';
+              }
+              return 'vendor-core';
             }
 
             // Screen-specific chunks for lazy loading

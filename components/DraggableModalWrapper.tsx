@@ -108,6 +108,37 @@ const DraggableModalWrapper: React.FC<DraggableModalWrapperProps> = ({
     };
   }, [isDragging, isMobile, handleMouseMove, handleMouseUp]);
 
+  // Track visual viewport height for keyboard handling on mobile
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const updateViewportHeight = () => {
+      // Use visualViewport for accurate height when keyboard is open
+      const height = window.visualViewport?.height ?? window.innerHeight;
+      setViewportHeight(height);
+    };
+
+    // Initial set
+    updateViewportHeight();
+
+    // Listen to visualViewport changes (keyboard open/close)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateViewportHeight);
+      window.visualViewport.addEventListener('scroll', updateViewportHeight);
+    }
+    window.addEventListener('resize', updateViewportHeight);
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', updateViewportHeight);
+        window.visualViewport.removeEventListener('scroll', updateViewportHeight);
+      }
+      window.removeEventListener('resize', updateViewportHeight);
+    };
+  }, [isMobile]);
+
   // Prevent body scroll when modal is open on mobile
   useEffect(() => {
     if (isMobile) {
@@ -123,11 +154,15 @@ const DraggableModalWrapper: React.FC<DraggableModalWrapperProps> = ({
   // Compute modal styles based on device
   const modalStyle = useMemo(() => {
     if (isMobile) {
-      // Mobile: Full screen with proper viewport handling
+      // Mobile: Use dynamic viewport height for keyboard handling
       return {
         position: 'fixed' as const,
-        inset: 0,
-        willChange: 'transform' as const,
+        top: 0,
+        left: 0,
+        right: 0,
+        height: viewportHeight ? `${viewportHeight}px` : '100dvh',
+        willChange: 'height' as const,
+        transition: 'height 0.15s ease-out',
       };
     }
     // Desktop: Positioned with transform
@@ -138,21 +173,21 @@ const DraggableModalWrapper: React.FC<DraggableModalWrapperProps> = ({
       transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
       willChange: isDragging ? 'transform' as const : 'auto' as const,
     };
-  }, [isMobile, position.x, position.y, isDragging]);
+  }, [isMobile, position.x, position.y, isDragging, viewportHeight]);
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{
-        // Use dvh for mobile to handle dynamic viewport (keyboard, etc.)
-        height: isMobile ? '100dvh' : '100vh',
+        // Use dynamic viewport height on mobile for keyboard handling
+        height: isMobile && viewportHeight ? `${viewportHeight}px` : (isMobile ? '100dvh' : '100vh'),
       }}
       aria-modal="true"
       role="dialog"
     >
       {/* Backdrop - clickable to close */}
       <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-md pointer-events-auto animate-in fade-in-0 duration-200"
+        className="absolute inset-0 bg-black/75 backdrop-blur-lg pointer-events-auto animate-in fade-in-0 duration-300"
         onClick={onClose}
       />
 
@@ -163,8 +198,8 @@ const DraggableModalWrapper: React.FC<DraggableModalWrapperProps> = ({
           pointer-events-auto
           ${className}
           ${isDragging ? 'cursor-grabbing scale-[1.01]' : ''}
-          ${isMobile ? 'w-full h-full max-h-[100dvh]' : ''}
-          transition-[transform,opacity]
+          ${isMobile ? 'w-full' : ''}
+          transition-[transform,opacity,height]
           duration-150
           ease-out
         `}
@@ -174,25 +209,25 @@ const DraggableModalWrapper: React.FC<DraggableModalWrapperProps> = ({
           <div
             className={`
               w-full h-7 
-              bg-gradient-to-b from-white/5 to-transparent 
+              bg-gradient-to-b from-white/[0.03] to-transparent 
               rounded-t-2xl cursor-grab 
               flex items-center justify-center 
               absolute top-0 left-0 right-0 z-50 
               ${isDragging ? 'cursor-grabbing' : ''}
-              hover:from-white/10
-              transition-colors duration-200
+              hover:from-white/[0.06]
+              transition-colors duration-300
             `}
             onMouseDown={handleMouseDown}
             onTouchStart={handleMouseDown}
           >
-            <div className="w-10 h-1 bg-white/25 rounded-full hover:bg-white/40 transition-colors" />
+            <div className="w-10 h-1 bg-white/20 rounded-full hover:bg-white/30 transition-colors duration-300" />
           </div>
         )}
 
         {/* Mobile Drag Handle / Visual Indicator */}
         {isMobile && (
           <div className="absolute top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-            <div className="w-10 h-1 bg-white/30 rounded-full" />
+            <div className="w-10 h-1 bg-white/20 rounded-full" />
           </div>
         )}
 

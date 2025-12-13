@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import DOMPurify from 'dompurify';
 import { motion } from 'framer-motion';
 import {
     suggestExercises,
@@ -375,11 +376,14 @@ ${avgDuration < 30 ? '⚠️ אימונים קצרים - שקול להאריך' 
                                 <div
                                     className="text-sm text-white/90 whitespace-pre-wrap"
                                     dangerouslySetInnerHTML={{
-                                        __html: analysis
-                                            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                                            .replace(/^## (.+)$/gm, '<h3 class="text-lg font-bold text-white mt-4 mb-2">$1</h3>')
-                                            .replace(/^### (.+)$/gm, '<h4 class="text-base font-semibold text-white/90 mt-3 mb-1">$1</h4>')
-                                            .replace(/^- (.+)$/gm, '<div class="flex items-start gap-2"><span>•</span><span>$1</span></div>')
+                                        // SECURITY: Sanitize HTML to prevent XSS attacks
+                                        __html: DOMPurify.sanitize(
+                                            analysis
+                                                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                                                .replace(/^## (.+)$/gm, '<h3 class="text-lg font-bold text-white mt-4 mb-2">$1</h3>')
+                                                .replace(/^### (.+)$/gm, '<h4 class="text-base font-semibold text-white/90 mt-3 mb-1">$1</h4>')
+                                                .replace(/^- (.+)$/gm, '<div class="flex items-start gap-2"><span>•</span><span>$1</span></div>')
+                                        )
                                     }}
                                 />
                             </motion.div>

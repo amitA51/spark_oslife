@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { PersonalItem } from '../types';
 import { FlameIcon, CheckCircleIcon, TrashIcon, ShieldCheckIcon, RefreshIcon } from './icons';
 import { useHaptics } from '../hooks/useHaptics';
+import { UltraCard } from './ui/UltraCard';
 
 interface HabitItemProps {
   item: PersonalItem;
@@ -42,8 +43,8 @@ const HabitItem: React.FC<HabitItemProps> = ({
   const cleanDays =
     isBadHabit && item.lastCompleted
       ? Math.floor(
-          (new Date().getTime() - new Date(item.lastCompleted).getTime()) / (1000 * 3600 * 24)
-        )
+        (new Date().getTime() - new Date(item.lastCompleted).getTime()) / (1000 * 3600 * 24)
+      )
       : 0;
 
   const handleUncomplete = useCallback(() => {
@@ -162,158 +163,163 @@ const HabitItem: React.FC<HabitItemProps> = ({
   const MainIcon = isBadHabit ? ShieldCheckIcon : FlameIcon;
 
   return (
-    <div
+    <UltraCard
       onClick={e => onSelect(item, e)}
       onContextMenu={e => onContextMenu(e, item)}
-      className={`group relative themed-card p-4 transition-all duration-300 ease-[var(--fi-cubic-bezier)] cursor-pointer active:scale-97 animate-item-enter-fi ${bgClass}`}
+      className={`group relative transition-all duration-300 ease-[var(--fi-cubic-bezier)] cursor-pointer active:scale-97 animate-item-enter-fi ${bgClass}`}
       style={{ animationDelay: `${index * 50}ms` }}
+      variant="glass"
+      glowColor={isBadHabit ? 'magenta' : item.streak && item.streak > 0 ? 'cyan' : 'neutral'}
+      noPadding
     >
-      {justCompleted &&
-        !isBadHabit &&
-        Array.from({ length: 7 }).map((_, i) => (
-          <div
-            key={i}
-            className="celebrate-sparkle"
-            style={{
-              top: `${Math.random() * 80 + 10}%`,
-              left: `${Math.random() * 80 + 10}%`,
-              animationDelay: `${Math.random() * 0.2}s`,
-              width: `${Math.random() * 6 + 6}px`,
-              height: `${Math.random() * 6 + 6}px`,
-            }}
-          ></div>
-        ))}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-1 overflow-hidden">
-          <div className="relative">
-            <MainIcon className={`w-10 h-10 shrink-0 transition-all duration-500 ${iconColor}`} />
-            {!isBadHabit && item.streak && item.streak > 0 ? (
-              <span
-                className="absolute -top-1 -right-2 text-xs font-bold bg-[var(--dynamic-accent-start)] text-white rounded-full w-5 h-5 flex items-center justify-center border-2 border-[var(--bg-card)]"
-                style={{ boxShadow: '0 0 8px var(--dynamic-accent-glow)' }}
-              >
-                <span key={item.streak} className="animate-bump-up">
-                  {item.streak}
+      <div className="p-4">
+        {justCompleted &&
+          !isBadHabit &&
+          Array.from({ length: 7 }).map((_, i) => (
+            <div
+              key={i}
+              className="celebrate-sparkle"
+              style={{
+                top: `${Math.random() * 80 + 10}%`,
+                left: `${Math.random() * 80 + 10}%`,
+                animationDelay: `${Math.random() * 0.2}s`,
+                width: `${Math.random() * 6 + 6}px`,
+                height: `${Math.random() * 6 + 6}px`,
+              }}
+            ></div>
+          ))}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 flex-1 overflow-hidden">
+            <div className="relative">
+              <MainIcon className={`w-10 h-10 shrink-0 transition-all duration-500 ${iconColor}`} />
+              {!isBadHabit && item.streak && item.streak > 0 ? (
+                <span
+                  className="absolute -top-1 -right-2 text-xs font-bold bg-[var(--dynamic-accent-start)] text-white rounded-full w-5 h-5 flex items-center justify-center border-2 border-[var(--bg-card)]"
+                  style={{ boxShadow: '0 0 8px var(--dynamic-accent-glow)' }}
+                >
+                  <span key={item.streak} className="animate-bump-up">
+                    {item.streak}
+                  </span>
                 </span>
-              </span>
-            ) : null}
-            {isBadHabit && (
-              <span className="absolute -top-1 -right-2 text-xs font-bold bg-green-500 text-white rounded-full w-auto min-w-[1.25rem] px-1 h-5 flex items-center justify-center border-2 border-[var(--bg-card)]">
-                {cleanDays}d
-              </span>
-            )}
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <p
-              className={`text-lg font-semibold ${isBadHabit ? 'text-red-100' : 'text-[var(--text-primary)]'}`}
-            >
-              {item.title}
-            </p>
-            <p className="text-sm text-[var(--text-secondary)]">
-              {isBadHabit
-                ? `נקי כבר ${cleanDays} ימים`
-                : isCompletedToday
-                  ? 'כל הכבוד, נתראה מחר!'
-                  : item.streak && item.streak > 0
-                    ? `רצף של ${item.streak} ימים`
-                    : 'בוא נתחיל הרגל חדש!'}
-            </p>
-          </div>
-        </div>
-        {!hasSubHabits && !isBadHabit && (
-          <button
-            onClick={e => {
-              e.stopPropagation();
-              handleComplete();
-            }}
-            disabled={isCompletedToday}
-            className={`relative w-14 h-14 flex items-center justify-center rounded-full transition-all transform hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 ${isCompletedToday ? 'bg-[var(--dynamic-accent-start)] text-white' : 'bg-[var(--bg-secondary)] hover:bg-white/10 text-[var(--text-primary)]'}`}
-            aria-label={isCompletedToday ? 'הושלם להיום' : 'סמן כהושלם'}
-          >
-            {isCompletedToday && (
-              <div className="absolute inset-0 rounded-full bg-[var(--dynamic-accent-start)] animate-ping opacity-70"></div>
-            )}
-            <CheckCircleIcon className="w-8 h-8" />
-          </button>
-        )}
-
-        {isBadHabit &&
-          (isConfirmingReset ? (
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-red-400 text-center">בטוח?</span>
-              <div className="flex gap-1">
-                <button
-                  onClick={e => {
-                    e.stopPropagation();
-                    handleRelapse();
-                  }}
-                  className="bg-red-500 text-white text-xs px-2 py-1 rounded hover:bg-red-600"
-                >
-                  כן
-                </button>
-                <button
-                  onClick={e => {
-                    e.stopPropagation();
-                    setIsConfirmingReset(false);
-                  }}
-                  className="bg-secondary text-white text-xs px-2 py-1 rounded hover:bg-muted"
-                >
-                  לא
-                </button>
-              </div>
+              ) : null}
+              {isBadHabit && (
+                <span className="absolute -top-1 -right-2 text-xs font-bold bg-green-500 text-white rounded-full w-auto min-w-[1.25rem] px-1 h-5 flex items-center justify-center border-2 border-[var(--bg-card)]">
+                  {cleanDays}d
+                </span>
+              )}
             </div>
-          ) : (
+            <div className="flex-1 overflow-hidden">
+              <p
+                className={`text-lg font-semibold ${isBadHabit ? 'text-red-100' : 'text-[var(--text-primary)]'}`}
+              >
+                {item.title}
+              </p>
+              <p className="text-sm text-[var(--text-secondary)]">
+                {isBadHabit
+                  ? `נקי כבר ${cleanDays} ימים`
+                  : isCompletedToday
+                    ? 'כל הכבוד, נתראה מחר!'
+                    : item.streak && item.streak > 0
+                      ? `רצף של ${item.streak} ימים`
+                      : 'בוא נתחיל הרגל חדש!'}
+              </p>
+            </div>
+          </div>
+          {!hasSubHabits && !isBadHabit && (
             <button
               onClick={e => {
                 e.stopPropagation();
-                setIsConfirmingReset(true);
+                handleComplete();
               }}
-              className="relative w-10 h-10 flex items-center justify-center rounded-full transition-all transform hover:scale-110 active:scale-95 bg-white/5 hover:bg-red-500/20 text-muted hover:text-red-400"
-              title="אפס ספירה (מעידה)"
+              disabled={isCompletedToday}
+              className={`relative w-14 h-14 flex items-center justify-center rounded-full transition-all transform hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 ${isCompletedToday ? 'bg-[var(--dynamic-accent-start)] text-white' : 'bg-[var(--bg-secondary)] hover:bg-white/10 text-[var(--text-primary)]'}`}
+              aria-label={isCompletedToday ? 'הושלם להיום' : 'סמן כהושלם'}
             >
-              <RefreshIcon className="w-5 h-5" />
+              {isCompletedToday && (
+                <div className="absolute inset-0 rounded-full bg-[var(--dynamic-accent-start)] animate-ping opacity-70"></div>
+              )}
+              <CheckCircleIcon className="w-8 h-8" />
             </button>
-          ))}
-      </div>
+          )}
 
-      {hasSubHabits && (
-        <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
-          {item.subHabits?.map(sh => {
-            const isSubCompleted = isDateToday(item.lastCompletedSubHabits?.[sh.id]);
-            return (
-              <div
-                key={sh.id}
+          {isBadHabit &&
+            (isConfirmingReset ? (
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-red-400 text-center">בטוח?</span>
+                <div className="flex gap-1">
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      handleRelapse();
+                    }}
+                    className="bg-red-500 text-white text-xs px-2 py-1 rounded hover:bg-red-600"
+                  >
+                    כן
+                  </button>
+                  <button
+                    onClick={e => {
+                      e.stopPropagation();
+                      setIsConfirmingReset(false);
+                    }}
+                    className="bg-secondary text-white text-xs px-2 py-1 rounded hover:bg-muted"
+                  >
+                    לא
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
                 onClick={e => {
                   e.stopPropagation();
-                  handleToggleSubHabit(sh.id);
+                  setIsConfirmingReset(true);
                 }}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer"
+                className="relative w-10 h-10 flex items-center justify-center rounded-full transition-all transform hover:scale-110 active:scale-95 bg-white/5 hover:bg-red-500/20 text-muted hover:text-red-400"
+                title="אפס ספירה (מעידה)"
               >
-                <input
-                  type="checkbox"
-                  readOnly
-                  checked={isSubCompleted}
-                  className="h-5 w-5 rounded bg-black/30 border-muted text-[var(--dynamic-accent-start)] focus:ring-[var(--dynamic-accent-start)] cursor-pointer"
-                />
-                <span
-                  className={`flex-1 ${isSubCompleted ? 'line-through text-muted' : 'text-secondary'}`}
-                >
-                  {sh.title}
-                </span>
-              </div>
-            );
-          })}
+                <RefreshIcon className="w-5 h-5" />
+              </button>
+            ))}
         </div>
-      )}
 
-      <button
-        onClick={handleDelete}
-        className="absolute top-2 left-2 text-[var(--text-secondary)] hover:text-[var(--danger)] transition-all transform hover:scale-110 flex-shrink-0 opacity-0 group-hover:opacity-100"
-        aria-label="מחק הרגל"
-      >
-        <TrashIcon className="h-5 h-5" />
-      </button>
-    </div>
+        {hasSubHabits && (
+          <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+            {item.subHabits?.map(sh => {
+              const isSubCompleted = isDateToday(item.lastCompletedSubHabits?.[sh.id]);
+              return (
+                <div
+                  key={sh.id}
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleToggleSubHabit(sh.id);
+                  }}
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    readOnly
+                    checked={isSubCompleted}
+                    className="h-5 w-5 rounded bg-black/30 border-muted text-[var(--dynamic-accent-start)] focus:ring-[var(--dynamic-accent-start)] cursor-pointer"
+                  />
+                  <span
+                    className={`flex-1 ${isSubCompleted ? 'line-through text-muted' : 'text-secondary'}`}
+                  >
+                    {sh.title}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <button
+          onClick={handleDelete}
+          className="absolute top-2 left-2 text-[var(--text-secondary)] hover:text-[var(--danger)] transition-all transform hover:scale-110 flex-shrink-0 opacity-0 group-hover:opacity-100"
+          aria-label="מחק הרגל"
+        >
+          <TrashIcon className="h-5 h-5" />
+        </button>
+      </div>
+    </UltraCard>
   );
 };
 

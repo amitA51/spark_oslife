@@ -43,8 +43,8 @@ const HabitsTrackerWidget: React.FC<HabitsTrackerWidgetProps> = ({
       {habits.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-full text-center text-[var(--text-secondary)]">
           <DumbbellIcon className="w-12 h-12 mb-2 opacity-20" />
-          <p>אין הרגלים פעילים</p>
-          <p className="text-xs mt-1">צור הרגל חדש כדי להתחיל לעקוב</p>
+          <p>התחל לבנות שגרה</p>
+          <p className="text-xs mt-1">צור הרגל חדש כדי לעקוב אחריו</p>
         </div>
       ) : (
         <div className="space-y-2">

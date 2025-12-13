@@ -21,7 +21,7 @@ interface PremiumTaskCardProps {
   onReschedule?: (item: PersonalItem) => void;
   onHide?: (id: string) => void;
   isDragging?: boolean;
-  dragHandleProps?: any;
+  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
 const PremiumTaskCard: React.FC<PremiumTaskCardProps> = ({

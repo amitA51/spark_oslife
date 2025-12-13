@@ -434,7 +434,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveScreen }) => {
           <>
             <button
               onClick={handleStartGlobalFocus}
-              className="p-2.5 rounded-xl bg-white/5 text-white hover:bg-accent-cyan/20 hover:text-accent-cyan transition-all border border-white/5 active:scale-95"
+              className="p-2.5 rounded-xl bg-white/[0.03] text-white/70 hover:bg-accent-cyan/10 hover:text-accent-cyan transition-all duration-300 hover:shadow-[0_0_15px_-3px_rgba(34,211,238,0.3)] active:scale-95"
               aria-label="התחל סשן פוקוס"
             >
               <StopwatchIcon className="w-5 h-5" />
@@ -442,14 +442,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveScreen }) => {
 
             <button
               onClick={handleGetBriefing}
-              className="p-2.5 rounded-xl bg-white/5 text-white hover:bg-accent-violet/20 hover:text-accent-violet transition-all border border-white/5 active:scale-95"
+              className="p-2.5 rounded-xl bg-white/[0.03] text-white/70 hover:bg-accent-violet/10 hover:text-accent-violet transition-all duration-300 hover:shadow-[0_0_15px_-3px_rgba(167,139,250,0.3)] active:scale-95"
               aria-label="תדריך יומי"
             >
               <SparklesIcon className="w-5 h-5" />
             </button>
             <button
               onClick={() => setActiveScreen('settings')}
-              className="p-2.5 rounded-xl bg-white/5 text-white hover:bg-white/10 transition-all border border-white/5 active:scale-95"
+              className="p-2.5 rounded-xl bg-white/[0.03] text-white/70 hover:bg-white/[0.08] hover:text-white transition-all duration-300 active:scale-95"
               aria-label="הגדרות"
             >
               <SettingsIcon className="w-5 h-5" />
@@ -478,7 +478,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ setActiveScreen }) => {
           >
             <button
               onClick={handleRestoreModules}
-              className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all text-sm backdrop-blur-md border border-white/5 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/[0.02] hover:bg-white/[0.06] text-white/40 hover:text-white/80 transition-all duration-300 text-sm backdrop-blur-md border border-[var(--ql-border-invisible)] hover:border-[var(--ql-border-subtle)] active:scale-95"
             >
               <EyeIcon className="w-4 h-4" />
               הצג רכיבים מוסתרים ({hiddenModulesCount})

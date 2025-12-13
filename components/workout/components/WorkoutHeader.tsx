@@ -38,7 +38,7 @@ const triggerHaptic = (pattern: readonly number[]) => {
 };
 
 // ============================================================
-// TIMER DISPLAY (Isolated re-renders)
+// TIMER DISPLAY TYPES
 // ============================================================
 
 interface TimerDisplayProps {
@@ -46,25 +46,40 @@ interface TimerDisplayProps {
     totalPausedTime: number;
     isPaused: boolean;
     currentExerciseName: string;
-    totalVolume?: number; // Total volume lifted in kg
+    totalVolume?: number;
+    isResting?: boolean;
+    restTimeLeft?: number;
 }
 
 /**
- * Timer display with isolated state
- * Only this component re-renders every second - NOT the parent
+ * Dynamic Island Style Timer Display
+ * Features:
+ * - Floating pill design
+ * - Transforms based on workout state (active/resting)
+ * - Animated indicators
+ * - Isolated re-renders (only this component updates each second)
  */
-const TimerDisplay = memo<TimerDisplayProps>(({
-    startTimestamp,
-    totalPausedTime,
-    isPaused,
-    currentExerciseName,
-    totalVolume = 0,
-}) => {
+const TimerDisplay = memo<TimerDisplayProps>((props) => {
+    const {
+        startTimestamp,
+        totalPausedTime,
+        isPaused,
+        currentExerciseName,
+        totalVolume = 0,
+        isResting = false,
+        restTimeLeft = 0,
+    } = props;
+
     const { seconds, formatted } = useWorkoutTimer({ startTimestamp, totalPausedTime, isPaused });
 
-    // Estimate calories: ~5 MET for weight training, assuming 70kg body weight
-    // Formula: Calories = MET × Weight(kg) × Time(hours)
-    // Plus bonus from volume lifted (approx 0.001 cal per kg lifted)
+    // Format rest time
+    const formatRestTime = (secs: number) => {
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60);
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    };
+
+    // Estimate calories
     const durationHours = seconds / 3600;
     const baseCalories = 5 * 70 * durationHours;
     const volumeBonus = totalVolume * 0.001;
@@ -72,47 +87,86 @@ const TimerDisplay = memo<TimerDisplayProps>(({
 
     return (
         <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="workout-timer-breathe relative"
+            layout
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="relative"
         >
-            {/* Outer Glow */}
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[var(--cosmos-accent-primary)] to-[var(--cosmos-accent-cyan)] opacity-20 blur-xl" />
-
-            {/* Timer Container */}
-            <div className="relative workout-glass-premium rounded-2xl px-6 py-3 workout-pulse-glow">
-                {/* Top Shine Line */}
-                <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
-
-                {/* Timer Value */}
-                <div className="flex flex-col items-center">
-                    <span className="text-2xl sm:text-3xl font-black tabular-nums tracking-tight workout-gradient-text-accent drop-shadow-[0_0_15px_rgba(99,102,241,0.5)]">
-                        {formatted}
-                    </span>
-
-                    {/* Calorie Estimate (shows after 1 min) */}
-                    {seconds > 60 && (
-                        <div className="text-[10px] text-orange-400/80 font-medium mt-0.5">
-                            ~{estimatedCalories} קלוריות
-                        </div>
-                    )}
-
-                    {/* Current Exercise Name */}
-                    {currentExerciseName && (
+            {/* Dynamic Island Pill */}
+            <motion.div
+                layout
+                className={`
+                    relative flex items-center gap-3 px-5 py-2.5 rounded-full backdrop-blur-xl border transition-all duration-300
+                    ${isResting
+                        ? 'bg-orange-500/10 border-orange-500/30 shadow-[0_0_25px_rgba(249,115,22,0.25)]'
+                        : isPaused
+                            ? 'bg-yellow-500/10 border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.2)]'
+                            : 'bg-black/40 border-white/10 shadow-[0_0_30px_rgba(99,102,241,0.15)]'
+                    }
+                `}
+            >
+                {/* Status Indicator Dot */}
+                <div className="relative flex items-center justify-center">
+                    {isResting ? (
                         <motion.div
-                            key={currentExerciseName}
-                            initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="mt-1.5 text-[11px] text-[var(--cosmos-text-muted)] max-w-[180px] truncate font-medium tracking-wide uppercase"
-                        >
-                            {currentExerciseName}
-                        </motion.div>
+                            className="w-2.5 h-2.5 rounded-full bg-orange-500"
+                            animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
+                            transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
+                        />
+                    ) : isPaused ? (
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                    ) : (
+                        <motion.div
+                            className="w-2.5 h-2.5 rounded-full bg-emerald-500"
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                        />
                     )}
                 </div>
 
-                {/* Bottom Gradient Line */}
-                <div className="absolute bottom-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-[var(--cosmos-accent-primary)]/30 to-transparent" />
-            </div>
+                {/* Text Content */}
+                <div className="flex flex-col items-center leading-none">
+                    {/* Label */}
+                    <span className={`text-[9px] uppercase font-bold tracking-[0.15em] mb-0.5 ${isResting ? 'text-orange-400/60' : isPaused ? 'text-yellow-400/60' : 'text-white/40'
+                        }`}>
+                        {isResting ? 'REST' : isPaused ? 'PAUSED' : 'WORKOUT'}
+                    </span>
+
+                    {/* Timer Value */}
+                    <motion.span
+                        key={isResting ? restTimeLeft : seconds}
+                        initial={{ scale: 1.1, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className={`font-mono font-bold text-sm tracking-tight ${isResting ? 'text-orange-400' : isPaused ? 'text-yellow-400' : 'text-white'
+                            }`}
+                    >
+                        {isResting ? formatRestTime(restTimeLeft) : formatted}
+                    </motion.span>
+                </div>
+
+                {/* Calories Badge (shows after 1 min, not during rest) */}
+                {!isResting && seconds > 60 && (
+                    <motion.span
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="text-[9px] text-orange-400/70 font-semibold bg-orange-500/10 px-2 py-0.5 rounded-full"
+                    >
+                        🔥 {estimatedCalories}
+                    </motion.span>
+                )}
+            </motion.div>
+
+            {/* Exercise Name (below pill, subtle) */}
+            {currentExerciseName && !isResting && (
+                <motion.div
+                    key={currentExerciseName}
+                    initial={{ opacity: 0, y: -5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center mt-2 text-[10px] text-white/30 font-medium tracking-wider uppercase"
+                >
+                    {currentExerciseName}
+                </motion.div>
+            )}
         </motion.div>
     );
 });

@@ -31,6 +31,7 @@ import { Virtuoso } from 'react-virtuoso';
 import { rafThrottle } from '../utils/performance';
 import PremiumHeader from '../components/PremiumHeader';
 import TodayHighlightsWidget from '../components/feed/TodayHighlightsWidget';
+import { PullToRefresh } from '../components/ui/PullToRefresh';
 
 // --- Premium Batch Action Bar Component ---
 const BatchActionBar: React.FC<{
@@ -44,15 +45,15 @@ const BatchActionBar: React.FC<{
 
   return (
     <div className="fixed bottom-24 right-0 left-0 z-40 px-4 animate-slide-up-in pointer-events-none flex justify-center">
-      <div className="w-full max-w-md bg-cosmos-depth/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-2 flex justify-between items-center pointer-events-auto ring-1 ring-white/5">
+      <div className="w-full max-w-md bg-[rgba(10,10,15,0.85)] backdrop-blur-2xl border border-white/[0.04] rounded-2xl shadow-2xl p-2 flex justify-between items-center pointer-events-auto">
         <div className="flex items-center gap-3 pl-2">
           <button
             onClick={onCancel}
-            className="p-2 rounded-full hover:bg-white/10 transition-colors group"
+            className="p-2 rounded-full hover:bg-white/[0.06] transition-colors duration-300 group"
           >
-            <CloseIcon className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+            <CloseIcon className="w-5 h-5 text-white/50 group-hover:text-white transition-colors" />
           </button>
-          <span className="font-bold text-white text-sm tracking-wide">
+          <span className="font-bold text-white/90 text-sm tracking-wide">
             <span className="text-accent-cyan">{count}</span> נבחרו
           </span>
         </div>
@@ -61,7 +62,7 @@ const BatchActionBar: React.FC<{
             onClick={onMarkRead}
             variant="ghost"
             size="sm"
-            className="text-gray-300 hover:text-accent-cyan"
+            className="text-white/50 hover:text-accent-cyan"
             icon={<CheckCheckIcon className="w-5 h-5" />}
           >
             {null}
@@ -70,17 +71,17 @@ const BatchActionBar: React.FC<{
             onClick={onAddToLibrary}
             variant="ghost"
             size="sm"
-            className="text-gray-300 hover:text-accent-violet"
+            className="text-white/50 hover:text-accent-violet"
             icon={<BookOpenIcon className="w-5 h-5" />}
           >
             {null}
           </PremiumButton>
-          <div className="w-[1px] h-6 bg-white/10 mx-1" />
+          <div className="w-[1px] h-6 bg-white/[0.06] mx-1" />
           <PremiumButton
             onClick={onDelete}
             variant="ghost"
             size="sm"
-            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+            className="text-red-400/70 hover:text-red-400 hover:bg-red-500/10"
             icon={<TrashIcon className="w-5 h-5" />}
           >
             {null}
@@ -105,9 +106,9 @@ const FilterButton: React.FC<{
   <PremiumButton
     onClick={onClick}
     variant={isActive ? 'primary' : 'secondary'}
-    className={`rounded-full shrink-0 border backdrop-blur-md ${isActive
-      ? 'bg-accent-cyan/10 border-accent-cyan text-accent-cyan shadow-glow-cyan'
-      : 'bg-white/5 border-white/5 text-gray-400 hover:text-white'
+    className={`rounded-full shrink-0 backdrop-blur-md transition-all duration-300 ${isActive
+      ? 'bg-white/[0.08] text-white shadow-sm'
+      : 'bg-white/[0.02] text-white/40 hover:bg-white/[0.05] hover:text-white/80'
       }`}
     size="sm"
   >
@@ -187,13 +188,14 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ setActiveScreen }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const showStatus = (
+  // PERFORMANCE: Memoized status handler
+  const showStatus = useCallback((
     type: StatusMessageType,
     text: string,
     onUndo?: () => Promise<void> | void
   ) => {
     setStatusMessage({ type, text, id: Date.now(), onUndo });
-  };
+  }, []);
 
 
 
@@ -530,19 +532,19 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ setActiveScreen }) => {
           </>
         }
       >
-        <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/80">
+        <div className="flex flex-wrap gap-2 text-[11px] font-medium">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.03] text-white/70">
             <span
-              className={`w-1.5 h-1.5 rounded-full ${feedStats.unread > 0 ? 'bg-accent-cyan shadow-[0_0_8px_var(--color-accent-cyan)]' : 'bg-gray-500'}`}
+              className={`w-1.5 h-1.5 rounded-full ${feedStats.unread > 0 ? 'bg-accent-cyan shadow-[0_0_6px_var(--color-accent-cyan)]' : 'bg-white/30'}`}
             />
             {feedStats.unread > 0 ? `${feedStats.unread} לא נקראו` : 'הכול נקרא'}
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/70">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent-violet" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.03] text-white/60">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent-violet/80" />
             {feedStats.sparks} ספארקים
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/60">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.03] text-white/50">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400/70" />
             {sourcesCount} מקורות
           </span>
         </div>
@@ -550,7 +552,8 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ setActiveScreen }) => {
 
       {/* Fi Principle: Wrapper for Immersive Depth Effect */}
       <div className={`transition-all duration-500`}>
-        <>
+
+        <PullToRefresh onRefresh={() => handleRefresh(false)}>
           {/* Premium Widgets Section */}
           {filter === 'all' && !isLoading && feedItems.length > 0 && (
             <div className="mb-6">
@@ -646,6 +649,7 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ setActiveScreen }) => {
                         onContextMenu={handleContextMenu}
                         isInSelectionMode={selectionMode}
                         isSelected={selectedIds.has(item.id)}
+                        priority={index < 4}
                       />
                     </div>
                   )}
@@ -653,7 +657,8 @@ const FeedScreen: React.FC<FeedScreenProps> = ({ setActiveScreen }) => {
               )}
             </div>
           )}
-        </>
+        </PullToRefresh>
+
 
         <ItemDetailModal
           item={selectedItem}

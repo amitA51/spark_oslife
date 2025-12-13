@@ -19,7 +19,7 @@ import * as notifications from '../../services/notificationsService';
 import { StatusMessageType } from '../../components/StatusMessage';
 import {
   SettingsSection,
-  SettingsCard,
+  SettingsGroupCard,
   SettingsRow,
   SegmentedControl,
   SettingsInfoBanner,
@@ -122,7 +122,7 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({ setStatusMess
   return (
     <SettingsSection title="שילובים והתראות" id="integrations">
       {/* Google Integration */}
-      <SettingsCard title="חשבון Google" icon={<CloudIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="חשבון Google" icon={<CloudIcon className="w-5 h-5" />}>
         <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
           <div className="flex items-center gap-4">
             {/* Google Logo */}
@@ -163,10 +163,10 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({ setStatusMess
             </button>
           )}
         </div>
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Cloud Sync */}
-      <SettingsCard title="סנכרון ענן" icon={<CloudIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="סנכרון ענן" icon={<CloudIcon className="w-5 h-5" />}>
         <p className="text-sm text-[var(--text-secondary)] mb-4">
           סנכרן את הנתונים שלך ל-Google Drive כדי לגשת אליהם ממכשירים אחרים.
         </p>
@@ -217,10 +217,10 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({ setStatusMess
             </p>
           </div>
         )}
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Notifications */}
-      <SettingsCard title="התראות" icon={<BellIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="התראות" icon={<BellIcon className="w-5 h-5" />}>
         <SettingsRow
           title="אפשר התראות"
           description="קבל התראות ועדכונים מהאפליקציה."
@@ -286,17 +286,17 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({ setStatusMess
             </SettingsRow>
           </div>
         )}
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Google Tasks */}
-      <SettingsCard title="Google Tasks" icon={<CheckIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="Google Tasks" icon={<CheckIcon className="w-5 h-5" />}>
         <GoogleTasksSection accentColor="var(--dynamic-accent-start)" />
-      </SettingsCard>
+      </SettingsGroupCard>
 
       {/* Webhooks */}
-      <SettingsCard title="Webhooks" icon={<LinkIcon className="w-5 h-5" />}>
+      <SettingsGroupCard title="Webhooks" icon={<LinkIcon className="w-5 h-5" />}>
         <WebhooksSection accentColor="var(--dynamic-accent-start)" />
-      </SettingsCard>
+      </SettingsGroupCard>
 
       <SettingsInfoBanner variant="tip">
         סנכרון ענן מאפשר לך לגשת לנתונים שלך מכל מכשיר. מומלץ לגבות באופן קבוע.
@@ -306,3 +306,4 @@ const IntegrationsSection: React.FC<IntegrationsSectionProps> = ({ setStatusMess
 };
 
 export default IntegrationsSection;
+

@@ -43,6 +43,7 @@ const ProfileCard: React.FC<{ setStatusMessage: (msg: { type: StatusMessageType;
                   src={user.photoURL}
                   alt="Profile"
                   className="w-full h-full object-cover"
+                  loading="lazy"
                 />
               ) : (
                 <input

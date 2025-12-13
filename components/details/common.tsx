@@ -47,10 +47,22 @@ export interface EditState {
   reminderEnabled?: boolean;
   reminderTime?: string;
   habitType?: 'good' | 'bad';
+  // AntiGoal-specific fields
+  antiGoalData?: {
+    triggers: Array<{ id: string; description: string; category: string; intensity: 1 | 2 | 3 | 4 | 5; count: number }>;
+    alternativeActions: Array<{ id: string; action: string; duration?: number; effectiveness: number; usageCount: number }>;
+    slipHistory: Array<{ id: string; date: string; severity: 'minor' | 'major'; notes?: string }>;
+    longestStreak: number;
+    totalAvoidedDays: number;
+    dailyCheckIn: boolean;
+    motivation?: string;
+    reward?: string;
+    lastCheckIn?: string;
+  };
 }
 
 export type EditAction =
-  | { type: 'SET_FIELD'; payload: { field: keyof EditState; value: any } }
+  | { type: 'SET_FIELD'; payload: { field: keyof EditState; value: EditState[keyof EditState] } }
   | { type: 'RESET'; payload: PersonalItem };
 
 export function editReducer(state: EditState, action: EditAction): EditState {
@@ -88,6 +100,8 @@ export const createInitialEditState = (item: PersonalItem): EditState => ({
   reminderEnabled: item.reminderEnabled || false,
   reminderTime: item.reminderTime || '09:00',
   habitType: item.habitType || 'good',
+  // AntiGoal-specific
+  antiGoalData: item.antiGoalData ? JSON.parse(JSON.stringify(item.antiGoalData)) : undefined,
 });
 
 // --- Common Prop Types ---

@@ -34,6 +34,7 @@ export const FEED_ITEM_TYPES = ['rss', 'spark', 'news', 'mentor'] as const;
 export const PERSONAL_ITEM_TYPES = [
   'task',
   'habit',
+  'antigoal',
   'workout',
   'note',
   'link',
@@ -58,6 +59,7 @@ export const PERSONAL_ITEM_FILTER_TYPES = [
   'all',
   'task',
   'habit',
+  'antigoal',
   'book',
   'note',
   'link',
@@ -74,6 +76,7 @@ export const PERSONAL_ITEM_FILTER_TYPES = [
 export const PERSONAL_ITEM_TYPE_COLORS: Record<string, string> = {
   task: 'var(--success)',
   habit: '#F472B6',
+  antigoal: '#EF4444',
   workout: '#F472B6',
   note: 'var(--warning)',
   link: '#60A5FA',

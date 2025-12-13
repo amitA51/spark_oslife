@@ -1,5 +1,5 @@
 import React from 'react';
-import { ViewProps, EditProps, inputStyles } from './common';
+import { ViewProps, EditProps } from './common';
 import MarkdownRenderer from '../MarkdownRenderer';
 import ToggleSwitch from '../ToggleSwitch';
 import { FlameIcon, ShieldCheckIcon } from '../icons';
@@ -57,42 +57,42 @@ export const HabitView: React.FC<ViewProps> = ({ item }) => {
 
 export const HabitEdit: React.FC<EditProps> = ({ editState, dispatch }) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
       <div>
-        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-          סוג הרגל
+        <label className="text-xs font-bold text-white/40 uppercase tracking-wider mb-3 block">
+          Habit Type
         </label>
-        <div className="flex p-1 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-primary)]">
+        <div className="grid grid-cols-2 gap-3 p-1.5 bg-white/5 rounded-2xl border border-white/10">
           <button
             type="button"
             onClick={() =>
               dispatch({ type: 'SET_FIELD', payload: { field: 'habitType', value: 'good' } })
             }
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${editState.habitType === 'good' || !editState.habitType ? 'bg-[var(--dynamic-accent-start)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:bg-white/5'}`}
+            className={`flex items-center justify-center gap-2 py-4 rounded-xl text-sm font-bold transition-all duration-300 ${editState.habitType === 'good' || !editState.habitType ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/20' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}
           >
-            <FlameIcon className="w-4 h-4" />
-            בניית הרגל
+            <FlameIcon className="w-5 h-5" />
+            Build Habit
           </button>
           <button
             type="button"
             onClick={() =>
               dispatch({ type: 'SET_FIELD', payload: { field: 'habitType', value: 'bad' } })
             }
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all ${editState.habitType === 'bad' ? 'bg-red-500 text-white shadow-lg' : 'text-[var(--text-secondary)] hover:bg-white/5'}`}
+            className={`flex items-center justify-center gap-2 py-4 rounded-xl text-sm font-bold transition-all duration-300 ${editState.habitType === 'bad' ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg shadow-red-500/20' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}
           >
-            <ShieldCheckIcon className="w-4 h-4" />
-            גמילה
+            <ShieldCheckIcon className="w-5 h-5" />
+            Quit Habit
           </button>
         </div>
-        <p className="text-xs text-[var(--text-secondary)] mt-2 px-1">
+        <p className="text-xs text-white/30 mt-3 px-1 text-center">
           {editState.habitType === 'bad'
-            ? 'עבור הרגלי גמילה (כמו הפסקת עישון), המערכת תספור את הזמן שעבר מאז המעידה האחרונה.'
-            : 'עבור הרגלים חיוביים (כמו כושר), המערכת תעקוב אחרי רצף הביצועים היומיומי שלך.'}
+            ? 'For quit habits, we track time since your last relapse.'
+            : 'For build habits, we track your daily consistency streak.'}
         </p>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">הערות</label>
+      <div className="group">
+        <label className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2 block group-focus-within:text-white/80 transition-colors">Notes</label>
         <textarea
           dir="auto"
           value={editState.content}
@@ -100,15 +100,19 @@ export const HabitEdit: React.FC<EditProps> = ({ editState, dispatch }) => {
             dispatch({ type: 'SET_FIELD', payload: { field: 'content', value: e.target.value } })
           }
           rows={3}
-          className={inputStyles}
+          className="w-full bg-white/5 text-lg text-white p-4 rounded-xl border border-white/10 focus:outline-none focus:bg-black/40 focus:border-white/20 transition-all resize-none placeholder-white/20"
+          placeholder="Details about this habit..."
         />
       </div>
 
-      <div className="p-4 bg-[var(--bg-secondary)] rounded-lg">
-        <div className="flex justify-between items-center">
-          <label htmlFor="reminderEnabled" className="font-medium text-white">
-            תזכורת יומית
-          </label>
+      <div className="p-5 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 rounded-2xl border border-white/5">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <label htmlFor="reminderEnabled" className="font-bold text-white text-lg block">
+              Daily Reminder
+            </label>
+            <p className="text-xs text-white/40 mt-0.5">Get notified every day to check in.</p>
+          </div>
           <ToggleSwitch
             id="reminderEnabled"
             checked={editState.reminderEnabled || false}
@@ -118,26 +122,28 @@ export const HabitEdit: React.FC<EditProps> = ({ editState, dispatch }) => {
           />
         </div>
         {editState.reminderEnabled && (
-          <div className="mt-3">
+          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
             <label
               htmlFor="reminderTime"
-              className="block text-sm font-medium text-[var(--text-secondary)] mb-1"
+              className="text-xs font-bold text-white/40 uppercase tracking-wider mb-2 block"
             >
-              שעת התזכורת
+              Time
             </label>
-            <input
-              type="time"
-              id="reminderTime"
-              value={editState.reminderTime || '09:00'}
-              onChange={e =>
-                dispatch({
-                  type: 'SET_FIELD',
-                  payload: { field: 'reminderTime', value: e.target.value },
-                })
-              }
-              className={inputStyles + ' text-center'}
-              style={{ colorScheme: 'dark' }}
-            />
+            <div className="relative overflow-hidden rounded-xl bg-black/20 border border-white/10 hover:border-white/20 transition-all focus-within:ring-2 ring-white/10">
+              <input
+                type="time"
+                id="reminderTime"
+                value={editState.reminderTime || '09:00'}
+                onChange={e =>
+                  dispatch({
+                    type: 'SET_FIELD',
+                    payload: { field: 'reminderTime', value: e.target.value },
+                  })
+                }
+                className="w-full bg-transparent p-4 text-white text-xl font-bold text-center outline-none [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-50"
+                style={{ colorScheme: 'dark' }}
+              />
+            </div>
           </div>
         )}
       </div>

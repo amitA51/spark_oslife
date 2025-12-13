@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { PersonalExercise, Exercise, WorkoutGoal } from '../../types';
 import * as dataService from '../../services/dataService';
-import { SearchIcon, AddIcon, StarIcon, CloseIcon, DumbbellIcon, FlameIcon, TargetIcon, TrophyIcon } from '../icons';
+import { SearchIcon, AddIcon, StarIcon, CloseIcon, DumbbellIcon, FlameIcon, TargetIcon } from '../icons';
 import { getWorkoutSessions } from '../../services/dataService';
 import { calculatePRsFromHistory, PersonalRecord } from '../../services/prService';
 import './workout-premium.css';
@@ -108,7 +108,7 @@ const ExerciseCard = motion(({ exercise, stats, isSelected, onSelect, index }: E
         boxShadow: isSelected
           ? '0 8px 32px rgba(99, 102, 241, 0.2), 0 0 1px rgba(255,255,255,0.1)'
           : '0 4px 24px rgba(0,0,0,0.2)'
-      }}
+      } as any}
     >
       <div className="flex items-center gap-4">
         {/* Icon */}
@@ -217,7 +217,7 @@ const CategoryPill = ({ label, emoji, isActive, onClick }: CategoryPillProps) =>
     style={isActive ? {
       background: 'linear-gradient(135deg, var(--cosmos-accent-primary) 0%, var(--cosmos-accent-cyan) 100%)',
       boxShadow: '0 0 30px rgba(99, 102, 241, 0.4), 0 4px 16px rgba(0,0,0,0.3)'
-    } : {}}
+    } as any : {}}
   >
     {emoji && <span className="text-lg">{emoji}</span>}
     <span>{label}</span>
@@ -228,7 +228,7 @@ const CategoryPill = ({ label, emoji, isActive, onClick }: CategoryPillProps) =>
         className="absolute inset-0 rounded-2xl -z-10"
         style={{
           background: 'linear-gradient(135deg, var(--cosmos-accent-primary) 0%, var(--cosmos-accent-cyan) 100%)',
-        }}
+        } as any}
         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
       />
     )}
@@ -280,7 +280,7 @@ const QuickCreatePanel = ({ isOpen, onClose, onCreate, isCreating, muscleGroups 
             background: 'linear-gradient(145deg, rgba(99, 102, 241, 0.15) 0%, rgba(6, 182, 212, 0.1) 100%)',
             border: '1px solid rgba(99, 102, 241, 0.3)',
             boxShadow: '0 20px 60px rgba(99, 102, 241, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
-          }}
+          } as any}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
@@ -344,7 +344,7 @@ const QuickCreatePanel = ({ isOpen, onClose, onCreate, isCreating, muscleGroups 
               style={{
                 background: 'linear-gradient(135deg, var(--cosmos-accent-primary) 0%, var(--cosmos-accent-cyan) 100%)',
                 boxShadow: '0 0 30px rgba(99, 102, 241, 0.4)'
-              }}
+              } as any}
             >
               {isCreating ? (
                 <>
@@ -528,11 +528,11 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   }, [exercises]);
 
   const presets = [
-    { id: 'all', label: 'הכל' },
-    { id: 'push', label: 'דחיפה' },
-    { id: 'pull', label: 'משיכה' },
-    { id: 'legs', label: 'רגליים' },
-    { id: 'full', label: 'גוף מלא' },
+    { id: 'all', label: 'הכל', emoji: '♾️' },
+    { id: 'push', label: 'דחיפה', emoji: '💪' },
+    { id: 'pull', label: 'משיכה', emoji: '🤝' },
+    { id: 'legs', label: 'רגליים', emoji: '🦵' },
+    { id: 'full', label: 'גוף מלא', emoji: '🏋️' },
   ];
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
@@ -551,7 +551,7 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
       {/* Backdrop */}
       <motion.div
         className="absolute inset-0 bg-black/90 backdrop-blur-2xl"
-        style={{ opacity: backdropOpacity }}
+        style={{ opacity: backdropOpacity } as any}
         onClick={onClose}
       />
 
@@ -569,7 +569,7 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
           y,
           background: 'linear-gradient(180deg, rgba(15,15,25,0.98) 0%, rgba(10,10,18,0.99) 100%)',
           boxShadow: '0 -20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)'
-        }}
+        } as any}
         drag="y"
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={{ top: 0, bottom: 0.5 }}
@@ -676,7 +676,7 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                 <DumbbellIcon className="w-10 h-10 text-white/20" />
               </div>
               <h3 className="text-xl font-bold text-white mb-2">
-                {searchQuery ? 'לא נמצאו תוצאות' : 'עוד אין תרגילים'}
+                {searchQuery ? 'לא נמצאו תוצאות' : 'הספרייה ריקה'}
               </h3>
               <p className="text-white/40 text-sm mb-6 max-w-[240px]">
                 {searchQuery ? 'נסה מילות חיפוש אחרות או צור תרגיל חדש' : 'צור את התרגיל הראשון שלך'}
@@ -689,7 +689,7 @@ const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                 style={{
                   background: 'linear-gradient(135deg, var(--cosmos-accent-primary) 0%, var(--cosmos-accent-cyan) 100%)',
                   boxShadow: '0 0 30px rgba(99, 102, 241, 0.4)'
-                }}
+                } as any}
               >
                 + צור תרגיל חדש
               </motion.button>

@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useCallback } from 'react';
 import type { FeedItem } from '../types';
 import { SparklesIcon, FeedIcon, CheckCircleIcon, BrainCircuitIcon, LinkIcon, ClockIcon, BookmarkIcon } from './icons';
 import { getTagColor } from './icons';
-import { useSettings } from '../src/contexts/SettingsContext';
+import { useHaptics } from '../hooks/useHaptics';
+import { UltraCard } from './ui/UltraCard';
 
-interface FeedCardV2Props {
+interface FeedCardProps {
   item: FeedItem;
   index: number;
   onSelect: (item: FeedItem, event: React.MouseEvent | React.KeyboardEvent) => void;
@@ -12,33 +13,30 @@ interface FeedCardV2Props {
   onContextMenu: (event: React.MouseEvent, item: FeedItem) => void;
   isInSelectionMode: boolean;
   isSelected: boolean;
+  onMarkAsRead?: (item: FeedItem) => void;
+  onToggleSave?: (item: FeedItem) => void;
+  priority?: boolean;
 }
 
 // Extract image from content or use og:image
 const extractImageFromContent = (content: string, link?: string): string | null => {
-  // Try to extract first image from HTML content
   const imgMatch = content?.match(/<img[^>]+src=["']([^"']+)["']/i);
   if (imgMatch?.[1]) {
-    // Filter out tiny tracking images
     const src = imgMatch[1];
     if (!src.includes('pixel') && !src.includes('tracking') && !src.includes('1x1')) {
       return src;
     }
   }
-
-  // Try to extract from enclosure or media
   const mediaMatch = content?.match(/<enclosure[^>]+url=["']([^"']+)["']/i);
   if (mediaMatch?.[1]) return mediaMatch[1];
-
   return null;
 };
 
-// Calculate reading time from content
 const calculateReadingTime = (content: string): number => {
   if (!content) return 1;
   const text = content.replace(/<[^>]*>/g, '');
   const words = text.split(/\s+/).filter(Boolean).length;
-  const minutes = Math.ceil(words / 200); // Average reading speed
+  const minutes = Math.ceil(words / 200);
   return Math.max(1, Math.min(minutes, 30));
 };
 
@@ -51,304 +49,214 @@ const getFaviconUrl = (link: string) => {
   }
 };
 
-const FeedCardV2: React.FC<FeedCardV2Props> = ({
+const FeedCard: React.FC<FeedCardProps> = ({
   item,
   index,
+  onSelect,
+  onLongPress,
+  onContextMenu,
   isInSelectionMode,
   isSelected,
+  onMarkAsRead,
+  onToggleSave,
+  priority = false,
 }) => {
-  const { settings } = useSettings();
-  const { cardStyle } = settings.themeSettings;
+  const { triggerHaptic } = useHaptics();
   const cardRef = useRef<HTMLDivElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const swipeThreshold = 80;
 
-  // PERFORMANCE: Memoize expensive calculations
   const thumbnailUrl = useMemo(() => extractImageFromContent(item.content || '', item.link), [item.content, item.link]);
   const readingTime = useMemo(() => calculateReadingTime(item.content || ''), [item.content]);
   const showImage = thumbnailUrl && !imageError && item.type === 'rss';
 
-  useEffect(() => {
-    const card = cardRef.current;
-    if (!card || cardStyle !== 'glass') return;
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches[0]) touchStartX.current = e.touches[0].clientX;
+  }, []);
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      card.style.setProperty('--mouse-x', `${x}px`);
-      card.style.setProperty('--mouse-y', `${y}px`);
-    };
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || !e.touches[0]) return;
+    const diff = e.touches[0].clientX - touchStartX.current;
+    if (Math.abs(diff) < 150) setSwipeOffset(diff);
+  }, []);
 
-    card.addEventListener('mousemove', handleMouseMove, { passive: true });
-
-    return () => {
-      if (card) {
-        card.removeEventListener('mousemove', handleMouseMove);
+  const handleTouchEnd = useCallback(() => {
+    if (touchStartX.current === null) return;
+    if (swipeOffset > swipeThreshold) {
+      if (onMarkAsRead && !item.is_read) {
+        triggerHaptic('light');
+        onMarkAsRead(item);
       }
-    };
-  }, [cardStyle]);
+    } else if (swipeOffset < -swipeThreshold) {
+      if (onToggleSave) {
+        triggerHaptic('light');
+        onToggleSave(item);
+      }
+    }
+    setSwipeOffset(0);
+    touchStartX.current = null;
+  }, [swipeOffset, swipeThreshold, item, onMarkAsRead, onToggleSave, triggerHaptic]);
 
-  const contentSnippet =
-    item.summary_ai || item.content?.split('\n')[0]?.replace(/<[^>]*>?/gm, '') || '';
+  const sourceText = useMemo(() => {
+    if (item.type === 'rss' && item.link) return new URL(item.link).hostname.replace('www.', '');
+    if (item.type === 'spark') return item.source === 'AI_GENERATED' ? 'Spark AI' : 'ספארק אישי';
+    if (item.type === 'mentor') return item.title.split(':')[0] || 'מנטור';
+    return 'לא ידוע';
+  }, [item]);
 
-  let sourceText: string;
-  let TypeIcon: React.FC<any> = FeedIcon;
-  // Always use dynamic accent color from theme
-  const accentColor = 'var(--dynamic-accent-start)';
-
-  if (item.type === 'rss' && item.link) {
-    sourceText = new URL(item.link).hostname.replace('www.', '');
-    TypeIcon = FeedIcon;
-  } else if (item.type === 'spark') {
-    sourceText = item.source === 'AI_GENERATED' ? 'Spark AI' : 'ספארק אישי';
-    TypeIcon = item.source === 'AI_GENERATED' ? BrainCircuitIcon : SparklesIcon;
-  } else if (item.type === 'mentor') {
-    sourceText = item.title.split(':')[0] || 'מנטור';
-    TypeIcon = BrainCircuitIcon;
-  } else {
-    sourceText = 'לא ידוע';
-  }
+  const TypeIcon = useMemo(() => {
+    if (item.type === 'rss') return FeedIcon;
+    if (item.type === 'spark') return item.source === 'AI_GENERATED' ? BrainCircuitIcon : SparklesIcon;
+    return BrainCircuitIcon;
+  }, [item.type, item.source]);
 
   const faviconUrl = item.type === 'rss' && item.link ? getFaviconUrl(item.link) : null;
 
-  // PERFORMANCE: Memoize time ago formatting
   const timeAgo = useMemo(() => {
-    const now = new Date();
-    const created = new Date(item.createdAt);
-    const diffMs = now.getTime() - created.getTime();
+    const diffMs = new Date().getTime() - new Date(item.createdAt).getTime();
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
-
     if (diffMins < 1) return 'עכשיו';
     if (diffMins < 60) return `לפני ${diffMins} דק'`;
     if (diffHours < 24) return `לפני ${diffHours} שע'`;
     if (diffDays < 7) return `לפני ${diffDays} ימים`;
-    return created.toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
+    return new Date(item.createdAt).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
   }, [item.createdAt]);
 
+  const contentSnippet = item.summary_ai || item.content?.split('\n')[0]?.replace(/<[^>]*>?/gm, '') || '';
+
+  // Use UltraCard for the base styling
   return (
-    <div
-      ref={cardRef}
-      className={`
-        spark-card group
-        ${item.is_read && !isInSelectionMode ? 'opacity-60' : ''}
-        ${isSelected ? 'ring-2 ring-[var(--dynamic-accent-start)] bg-[var(--dynamic-accent-start)]/10 border-[var(--dynamic-accent-start)]/30' : ''}
-      `}
-      style={{
-        animationDelay: `${index * 50}ms`,
-        ['--accent-color' as any]: accentColor
-      }}
-    >
-      {/* Gradient Glow Effect on Hover */}
+    <div className="relative mb-3 touch-pan-y">
+      {/* Swipe Indicators */}
+      <div className={`absolute inset-0 flex items-center justify-start pl-6 transition-opacity duration-200 bg-emerald-500/10 text-emerald-400 rounded-3xl ${swipeOffset > 0 ? 'opacity-100' : 'opacity-0'}`}>
+        <CheckCircleIcon className="w-6 h-6" />
+        <span className="mr-2 text-sm font-medium">נקרא</span>
+      </div>
+      <div className={`absolute inset-0 flex items-center justify-end pr-6 transition-opacity duration-200 bg-amber-500/10 text-amber-400 rounded-3xl ${swipeOffset < 0 ? 'opacity-100' : 'opacity-0'}`}>
+        <span className="ml-2 text-sm font-medium">שמור</span>
+        <BookmarkIcon className="w-6 h-6" />
+      </div>
+
       <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-        style={{
-          background: `radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${accentColor}10, transparent 40%)`
-        }}
-      />
+        ref={cardRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={(e) => !isInSelectionMode && onSelect(item, e)}
+        onContextMenu={(e) => onContextMenu(e, item)}
+        style={{ transform: `translateX(${swipeOffset}px)` }}
+        className="transition-transform duration-200 ease-out"
+      >
+        <UltraCard
+          variant="glass"
+          glowColor={item.isImportant ? 'gold' : 'neutral'}
+          className={`
+             p-0 border-white/5 
+             ${isInSelectionMode ? 'opacity-90' : ''} 
+             ${item.is_read ? 'opacity-70 bg-black/20' : 'bg-black/40'}
+             ${isSelected ? 'ring-2 ring-[var(--dynamic-accent-start)]' : ''}
+          `}
+          noPadding
+        >
+          {showImage && (
+            <div className="relative h-48 w-full overflow-hidden">
+              <img
+                src={thumbnailUrl}
+                alt=""
+                className={`w-full h-full object-cover transition-all duration-700 ${imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-105'}`}
+                onLoad={() => setImageLoaded(true)}
+                onError={() => setImageError(true)}
+                loading={priority ? 'eager' : 'lazy'}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
-      {/* Unread Indicator Bar */}
-      {!item.is_read && (
-        <div
-          className="absolute top-0 left-0 right-0 h-[2px] opacity-80"
-          style={{
-            background: `linear-gradient(90deg, transparent, var(--dynamic-accent-start), transparent)`
-          }}
-        />
-      )}
-
-      {/* Selection Overlay */}
-      {isInSelectionMode && (
-        <div className="absolute inset-0 bg-black/50 z-20 flex items-center justify-center rounded-[1.5rem] backdrop-blur-[2px]">
-          <div
-            className={`
-              w-10 h-10 rounded-full border-2 flex items-center justify-center 
-              transition-all duration-200 ease-out
-              ${isSelected
-                ? 'bg-[var(--dynamic-accent-start)] border-[var(--dynamic-accent-start)] scale-110'
-                : 'border-white/40 bg-black/40 hover:border-white/60'
-              }
-            `}
-          >
-            {isSelected && <CheckCircleIcon className="w-6 h-6 text-white" />}
-          </div>
-        </div>
-      )}
-
-      {/* Main Content Area */}
-      <div className={`relative z-10 ${isInSelectionMode ? 'opacity-40' : ''}`}>
-
-        {/* Image Thumbnail (if available) */}
-        {showImage && (
-          <div className="relative w-full h-40 overflow-hidden rounded-t-[1.5rem] -mt-px -mx-px">
-            <img
-              src={thumbnailUrl}
-              alt=""
-              onLoad={() => setImageLoaded(true)}
-              onError={() => setImageError(true)}
-              className={`
-                w-full h-full object-cover
-                transition-all duration-500
-                ${imageLoaded ? 'opacity-100 blur-0' : 'opacity-0 blur-sm'}
-              `}
-            />
-            {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0F0F1A] via-transparent to-transparent" />
-
-            {/* Floating Source Badge on Image */}
-            <div className="absolute top-3 right-3 flex items-center gap-2 px-2.5 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/10">
-              {faviconUrl ? (
-                <img src={faviconUrl} alt="" className="w-4 h-4 rounded-full" />
-              ) : (
-                <TypeIcon className="w-3.5 h-3.5" style={{ color: accentColor }} />
-              )}
-              <span className="text-[10px] font-semibold text-white/90 uppercase tracking-wide">
-                {sourceText}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Card Body */}
-        <div className={`p-5 ${showImage ? 'pt-4' : ''}`}>
-          {/* Header: Source Metadata (only if no image) */}
-          {!showImage && (
-            <div className="flex justify-between items-center mb-3">
-              <div className="flex items-center gap-2.5">
-                {faviconUrl ? (
-                  <div className="relative">
-                    <img
-                      src={faviconUrl}
-                      alt=""
-                      className="w-7 h-7 rounded-lg bg-white/5 p-0.5 shadow-sm"
-                    />
-                    {!item.is_read && (
-                      <span
-                        className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full animate-pulse"
-                        style={{
-                          backgroundColor: accentColor,
-                          boxShadow: `0 0 8px ${accentColor}`
-                        }}
-                      />
-                    )}
-                  </div>
-                ) : (
-                  <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: `${accentColor}15` }}
-                  >
-                    <TypeIcon className="w-4 h-4" style={{ color: accentColor }} />
-                  </div>
-                )}
-                <div className="flex flex-col">
-                  <span
-                    className="text-[11px] font-bold tracking-wider uppercase"
-                    style={{ color: accentColor }}
-                  >
-                    {sourceText}
-                  </span>
-                  <span className="text-[10px] text-white/40 font-medium">
-                    {timeAgo}
-                  </span>
-                </div>
+              <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                <span className="px-2 py-1 rounded-full bg-black/50 backdrop-blur-md text-[10px] font-medium text-white border border-white/10 uppercase tracking-wider">
+                  {sourceText}
+                </span>
               </div>
-
-              {/* Reading Time Badge */}
-              {item.type === 'rss' && (
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/5 border border-white/5">
-                  <ClockIcon className="w-3 h-3 text-white/40" />
-                  <span className="text-[10px] font-medium text-white/50">
-                    {readingTime} דק'
-                  </span>
-                </div>
-              )}
             </div>
           )}
 
-          {/* Title & Snippet */}
-          <div className="space-y-2">
-            <h3 className={`
-              text-[17px] font-bold text-white leading-snug 
-              group-hover:text-[var(--dynamic-accent-start)]
-              transition-colors duration-200
-              line-clamp-2 tracking-tight
-              ${item.is_read ? 'text-white/70' : ''}
-            `}>
+          <div className="p-5">
+            {!showImage && (
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  {faviconUrl ? (
+                    <img src={faviconUrl} alt="" className="w-5 h-5 rounded-full" />
+                  ) : (
+                    <TypeIcon className="w-5 h-5 text-white/50" />
+                  )}
+                  <span className="text-xs font-medium text-white/60">{sourceText}</span>
+                  <span className="text-[10px] text-white/30">• {timeAgo}</span>
+                </div>
+                {item.type === 'rss' && (
+                  <div className="flex items-center gap-1 text-[10px] text-white/30 bg-white/5 px-2 py-0.5 rounded-full">
+                    <ClockIcon className="w-3 h-3" />
+                    {readingTime} דק'
+                  </div>
+                )}
+              </div>
+            )}
+
+            <h3 className={`text-lg font-bold leading-tight mb-2 ${item.is_read ? 'text-white/60' : 'text-white'}`}>
               {item.title}
             </h3>
 
             {contentSnippet && (
-              <p className="text-[13px] text-white/45 line-clamp-2 leading-relaxed font-normal">
-                {contentSnippet.substring(0, 150)}
+              <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed">
+                {contentSnippet.substring(0, 140)}...
               </p>
             )}
-          </div>
 
-          {/* Footer: Tags, Time (if image), Actions */}
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Time (shown here if image is present) */}
-              {showImage && (
-                <span className="text-[10px] text-white/40 font-medium mr-1">
-                  {timeAgo}
-                </span>
-              )}
+            <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+              <div className="flex gap-2">
+                {item.tags.slice(0, 2).map(tag => {
+                  const colors = getTagColor(tag.name);
+                  return (
+                    <span
+                      key={tag.id}
+                      className="text-[10px] px-2 py-1 rounded-md font-medium"
+                      style={{ backgroundColor: colors.backgroundColor, color: colors.textColor }}
+                    >
+                      #{tag.name}
+                    </span>
+                  )
+                })}
+              </div>
 
-              {/* Tags */}
-              {item.tags.slice(0, 2).map(tag => {
-                const colors = getTagColor(tag.name);
-                return (
-                  <span
-                    key={tag.id}
-                    className="text-[10px] font-bold px-2 py-1 rounded-md border transition-all duration-200 hover:scale-105"
-                    style={{
-                      backgroundColor: colors.backgroundColor,
-                      color: colors.textColor,
-                      borderColor: `${colors.textColor}20`
-                    }}
-                  >
-                    {tag.name}
-                  </span>
-                );
-              })}
-
-              {/* Reading time (if image shown) */}
-              {showImage && item.type === 'rss' && (
-                <div className="flex items-center gap-1 text-white/40">
-                  <ClockIcon className="w-3 h-3" />
-                  <span className="text-[10px] font-medium">{readingTime} דק'</span>
-                </div>
-              )}
-            </div>
-
-            {/* Action Hints */}
-            <div className="flex items-center gap-1">
-              {item.isImportant && (
-                <div className="p-1.5 rounded-lg bg-yellow-500/10">
-                  <BookmarkIcon className="w-4 h-4 text-yellow-400" />
-                </div>
-              )}
-              {item.link && (
-                <div className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-1.5 rounded-lg hover:bg-white/10">
-                  <LinkIcon className="w-4 h-4 text-white/40 group-hover:text-white/70" />
-                </div>
-              )}
+              <div className="flex gap-2">
+                {item.link && (
+                  <button className="p-1.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-colors">
+                    <LinkIcon className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+
+          {/* Unread dot */}
+          {!item.is_read && (
+            <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-accent-cyan shadow-[0_0_8px_var(--color-accent-cyan)]" />
+          )}
+
+          {/* Selection Checkmark Overlay */}
+          {isInSelectionMode && (
+            <div className="absolute inset-0 bg-black/60 z-20 flex items-center justify-center backdrop-blur-[1px]">
+              <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-accent-cyan border-accent-cyan' : 'border-white/30 bg-black/30'}`}>
+                {isSelected && <CheckCircleIcon className="w-6 h-6 text-white" />}
+              </div>
+            </div>
+          )}
+        </UltraCard>
       </div>
-
-      {/* Subtle Noise Texture Overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.015] mix-blend-overlay rounded-[1.5rem]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
-        }}
-      />
     </div>
   );
 };
 
-export default React.memo(FeedCardV2);
+export default React.memo(FeedCard);

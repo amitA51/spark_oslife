@@ -33,7 +33,7 @@ const SkeletonBase: React.FC<{
   animate?: boolean;
 }> = ({ className = '', style, animate = true }) => (
   <div
-    className={`relative overflow-hidden bg-white/[0.06] ${className}`}
+    className={`relative overflow-hidden bg-white/[0.03] ${className}`}
     style={style}
     role="status"
     aria-busy="true"
@@ -41,20 +41,20 @@ const SkeletonBase: React.FC<{
   >
     {animate && (
       <motion.div
-        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.08] to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.05] to-transparent"
         initial={{ x: '-100%' }}
         animate={{ x: '100%' }}
         transition={{
-          duration: 1.2,
+          duration: 2,
           repeat: Infinity,
           ease: 'easeInOut',
-          repeatDelay: 0.3,
+          repeatDelay: 0.5,
         }}
       />
     )}
-    {/* Subtle inner glow */}
+    {/* Subtle inner glow - Quiet Luxury: reduced opacity */}
     <div
-      className="absolute inset-0 opacity-30"
+      className="absolute inset-0 opacity-15"
       style={{
         background: 'radial-gradient(ellipse at 50% 0%, var(--dynamic-accent-glow), transparent 70%)',
       }}
@@ -131,7 +131,7 @@ export const SkeletonText: React.FC<{
   );
 
 export const SkeletonCard: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div className={`p-4 rounded-2xl bg-white/[0.03] border border-white/[0.05] ${className}`}>
+  <div className={`p-4 rounded-2xl bg-white/[0.02] border border-white/[0.04] ${className}`}>
     <div className="flex items-center gap-3 mb-4">
       <SkeletonAvatar size={48} />
       <div className="flex-1 space-y-2">

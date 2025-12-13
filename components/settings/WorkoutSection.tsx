@@ -4,7 +4,7 @@ import ExerciseLibraryManager from '../../components/ExerciseLibraryManager';
 import { useSettings } from '../../src/contexts/SettingsContext';
 import {
   SettingsSection,
-  SettingsCard,
+  SettingsGroupCard,
   SettingsRow,
   SegmentedControl,
 } from './SettingsComponents';
@@ -18,7 +18,7 @@ const WorkoutSection: React.FC = () => {
 
   return (
     <SettingsSection title="הגדרות אימון" id="workout">
-      <SettingsCard title="הגדרות בסיסיות">
+      <SettingsGroupCard title="הגדרות בסיסיות">
         <SettingsRow
           title="זמן מנוחה ברירת מחדל (שניות)"
           description="כמה זמן לנוח בין סטים."
@@ -60,9 +60,9 @@ const WorkoutSection: React.FC = () => {
             ]}
           />
         </SettingsRow>
-      </SettingsCard>
+      </SettingsGroupCard>
 
-      <SettingsCard title="חווית משתמש">
+      <SettingsGroupCard title="חווית משתמש">
         <SettingsRow title="צלילים" description="השמע צלילי משוב במהלך האימון.">
           <ToggleSwitch
             checked={settings.workoutSettings.soundEnabled}
@@ -119,9 +119,9 @@ const WorkoutSection: React.FC = () => {
             }
           />
         </SettingsRow>
-      </SettingsCard>
+      </SettingsGroupCard>
 
-      <SettingsCard title="מטרות ואימום">
+      <SettingsGroupCard title="מטרות ואימום">
         <SettingsRow
           title="מטרת אימון ברירת מחדל"
           description="סוג האימון המועדף עליך."
@@ -183,9 +183,9 @@ const WorkoutSection: React.FC = () => {
             ]}
           />
         </SettingsRow>
-      </SettingsCard>
+      </SettingsGroupCard>
 
-      <SettingsCard title="מעקב משקל">
+      <SettingsGroupCard title="מעקב משקל">
         <SettingsRow
           title="עקוב אחר משקל גוף"
           description="שמור והצג היסטוריית משקל הגוף שלך."
@@ -200,9 +200,9 @@ const WorkoutSection: React.FC = () => {
             }
           />
         </SettingsRow>
-      </SettingsCard>
+      </SettingsGroupCard>
 
-      <SettingsCard title="תזכורות">
+      <SettingsGroupCard title="תזכורות">
         <SettingsRow
           title="תזכורות לאימון"
           description="קבל תזכורת יומית לאמן."
@@ -304,13 +304,14 @@ const WorkoutSection: React.FC = () => {
             />
           </SettingsRow>
         )}
-      </SettingsCard>
+      </SettingsGroupCard>
 
-      <SettingsCard title="ספריית תרגילים אישית">
+      <SettingsGroupCard title="ספריית תרגילים אישית">
         <ExerciseLibraryManager />
-      </SettingsCard>
+      </SettingsGroupCard>
     </SettingsSection>
   );
 };
 
 export default WorkoutSection;
+

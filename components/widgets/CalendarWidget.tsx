@@ -65,7 +65,7 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({ onClick }) => {
       {!isAuthenticated ? (
         <div className="flex flex-col items-center justify-center h-full text-center p-4">
           <GoogleCalendarIcon className="w-12 h-12 text-[var(--text-secondary)] opacity-20 mb-3" />
-          <p className="text-[var(--text-primary)] font-medium mb-1">אין חיבור ליומן</p>
+          <p className="text-[var(--text-primary)] font-medium mb-1">היומן לא מחובר</p>
           <p className="text-xs text-[var(--text-secondary)]">
             התחבר לגוגל בהגדרות כדי לראות אירועים
           </p>
@@ -73,7 +73,7 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({ onClick }) => {
       ) : events.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-full text-center text-[var(--text-secondary)]">
           <CalendarIcon className="w-12 h-12 mb-2 opacity-20" />
-          <p>אין אירועים קרובים</p>
+          <p>אין אירועים בשבוע הקרוב</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -97,7 +97,7 @@ const CalendarWidget: React.FC<CalendarWidgetProps> = ({ onClick }) => {
                   </p>
                   {event.location && (
                     <p className="text-xs text-[var(--text-secondary)] truncate mt-0.5">
-                      📍 {event.location}
+                      {event.location}
                     </p>
                   )}
                 </div>
